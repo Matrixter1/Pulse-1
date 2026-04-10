@@ -25,11 +25,24 @@ export function AuthProvider({ children }) {
   }, [])
 
   async function fetchProfile(userId) {
-    const { data } = await supabase
+    let { data, error } = await supabase
       .from('users')
       .select('*')
       .eq('id', userId)
       .single()
+
+    // Row missing (trigger may not have fired yet, or backfill needed).
+    // Upsert a fallback row so the app never runs profileless.
+    if (error?.code === 'PGRST116' || !data) {
+      const { data: { user } } = await supabase.auth.getUser()
+      const { data: upserted } = await supabase
+        .from('users')
+        .upsert({ id: userId, email: user?.email ?? '', tier: 'registered' }, { onConflict: 'id' })
+        .select()
+        .single()
+      data = upserted
+    }
+
     setProfile(data)
     setLoading(false)
   }
@@ -45,13 +58,26 @@ export function AuthProvider({ children }) {
   async function signUp(email, password) {
     const { data, error } = await supabase.auth.signUp({ email, password })
     if (error) throw error
+
+    // Optimistic client-side insert so the row exists immediately,
+    // even if the DB trigger fires a moment later or email
+    // confirmation is enabled (no active session yet).
+    // Uses upsert + service-role-safe ON CONFLICT so it never
+    // throws a duplicate-key error if the trigger already ran.
     if (data.user) {
-      await supabase.from('users').insert({
-        id: data.user.id,
-        email,
-        tier: 'registered',
-      })
+      const { error: insertError } = await supabase
+        .from('users')
+        .upsert(
+          { id: data.user.id, email, tier: 'registered' },
+          { onConflict: 'id', ignoreDuplicates: true }
+        )
+      // Log but don't throw — the DB trigger is the source of truth.
+      // A failure here (e.g. RLS blocks it pre-session) is non-fatal.
+      if (insertError) {
+        console.warn('[Pulse] signUp profile upsert blocked (trigger will handle it):', insertError.message)
+      }
     }
+
     return data
   }
 
