@@ -1,0 +1,95 @@
+:root {
+  --bg: #05060F;
+  --surface: #0A0C1A;
+  --surface2: #0F1228;
+  --gold: #C9A84C;
+  --gold-dim: rgba(201, 168, 76, 0.15);
+  --gold-border: rgba(201, 168, 76, 0.3);
+  --teal: #4CC9A8;
+  --teal-dim: rgba(76, 201, 168, 0.15);
+  --teal-border: rgba(76, 201, 168, 0.3);
+  --red: #C94C4C;
+  --text: #E8E6F0;
+  --text-muted: #7A7896;
+  --text-dim: #4A4866;
+  --font-display: 'Cormorant Garamond', serif;
+  --font-ui: 'Syne', sans-serif;
+  --radius: 12px;
+  --radius-lg: 18px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-ui);
+  -webkit-font-smoothing: antialiased;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+button {
+  font-family: var(--font-ui);
+  cursor: pointer;
+}
+
+input, select, textarea {
+  font-family: var(--font-ui);
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: var(--surface);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--gold-border);
+  border-radius: 3px;
+}
+
+/* Glass card */
+.glass {
+  background: rgba(10, 12, 26, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--gold-border);
+  border-radius: var(--radius-lg);
+}
+
+.glass-teal {
+  background: rgba(10, 12, 26, 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--teal-border);
+  border-radius: var(--radius-lg);
+}
+
+/* Utility */
+.gold { color: var(--gold); }
+.teal { color: var(--teal); }
+.muted { color: var(--text-muted); }
+
+/* Page wrapper */
+.page {
+  min-height: 100vh;
+  background: var(--bg);
+}
