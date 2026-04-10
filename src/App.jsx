@@ -5,6 +5,7 @@ import Feed from './pages/Feed'
 import Vote from './pages/Vote'
 import Results from './pages/Results'
 import Verify from './pages/Verify'
+import ResetPassword from './pages/ResetPassword'
 
 export default function App() {
   return (
@@ -17,6 +18,7 @@ export default function App() {
           <Route path="/vote/:id" element={<Vote />} />
           <Route path="/results/:id" element={<Results />} />
           <Route path="/verify" element={<Verify />} />
+          <Route path="/reset-password" element={<ResetPassword />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
