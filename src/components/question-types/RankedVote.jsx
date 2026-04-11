@@ -97,7 +97,7 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
         onClick={() => onSubmit({ rankedValues: items })}
         style={canVote ? { background: 'linear-gradient(135deg, #9B6FD8, #7a50c0)', color: '#fff', border: 'none' } : {}}
       >
-        {!canVote ? 'Sign in to Vote' : '◆ Submit Your Ranking'}
+        {!canVote ? 'Sign in to Submit Your Truth' : '◆ Submit Your Truth →'}
       </Button>
     </div>
   )

@@ -62,7 +62,7 @@ export default function ChoiceVote({ options = [], onSubmit, submitting, canVote
         onClick={() => onSubmit({ choiceValue: selected })}
         style={canVote && selected ? { background: 'linear-gradient(135deg, var(--teal), #2fa886)', color: '#05060F', border: 'none' } : {}}
       >
-        {!canVote ? 'Sign in to Vote' : !selected ? 'Select an option to vote' : '◉ Cast Your Vote'}
+        {!canVote ? 'Sign in to Cast Your Pulse' : !selected ? 'Select an option to vote' : '◉ Cast Your Pulse →'}
       </Button>
     </div>
   )

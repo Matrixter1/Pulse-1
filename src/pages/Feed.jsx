@@ -156,7 +156,7 @@ export default function Feed() {
                 {voteCounts[featuredQuestion.id]?.all?.total || 0} votes cast
               </span>
               <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.05em' }}>
-                Cast your vote →
+                Reveal the Signal →
               </span>
             </div>
 
@@ -344,7 +344,7 @@ function StatementCard({ question, counts, onClick }) {
       )}
       {total > 0
         ? getSummary()
-        : <div style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>Be the first to vote →</div>
+        : <div style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>Be the first to signal →</div>
       }
     </div>
   )
