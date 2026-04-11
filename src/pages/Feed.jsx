@@ -26,6 +26,28 @@ export default function Feed() {
 
   useEffect(() => { loadQuestions() }, [activeCategory])
 
+  // Save scroll position continuously while on feed
+  useEffect(() => {
+    const handleScroll = () => {
+      sessionStorage.setItem('feed_scroll', window.scrollY)
+    }
+    window.addEventListener('scroll', handleScroll, { passive: true })
+    return () => window.removeEventListener('scroll', handleScroll)
+  }, [])
+
+  // Restore scroll position after questions have rendered
+  useEffect(() => {
+    if (!loading && questions.length > 0) {
+      const saved = sessionStorage.getItem('feed_scroll')
+      if (saved) {
+        setTimeout(() => {
+          window.scrollTo({ top: parseInt(saved), behavior: 'instant' })
+          sessionStorage.removeItem('feed_scroll')
+        }, 80)
+      }
+    }
+  }, [loading, questions])
+
   async function loadQuestions() {
     setLoading(true)
 
@@ -95,7 +117,10 @@ export default function Feed() {
         {/* Featured / Pulse of the Day */}
         {featuredQuestion && (
           <div
-            onClick={() => navigate(`/vote/${featuredQuestion.id}`)}
+            onClick={() => {
+              sessionStorage.setItem('feed_scroll', window.scrollY)
+              navigate(`/vote/${featuredQuestion.id}`)
+            }}
             style={{
               position: 'relative',
               background: 'linear-gradient(135deg, rgba(201,168,76,0.08), rgba(10,12,26,0.95))',
@@ -229,7 +254,10 @@ export default function Feed() {
                             key={q.id}
                             question={q}
                             counts={voteCounts[q.id]}
-                            onClick={() => navigate(`/vote/${q.id}`)}
+                            onClick={() => {
+                              sessionStorage.setItem('feed_scroll', window.scrollY)
+                              navigate(`/vote/${q.id}`)
+                            }}
                           />
                         ))}
                       </div>
