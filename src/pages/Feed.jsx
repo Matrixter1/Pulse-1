@@ -250,6 +250,24 @@ function StatementCard({ question, counts, onClick }) {
 
   function getSummary() {
     if (!counts || total === 0) return null
+
+    const isLocked = question.reveal_mode && question.reveal_mode !== 'instant'
+    if (isLocked) {
+      return (
+        <div style={{
+          display: 'flex', alignItems: 'center', gap: 8,
+          fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic',
+        }}>
+          <span style={{ opacity: 0.5 }}>◈</span>
+          <span>
+            {question.reveal_mode === 'threshold'
+              ? `${total} voted · results reveal at ${question.reveal_threshold}`
+              : `${total} voted · results locked until reveal date`}
+          </span>
+        </div>
+      )
+    }
+
     if (type === 'statement') {
       const { Disagree, Neutral, Agree } = counts.all
       return (

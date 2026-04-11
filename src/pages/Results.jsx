@@ -1,10 +1,38 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import { fetchQuestion, fetchVotesForQuestion, calcResults, calcTruthGap, calcChoiceResults, calcRankedResults, calcChoiceTruthGap } from '../lib/data'
 import { useAuth } from '../lib/auth'
 import ChoiceResults from '../components/question-types/ChoiceResults'
 import RankedResults from '../components/question-types/RankedResults'
+
+function isResultsVisible(question, totalVotes) {
+  const mode = question?.reveal_mode || 'instant'
+  if (mode === 'instant') return { visible: true }
+  if (mode === 'threshold') {
+    const threshold = question.reveal_threshold || 10
+    if (totalVotes >= threshold) return { visible: true }
+    return {
+      visible: false,
+      mode: 'threshold',
+      current: totalVotes,
+      threshold,
+      message: `Results reveal when ${threshold} people have voted`,
+    }
+  }
+  if (mode === 'date') {
+    const revealDate = new Date(question.reveal_date)
+    const now = new Date()
+    if (now >= revealDate) return { visible: true }
+    return {
+      visible: false,
+      mode: 'date',
+      revealDate,
+      message: 'Results are locked until the reveal date',
+    }
+  }
+  return { visible: true }
+}
 
 export default function Results() {
   const { id } = useParams()
@@ -78,6 +106,8 @@ export default function Results() {
 
   const canSeeVerified = tier === 'registered' || tier === 'verified'
   const canSeeSplit = tier === 'verified'
+  const totalVotes = allResults?.total || 0
+  const visibility = isResultsVisible(question, totalVotes)
 
   return (
     <div className="page">
@@ -120,7 +150,13 @@ export default function Results() {
           </div>
         )}
 
-        {/* TRUTH GAP — the killer feature */}
+        {/* Locked Results — shown when reveal_mode hasn't triggered yet */}
+        {!visibility.visible && (
+          <LockedResults visibility={visibility} totalVotes={totalVotes} />
+        )}
+
+        {/* TRUTH GAP + all result panels — only shown when results are visible */}
+        {visibility.visible && (<>
         <div style={{
           background: canSeeSplit
             ? 'linear-gradient(135deg, rgba(76,201,168,0.08), rgba(201,168,76,0.08))'
@@ -302,6 +338,8 @@ export default function Results() {
         </div>
         )}
 
+        </>)}
+
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
           <button
@@ -344,6 +382,125 @@ export default function Results() {
           </button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function LockedResults({ visibility }) {
+  const [now, setNow] = useState(new Date())
+
+  useEffect(() => {
+    if (visibility.mode !== 'date') return
+    const interval = setInterval(() => setNow(new Date()), 1000)
+    return () => clearInterval(interval)
+  }, [visibility.mode])
+
+  function getCountdown() {
+    const diff = new Date(visibility.revealDate) - now
+    if (diff <= 0) return null
+    const days    = Math.floor(diff / (1000 * 60 * 60 * 24))
+    const hours   = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60))
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60))
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000)
+    return { days, hours, minutes, seconds }
+  }
+
+  const countdown = visibility.mode === 'date' ? getCountdown() : null
+
+  return (
+    <div style={{
+      background: 'rgba(10,12,26,0.8)',
+      border: '1px solid rgba(201,168,76,0.2)',
+      borderRadius: 'var(--radius-lg)',
+      padding: '48px 40px',
+      textAlign: 'center',
+      marginBottom: 28,
+      position: 'relative',
+      overflow: 'hidden',
+    }}>
+      <div style={{ fontSize: 32, marginBottom: 16, opacity: 0.6 }}>◈</div>
+
+      <div style={{
+        fontFamily: 'var(--font-display)',
+        fontSize: 22,
+        color: 'var(--gold)',
+        marginBottom: 12,
+        fontStyle: 'italic',
+      }}>
+        {visibility.mode === 'threshold' ? 'The signal is gathering...' : 'The signal is locked.'}
+      </div>
+
+      <p style={{
+        fontSize: 14,
+        color: 'var(--text-muted)',
+        maxWidth: 360,
+        margin: '0 auto 28px',
+      }}>
+        {visibility.message}
+      </p>
+
+      {/* Threshold progress bar */}
+      {visibility.mode === 'threshold' && (
+        <div style={{ maxWidth: 320, margin: '0 auto' }}>
+          <div style={{
+            display: 'flex', justifyContent: 'space-between',
+            fontSize: 12, color: 'var(--text-muted)', marginBottom: 8,
+          }}>
+            <span style={{ color: 'var(--gold)', fontWeight: 700 }}>{visibility.current} voted</span>
+            <span>{visibility.threshold} needed</span>
+          </div>
+          <div style={{ height: 6, background: 'rgba(255,255,255,0.06)', borderRadius: 3, overflow: 'hidden' }}>
+            <div style={{
+              height: '100%',
+              width: `${Math.min((visibility.current / visibility.threshold) * 100, 100)}%`,
+              background: 'linear-gradient(to right, var(--gold), var(--teal))',
+              borderRadius: 3,
+              transition: 'width 0.6s ease',
+              boxShadow: '0 0 8px rgba(201,168,76,0.4)',
+            }} />
+          </div>
+          <div style={{ fontSize: 12, color: 'var(--text-dim)', marginTop: 8, fontStyle: 'italic' }}>
+            {visibility.threshold - visibility.current} more {visibility.threshold - visibility.current === 1 ? 'vote' : 'votes'} to reveal
+          </div>
+        </div>
+      )}
+
+      {/* Date countdown */}
+      {visibility.mode === 'date' && countdown && (
+        <div style={{ display: 'flex', justifyContent: 'center', gap: 20, marginTop: 8 }}>
+          {[
+            { value: countdown.days,    label: 'days'  },
+            { value: countdown.hours,   label: 'hours' },
+            { value: countdown.minutes, label: 'min'   },
+            { value: countdown.seconds, label: 'sec'   },
+          ].map(({ value, label }) => (
+            <div key={label} style={{ textAlign: 'center' }}>
+              <div style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 42, fontWeight: 700,
+                color: 'var(--gold)', lineHeight: 1, minWidth: 56,
+              }}>
+                {String(value).padStart(2, '0')}
+              </div>
+              <div style={{
+                fontSize: 10, letterSpacing: '0.15em',
+                textTransform: 'uppercase', color: 'var(--text-dim)', marginTop: 4,
+              }}>
+                {label}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {/* Background glow */}
+      <div style={{
+        position: 'absolute', top: '50%', left: '50%',
+        transform: 'translate(-50%, -50%)',
+        width: 300, height: 300, borderRadius: '50%',
+        background: 'radial-gradient(circle, rgba(201,168,76,0.04) 0%, transparent 70%)',
+        pointerEvents: 'none',
+      }} />
     </div>
   )
 }

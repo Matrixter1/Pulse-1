@@ -69,6 +69,11 @@ function AddQuestionForm() {
   const [success, setSuccess]   = useState('')
   const [error, setError]       = useState('')
 
+  // Reveal visibility state
+  const [revealMode, setRevealMode]           = useState('instant')
+  const [revealThreshold, setRevealThreshold] = useState('')
+  const [revealDate, setRevealDate]           = useState('')
+
   // Image state — lifted here so handleSubmit can access file
   const [imageMode, setImageMode]       = useState('upload') // 'upload' | 'url'
   const [imageFile, setImageFile]       = useState(null)     // File object
@@ -102,6 +107,7 @@ function AddQuestionForm() {
   function resetForm() {
     setType('statement'); setCategory('Consumer'); setText(''); setOptions(['', ''])
     setImageMode('upload'); setImageFile(null); setImagePreview(''); setImageUrlInput('')
+    setRevealMode('instant'); setRevealThreshold(''); setRevealDate('')
   }
 
   async function handleSubmit(e) {
@@ -143,6 +149,9 @@ function AddQuestionForm() {
         type,
         options: needsOptions ? options.filter(o => o.trim()) : null,
         ...(resolvedImageUrl ? { image_url: resolvedImageUrl } : {}),
+        reveal_mode: revealMode,
+        reveal_threshold: revealMode === 'threshold' && revealThreshold ? parseInt(revealThreshold) : null,
+        reveal_date: revealMode === 'date' && revealDate ? new Date(revealDate).toISOString() : null,
       }
 
       const { error: dbErr } = await supabase.from('questions').insert(payload)
@@ -269,6 +278,16 @@ function AddQuestionForm() {
           onFileChange={handleFileChange}
           onUrlChange={handleUrlInput}
           onClear={() => { setImageFile(null); setImagePreview(''); setImageUrlInput('') }}
+        />
+
+        {/* Results Visibility */}
+        <VisibilityPicker
+          mode={revealMode}
+          threshold={revealThreshold}
+          date={revealDate}
+          onModeChange={setRevealMode}
+          onThresholdChange={setRevealThreshold}
+          onDateChange={setRevealDate}
         />
 
         {error   && <Banner color="var(--red)"  bg="var(--red-dim)"  border="var(--red-border)">{error}</Banner>}
@@ -431,6 +450,9 @@ function ManageQuestions() {
   const [editImagePreview, setEditImagePreview] = useState('')
   const [editSaving, setEditSaving]         = useState(false)
   const [editSuccess, setEditSuccess]       = useState('')
+  const [editRevealMode, setEditRevealMode]           = useState('instant')
+  const [editRevealThreshold, setEditRevealThreshold] = useState('')
+  const [editRevealDate, setEditRevealDate]           = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -469,6 +491,9 @@ function ManageQuestions() {
     setEditImagePreview(question.image_url || '')
     setEditImageFile(null)
     setEditImageMode('upload')
+    setEditRevealMode(question.reveal_mode || 'instant')
+    setEditRevealThreshold(question.reveal_threshold != null ? String(question.reveal_threshold) : '')
+    setEditRevealDate(question.reveal_date ? new Date(question.reveal_date).toISOString().slice(0, 16) : '')
     setConfirmDelete(null)
   }
 
@@ -478,6 +503,9 @@ function ManageQuestions() {
     setEditImageFile(null)
     setEditImageUrl('')
     setEditImagePreview('')
+    setEditRevealMode('instant')
+    setEditRevealThreshold('')
+    setEditRevealDate('')
   }
 
   async function handleSaveEdit(question) {
@@ -498,7 +526,13 @@ function ManageQuestions() {
 
       const { error } = await supabase
         .from('questions')
-        .update({ text: editText.trim(), image_url: resolvedImageUrl })
+        .update({
+          text: editText.trim(),
+          image_url: resolvedImageUrl,
+          reveal_mode: editRevealMode,
+          reveal_threshold: editRevealMode === 'threshold' && editRevealThreshold ? parseInt(editRevealThreshold) : null,
+          reveal_date: editRevealMode === 'date' && editRevealDate ? new Date(editRevealDate).toISOString() : null,
+        })
         .eq('id', question.id)
       if (error) throw error
 
@@ -579,6 +613,9 @@ function ManageQuestions() {
               editImagePreview={editImagePreview}
               editImageUrl={editImageUrl}
               editSaving={editSaving}
+              editRevealMode={editRevealMode}
+              editRevealThreshold={editRevealThreshold}
+              editRevealDate={editRevealDate}
               onDeleteClick={() => { closeEdit(); setConfirmDelete(q.id) }}
               onConfirm={() => handleDelete(q.id)}
               onCancel={() => setConfirmDelete(null)}
@@ -598,6 +635,9 @@ function ManageQuestions() {
               }}
               onEditUrlChange={val => { setEditImageUrl(val); setEditImagePreview(val) }}
               onEditClear={() => { setEditImageFile(null); setEditImageUrl(''); setEditImagePreview('') }}
+              onEditRevealModeChange={setEditRevealMode}
+              onEditRevealThresholdChange={setEditRevealThreshold}
+              onEditRevealDateChange={setEditRevealDate}
               onSave={() => handleSaveEdit(q)}
               onCancelEdit={closeEdit}
             />
@@ -611,8 +651,11 @@ function ManageQuestions() {
 function QuestionRow({
   question, voteCount, confirming, deleting, featuring,
   editing, editText, editImageMode, editImageFile, editImagePreview, editImageUrl, editSaving,
+  editRevealMode, editRevealThreshold, editRevealDate,
   onDeleteClick, onConfirm, onCancel, onFeature,
-  onEditClick, onEditTextChange, onEditImageModeSwitch, onEditFileChange, onEditUrlChange, onEditClear, onSave, onCancelEdit,
+  onEditClick, onEditTextChange, onEditImageModeSwitch, onEditFileChange, onEditUrlChange, onEditClear,
+  onEditRevealModeChange, onEditRevealThresholdChange, onEditRevealDateChange,
+  onSave, onCancelEdit,
 }) {
   const editFileRef = useRef(null)
   const truncated = question.text.length > 60 ? question.text.slice(0, 60) + '…' : question.text
@@ -763,6 +806,18 @@ function QuestionRow({
             )}
           </div>
 
+          {/* Results Visibility */}
+          <div style={{ marginBottom: 18 }}>
+            <VisibilityPicker
+              mode={editRevealMode}
+              threshold={editRevealThreshold}
+              date={editRevealDate}
+              onModeChange={onEditRevealModeChange}
+              onThresholdChange={onEditRevealThresholdChange}
+              onDateChange={onEditRevealDateChange}
+            />
+          </div>
+
           {/* Actions */}
           <div style={{ display: 'flex', gap: 8 }}>
             <button
@@ -799,6 +854,80 @@ function QuestionRow({
             <button onClick={onConfirm} disabled={deleting} style={{ background: 'var(--red)', border: 'none', color: '#fff', padding: '5px 14px', borderRadius: 6, fontSize: 12, fontWeight: 700, cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1 }}>
               {deleting ? 'Deleting…' : 'Yes, delete'}
             </button>
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ─── Visibility Picker ─────────────────────────────────────────────────────
+
+const REVEAL_MODES = [
+  { value: 'instant',   label: 'Instant' },
+  { value: 'threshold', label: 'Vote Threshold' },
+  { value: 'date',      label: 'Reveal Date' },
+]
+
+function VisibilityPicker({ mode, threshold, date, onModeChange, onThresholdChange, onDateChange }) {
+  return (
+    <div>
+      <FieldLabel>Results Visibility</FieldLabel>
+      {/* Three-pill toggle */}
+      <div style={{
+        display: 'flex', borderRadius: 'var(--radius)', overflow: 'hidden',
+        border: '1px solid rgba(201,168,76,0.2)', width: 'fit-content', marginBottom: 14,
+      }}>
+        {REVEAL_MODES.map((opt, i) => (
+          <button key={opt.value} type="button" onClick={() => onModeChange(opt.value)} style={{
+            padding: '8px 18px', border: 'none',
+            borderRight: i < REVEAL_MODES.length - 1 ? '1px solid rgba(201,168,76,0.2)' : 'none',
+            background: mode === opt.value ? 'rgba(201,168,76,0.15)' : 'transparent',
+            color: mode === opt.value ? 'var(--gold)' : 'var(--text-muted)',
+            fontFamily: 'var(--font-ui)', fontSize: 12, fontWeight: mode === opt.value ? 700 : 400,
+            cursor: 'pointer', transition: 'var(--transition)', whiteSpace: 'nowrap',
+          }}>
+            {opt.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Threshold input */}
+      {mode === 'threshold' && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <label style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              Reveal results after
+            </label>
+            <input
+              type="number" min={2} max={10000} value={threshold}
+              onChange={e => onThresholdChange(e.target.value)}
+              placeholder="e.g. 50"
+              style={{ ...inputStyle, width: 100 }}
+            />
+            <label style={{ fontSize: 12, color: 'var(--text-muted)' }}>votes</label>
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-dim)', fontStyle: 'italic' }}>
+            Results stay blurred until this many people have voted
+          </div>
+        </div>
+      )}
+
+      {/* Date input */}
+      {mode === 'date' && (
+        <div>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 6 }}>
+            <label style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>
+              Reveal results on
+            </label>
+            <input
+              type="datetime-local" value={date}
+              onChange={e => onDateChange(e.target.value)}
+              style={{ ...inputStyle, width: 'auto' }}
+            />
+          </div>
+          <div style={{ fontSize: 11, color: 'var(--text-dim)', fontStyle: 'italic' }}>
+            A live countdown will show until this date
           </div>
         </div>
       )}
