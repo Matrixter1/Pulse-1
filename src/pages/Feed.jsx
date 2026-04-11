@@ -28,19 +28,28 @@ export default function Feed() {
 
   async function loadQuestions() {
     setLoading(true)
-    try {
-      const [data, { data: featuredData }] = await Promise.all([
-        fetchQuestions(activeCategory),
-        supabase.from('questions').select('*').eq('featured', true).maybeSingle(),
-      ])
-      setQuestions(data)
-      setFeaturedQuestion(featuredData || null)
 
-      // Fetch votes for filtered questions + featured (if not already in list)
+    // Fetch featured question independently — never blocks the main feed
+    try {
+      const { data: featuredData, error: featErr } = await supabase
+        .from('questions')
+        .select('*')
+        .eq('featured', true)
+        .maybeSingle()
+      if (!featErr) setFeaturedQuestion(featuredData || null)
+    } catch (_) { /* column may not exist yet — silently skip */ }
+
+    // Fetch the main questions list + vote counts
+    try {
+      const data = await fetchQuestions(activeCategory)
+      setQuestions(data)
+
+      // Include featured question in vote-count fetch even if category-filtered out
       const toFetch = [...data]
-      if (featuredData && !data.find(q => q.id === featuredData.id)) {
-        toFetch.push(featuredData)
-      }
+      setFeaturedQuestion(prev => {
+        if (prev && !data.find(q => q.id === prev.id)) toFetch.push(prev)
+        return prev
+      })
 
       const counts = {}
       await Promise.all(toFetch.map(async q => {
@@ -184,9 +193,9 @@ export default function Feed() {
           : questions.length === 0
             ? <EmptyState message="Nothing here yet." />
             : (() => {
-                const statements = questions.filter(q => (q.type || 'statement') === 'statement')
-                const choices    = questions.filter(q => q.type === 'choice')
-                const ranked     = questions.filter(q => q.type === 'ranked')
+                const statements = questions.filter(q => (q.type || 'statement') === 'statement' && !q.featured)
+                const choices    = questions.filter(q => q.type === 'choice' && !q.featured)
+                const ranked     = questions.filter(q => q.type === 'ranked' && !q.featured)
                 const sections = [
                   { key: 'statement', icon: '◈', color: 'var(--gold)',  title: 'Statements', items: statements },
                   { key: 'choice',    icon: '◉', color: 'var(--teal)',  title: 'Choices',    items: choices    },
