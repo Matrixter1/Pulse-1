@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import { CategoryBadge, TypeBadge, PageLoading, EmptyState } from '../components/ui'
 import { fetchQuestions, fetchVotesForQuestion, calcResults, calcChoiceResults, calcRankedResults } from '../lib/data'
+import { supabase } from '../lib/supabase'
 import { CATEGORIES, CATEGORY_COLORS } from '../constants'
 
 function hexToRgb(hex) {
@@ -18,6 +19,7 @@ function parseOptions(raw) {
 export default function Feed() {
   const [activeCategory, setActiveCategory] = useState('All')
   const [questions, setQuestions] = useState([])
+  const [featuredQuestion, setFeaturedQuestion] = useState(null)
   const [voteCounts, setVoteCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
@@ -27,10 +29,21 @@ export default function Feed() {
   async function loadQuestions() {
     setLoading(true)
     try {
-      const data = await fetchQuestions(activeCategory)
+      const [data, { data: featuredData }] = await Promise.all([
+        fetchQuestions(activeCategory),
+        supabase.from('questions').select('*').eq('featured', true).maybeSingle(),
+      ])
       setQuestions(data)
+      setFeaturedQuestion(featuredData || null)
+
+      // Fetch votes for filtered questions + featured (if not already in list)
+      const toFetch = [...data]
+      if (featuredData && !data.find(q => q.id === featuredData.id)) {
+        toFetch.push(featuredData)
+      }
+
       const counts = {}
-      await Promise.all(data.map(async q => {
+      await Promise.all(toFetch.map(async q => {
         const votes = await fetchVotesForQuestion(q.id)
         const type = q.type || 'statement'
         const options = parseOptions(q.options)
@@ -67,6 +80,84 @@ export default function Feed() {
             Vote. Rank. Choose. See where verified truth diverges.
           </p>
         </div>
+
+        {/* Featured / Pulse of the Day */}
+        {featuredQuestion && (
+          <div
+            onClick={() => navigate(`/vote/${featuredQuestion.id}`)}
+            style={{
+              position: 'relative',
+              background: 'linear-gradient(135deg, rgba(201,168,76,0.08), rgba(10,12,26,0.95))',
+              border: '1px solid rgba(201,168,76,0.4)',
+              borderRadius: 'var(--radius-xl)',
+              padding: '32px 36px',
+              marginBottom: 36,
+              cursor: 'pointer',
+              overflow: 'hidden',
+              transition: 'var(--transition)',
+            }}
+          >
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+              <div style={{
+                width: 8, height: 8, borderRadius: '50%',
+                background: 'var(--gold)',
+                animation: 'pulse-dot 1.5s ease-in-out infinite',
+              }} />
+              <span style={{
+                fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase',
+                color: 'var(--gold)', fontWeight: 700,
+              }}>
+                Pulse of the Day
+              </span>
+              <CategoryBadge category={featuredQuestion.category} />
+              <TypeBadge type={featuredQuestion.type || 'statement'} />
+            </div>
+
+            <p style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(22px, 3vw, 30px)',
+              fontStyle: (featuredQuestion.type || 'statement') === 'statement' ? 'italic' : 'normal',
+              fontWeight: 600, color: '#FFFFFF', lineHeight: 1.35, marginBottom: 20,
+            }}>
+              {(featuredQuestion.type || 'statement') === 'statement'
+                ? `"${featuredQuestion.text}"`
+                : featuredQuestion.text}
+            </p>
+
+            {featuredQuestion.image_url && (
+              <div style={{
+                borderRadius: 'var(--radius)', overflow: 'hidden',
+                maxHeight: 200, marginBottom: 20,
+                border: '1px solid rgba(201,168,76,0.2)',
+              }}>
+                <img
+                  src={featuredQuestion.image_url} alt=""
+                  style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }}
+                />
+              </div>
+            )}
+
+            <div style={{
+              display: 'flex', alignItems: 'center',
+              justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
+            }}>
+              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                {voteCounts[featuredQuestion.id]?.all?.total || 0} votes cast
+              </span>
+              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.05em' }}>
+                Cast your vote →
+              </span>
+            </div>
+
+            {/* Background glow */}
+            <div style={{
+              position: 'absolute', top: -60, right: -60,
+              width: 200, height: 200, borderRadius: '50%',
+              background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%)',
+              pointerEvents: 'none',
+            }} />
+          </div>
+        )}
 
         {/* Category filter pills */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>

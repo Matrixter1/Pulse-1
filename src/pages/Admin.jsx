@@ -419,6 +419,8 @@ function ManageQuestions() {
   const [loading, setLoading]             = useState(true)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [deleting, setDeleting]           = useState(null)
+  const [featuring, setFeaturing]         = useState(null)
+  const [featureSuccess, setFeatureSuccess] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -450,6 +452,23 @@ function ManageQuestions() {
     }
   }
 
+  async function handleFeature(id, text) {
+    setFeaturing(id)
+    try {
+      // Unfeature all, then feature this one
+      await supabase.from('questions').update({ featured: false }).neq('id', '00000000-0000-0000-0000-000000000000')
+      await supabase.from('questions').update({ featured: true }).eq('id', id)
+      await load()
+      const label = text.length > 50 ? text.slice(0, 50) + '…' : text
+      setFeatureSuccess(`✓ "${label}" set as Pulse of the Day`)
+      setTimeout(() => setFeatureSuccess(''), 5000)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setFeaturing(null)
+    }
+  }
+
   return (
     <div style={{
       background: 'rgba(10,12,26,0.8)', border: '1px solid var(--gold-border)',
@@ -462,6 +481,16 @@ function ManageQuestions() {
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{questions.length} total</span>
       </div>
 
+      {featureSuccess && (
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+          background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
+          fontSize: 13, color: 'var(--gold)',
+        }}>
+          {featureSuccess}
+        </div>
+      )}
+
       {loading ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>Loading…</div>
       ) : questions.length === 0 ? (
@@ -469,7 +498,7 @@ function ManageQuestions() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 80px',
+            display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 170px',
             gap: 12, padding: '8px 12px',
             fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase',
             color: 'var(--text-dim)', fontWeight: 700,
@@ -481,9 +510,11 @@ function ManageQuestions() {
             <QuestionRow
               key={q.id} question={q} voteCount={voteCounts[q.id] || 0}
               confirming={confirmDelete === q.id} deleting={deleting === q.id}
+              featuring={featuring === q.id}
               onDeleteClick={() => setConfirmDelete(q.id)}
               onConfirm={() => handleDelete(q.id)}
               onCancel={() => setConfirmDelete(null)}
+              onFeature={() => handleFeature(q.id, q.text)}
             />
           ))}
         </div>
@@ -492,18 +523,20 @@ function ManageQuestions() {
   )
 }
 
-function QuestionRow({ question, voteCount, confirming, deleting, onDeleteClick, onConfirm, onCancel }) {
+function QuestionRow({ question, voteCount, confirming, deleting, featuring, onDeleteClick, onConfirm, onCancel, onFeature }) {
   const truncated = question.text.length > 60 ? question.text.slice(0, 60) + '…' : question.text
   const date = new Date(question.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
+  const isFeatured = !!question.featured
 
   return (
     <div style={{
-      background: confirming ? 'rgba(201,76,76,0.06)' : 'rgba(255,255,255,0.02)',
-      border: `1px solid ${confirming ? 'var(--red-border)' : 'rgba(255,255,255,0.05)'}`,
+      background: isFeatured ? 'rgba(201,168,76,0.04)' : confirming ? 'rgba(201,76,76,0.06)' : 'rgba(255,255,255,0.02)',
+      border: `1px solid ${isFeatured ? 'rgba(201,168,76,0.25)' : confirming ? 'var(--red-border)' : 'rgba(255,255,255,0.05)'}`,
       borderRadius: 'var(--radius)', transition: 'var(--transition)',
     }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 80px', gap: 12, padding: '13px 12px', alignItems: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 170px', gap: 12, padding: '13px 12px', alignItems: 'center' }}>
         <span style={{ fontSize: 13, color: 'var(--text)', fontStyle: question.type === 'statement' ? 'italic' : 'normal', lineHeight: 1.4 }} title={question.text}>
+          {isFeatured && <span style={{ fontSize: 10, color: 'var(--gold)', marginRight: 5 }}>★</span>}
           {question.type === 'statement' ? `"${truncated}"` : truncated}
         </span>
         <span><CategoryBadge category={question.category} /></span>
@@ -512,7 +545,25 @@ function QuestionRow({ question, voteCount, confirming, deleting, onDeleteClick,
           {voteCount}
         </span>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{date}</span>
-        <span style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <span style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+          {!confirming && (
+            <button
+              onClick={onFeature}
+              disabled={featuring || isFeatured}
+              title={isFeatured ? 'Currently featured' : 'Set as Pulse of the Day'}
+              style={{
+                background: isFeatured ? 'rgba(201,168,76,0.18)' : 'none',
+                border: `1px solid ${isFeatured ? 'var(--gold-border)' : 'rgba(201,168,76,0.3)'}`,
+                color: 'var(--gold)',
+                padding: '4px 8px', borderRadius: 6, fontSize: 12,
+                cursor: isFeatured || featuring ? 'default' : 'pointer',
+                opacity: featuring ? 0.6 : 1,
+                transition: 'var(--transition)', whiteSpace: 'nowrap',
+              }}
+            >
+              {isFeatured ? '★ Featured' : featuring ? '…' : '☆ Feature'}
+            </button>
+          )}
           {!confirming && (
             <button onClick={onDeleteClick} style={{
               background: 'none', border: '1px solid var(--red-border)', color: 'var(--red)',
