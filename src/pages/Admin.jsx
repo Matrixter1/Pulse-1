@@ -422,6 +422,16 @@ function ManageQuestions() {
   const [featuring, setFeaturing]         = useState(null)
   const [featureSuccess, setFeatureSuccess] = useState('')
 
+  // Edit state
+  const [editingId, setEditingId]           = useState(null)
+  const [editText, setEditText]             = useState('')
+  const [editImageFile, setEditImageFile]   = useState(null)
+  const [editImageUrl, setEditImageUrl]     = useState('')
+  const [editImageMode, setEditImageMode]   = useState('upload')
+  const [editImagePreview, setEditImagePreview] = useState('')
+  const [editSaving, setEditSaving]         = useState(false)
+  const [editSuccess, setEditSuccess]       = useState('')
+
   const load = useCallback(async () => {
     setLoading(true)
     try {
@@ -449,6 +459,57 @@ function ManageQuestions() {
     } finally {
       setDeleting(null)
       setConfirmDelete(null)
+    }
+  }
+
+  function openEdit(question) {
+    setEditingId(question.id)
+    setEditText(question.text)
+    setEditImageUrl(question.image_url || '')
+    setEditImagePreview(question.image_url || '')
+    setEditImageFile(null)
+    setEditImageMode('upload')
+    setConfirmDelete(null)
+  }
+
+  function closeEdit() {
+    setEditingId(null)
+    setEditText('')
+    setEditImageFile(null)
+    setEditImageUrl('')
+    setEditImagePreview('')
+  }
+
+  async function handleSaveEdit(question) {
+    setEditSaving(true)
+    try {
+      let resolvedImageUrl = editImageUrl || null
+
+      if (editImageMode === 'upload' && editImageFile) {
+        const ext  = editImageFile.name.split('.').pop()
+        const name = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
+        const { error: uploadErr } = await supabase.storage
+          .from('question-images')
+          .upload(name, editImageFile, { contentType: editImageFile.type, upsert: false })
+        if (uploadErr) throw new Error(`Image upload failed: ${uploadErr.message}`)
+        const { data: { publicUrl } } = supabase.storage.from('question-images').getPublicUrl(name)
+        resolvedImageUrl = publicUrl
+      }
+
+      const { error } = await supabase
+        .from('questions')
+        .update({ text: editText.trim(), image_url: resolvedImageUrl })
+        .eq('id', question.id)
+      if (error) throw error
+
+      await load()
+      closeEdit()
+      setEditSuccess('✓ Question updated')
+      setTimeout(() => setEditSuccess(''), 4000)
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setEditSaving(false)
     }
   }
 
@@ -481,13 +542,13 @@ function ManageQuestions() {
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{questions.length} total</span>
       </div>
 
-      {featureSuccess && (
+      {(featureSuccess || editSuccess) && (
         <div style={{
           marginBottom: 16, padding: '10px 14px', borderRadius: 'var(--radius-sm)',
           background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
           fontSize: 13, color: 'var(--gold)',
         }}>
-          {featureSuccess}
+          {featureSuccess || editSuccess}
         </div>
       )}
 
@@ -498,7 +559,7 @@ function ManageQuestions() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 170px',
+            display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 230px',
             gap: 12, padding: '8px 12px',
             fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase',
             color: 'var(--text-dim)', fontWeight: 700,
@@ -511,10 +572,34 @@ function ManageQuestions() {
               key={q.id} question={q} voteCount={voteCounts[q.id] || 0}
               confirming={confirmDelete === q.id} deleting={deleting === q.id}
               featuring={featuring === q.id}
-              onDeleteClick={() => setConfirmDelete(q.id)}
+              editing={editingId === q.id}
+              editText={editText}
+              editImageMode={editImageMode}
+              editImageFile={editImageFile}
+              editImagePreview={editImagePreview}
+              editImageUrl={editImageUrl}
+              editSaving={editSaving}
+              onDeleteClick={() => { closeEdit(); setConfirmDelete(q.id) }}
               onConfirm={() => handleDelete(q.id)}
               onCancel={() => setConfirmDelete(null)}
               onFeature={() => handleFeature(q.id, q.text)}
+              onEditClick={() => editingId === q.id ? closeEdit() : openEdit(q)}
+              onEditTextChange={setEditText}
+              onEditImageModeSwitch={mode => {
+                setEditImageMode(mode)
+                setEditImageFile(null)
+                setEditImagePreview(editImageUrl)
+              }}
+              onEditFileChange={e => {
+                const file = e.target.files?.[0]
+                if (!file) return
+                setEditImageFile(file)
+                setEditImagePreview(URL.createObjectURL(file))
+              }}
+              onEditUrlChange={val => { setEditImageUrl(val); setEditImagePreview(val) }}
+              onEditClear={() => { setEditImageFile(null); setEditImageUrl(''); setEditImagePreview('') }}
+              onSave={() => handleSaveEdit(q)}
+              onCancelEdit={closeEdit}
             />
           ))}
         </div>
@@ -523,18 +608,24 @@ function ManageQuestions() {
   )
 }
 
-function QuestionRow({ question, voteCount, confirming, deleting, featuring, onDeleteClick, onConfirm, onCancel, onFeature }) {
+function QuestionRow({
+  question, voteCount, confirming, deleting, featuring,
+  editing, editText, editImageMode, editImageFile, editImagePreview, editImageUrl, editSaving,
+  onDeleteClick, onConfirm, onCancel, onFeature,
+  onEditClick, onEditTextChange, onEditImageModeSwitch, onEditFileChange, onEditUrlChange, onEditClear, onSave, onCancelEdit,
+}) {
+  const editFileRef = useRef(null)
   const truncated = question.text.length > 60 ? question.text.slice(0, 60) + '…' : question.text
   const date = new Date(question.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
   const isFeatured = !!question.featured
 
   return (
     <div style={{
-      background: isFeatured ? 'rgba(201,168,76,0.04)' : confirming ? 'rgba(201,76,76,0.06)' : 'rgba(255,255,255,0.02)',
-      border: `1px solid ${isFeatured ? 'rgba(201,168,76,0.25)' : confirming ? 'var(--red-border)' : 'rgba(255,255,255,0.05)'}`,
+      background: editing ? 'rgba(201,168,76,0.05)' : isFeatured ? 'rgba(201,168,76,0.04)' : confirming ? 'rgba(201,76,76,0.06)' : 'rgba(255,255,255,0.02)',
+      border: `1px solid ${editing ? 'var(--gold-border)' : isFeatured ? 'rgba(201,168,76,0.25)' : confirming ? 'var(--red-border)' : 'rgba(255,255,255,0.05)'}`,
       borderRadius: 'var(--radius)', transition: 'var(--transition)',
     }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 170px', gap: 12, padding: '13px 12px', alignItems: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 230px', gap: 12, padding: '13px 12px', alignItems: 'center' }}>
         <span style={{ fontSize: 13, color: 'var(--text)', fontStyle: question.type === 'statement' ? 'italic' : 'normal', lineHeight: 1.4 }} title={question.text}>
           {isFeatured && <span style={{ fontSize: 10, color: 'var(--gold)', marginRight: 5 }}>★</span>}
           {question.type === 'statement' ? `"${truncated}"` : truncated}
@@ -546,6 +637,20 @@ function QuestionRow({ question, voteCount, confirming, deleting, featuring, onD
         </span>
         <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{date}</span>
         <span style={{ display: 'flex', justifyContent: 'flex-end', gap: 6 }}>
+          {!confirming && (
+            <button
+              onClick={onEditClick}
+              title={editing ? 'Cancel edit' : 'Edit this question'}
+              style={{
+                background: editing ? 'rgba(201,168,76,0.15)' : 'none',
+                border: '1px solid var(--gold-border)', color: 'var(--gold)',
+                padding: '4px 8px', borderRadius: 6, fontSize: 12,
+                cursor: 'pointer', transition: 'var(--transition)', whiteSpace: 'nowrap',
+              }}
+            >
+              {editing ? '✎ Editing' : '✎ Edit'}
+            </button>
+          )}
           {!confirming && (
             <button
               onClick={onFeature}
@@ -564,7 +669,7 @@ function QuestionRow({ question, voteCount, confirming, deleting, featuring, onD
               {isFeatured ? '★ Featured' : featuring ? '…' : '☆ Feature'}
             </button>
           )}
-          {!confirming && (
+          {!confirming && !editing && (
             <button onClick={onDeleteClick} style={{
               background: 'none', border: '1px solid var(--red-border)', color: 'var(--red)',
               padding: '4px 10px', borderRadius: 6, fontSize: 12, cursor: 'pointer', transition: 'var(--transition)',
@@ -572,6 +677,115 @@ function QuestionRow({ question, voteCount, confirming, deleting, featuring, onD
           )}
         </span>
       </div>
+
+      {/* Inline edit form */}
+      {editing && (
+        <div style={{ padding: '18px 16px 20px', borderTop: '1px solid var(--gold-border)' }}>
+          {/* Text */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, marginBottom: 7 }}>
+              Question Text
+            </label>
+            <textarea
+              value={editText}
+              onChange={e => onEditTextChange(e.target.value)}
+              rows={3}
+              style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5, width: '100%', boxSizing: 'border-box' }}
+            />
+          </div>
+
+          {/* Image */}
+          <div style={{ marginBottom: 18 }}>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+              <label style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>
+                Image <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(optional)</span>
+              </label>
+              <div style={{ display: 'flex', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 20, overflow: 'hidden' }}>
+                {[['upload', '↑ Upload'], ['url', '⊕ Paste URL']].map(([val, label]) => (
+                  <button key={val} type="button" onClick={() => onEditImageModeSwitch(val)} style={{
+                    padding: '4px 14px', border: 'none', fontSize: 11, fontWeight: 600,
+                    letterSpacing: '0.05em', cursor: 'pointer', transition: 'var(--transition)',
+                    background: editImageMode === val ? 'rgba(201,168,76,0.15)' : 'transparent',
+                    color: editImageMode === val ? 'var(--gold)' : 'var(--text-dim)',
+                    fontFamily: 'var(--font-ui)',
+                  }}>{label}</button>
+                ))}
+              </div>
+            </div>
+
+            {editImageMode === 'upload' ? (
+              <div
+                onClick={() => editFileRef.current?.click()}
+                style={{
+                  border: `1px dashed ${editImageFile ? 'var(--gold-border)' : 'rgba(201,168,76,0.2)'}`,
+                  borderRadius: 'var(--radius)', padding: '14px', textAlign: 'center', cursor: 'pointer',
+                  background: editImageFile ? 'rgba(201,168,76,0.04)' : 'transparent',
+                }}
+              >
+                {editImageFile ? (
+                  <span style={{ fontSize: 12, color: 'var(--gold)' }}>
+                    <strong>{editImageFile.name}</strong>
+                    <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>({(editImageFile.size / 1024).toFixed(0)} KB)</span>
+                  </span>
+                ) : (
+                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Click to select a new image</span>
+                )}
+              </div>
+            ) : (
+              <input
+                type="text"
+                value={editImageUrl}
+                onChange={e => onEditUrlChange(e.target.value)}
+                placeholder="https://... image URL"
+                style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
+              />
+            )}
+            <input ref={editFileRef} type="file" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" onChange={onEditFileChange} style={{ display: 'none' }} />
+
+            {/* Preview */}
+            {editImagePreview && (
+              <div style={{ marginTop: 10, position: 'relative', display: 'inline-block' }}>
+                <img
+                  src={editImagePreview} alt="Preview"
+                  onError={e => { e.target.style.display = 'none' }}
+                  style={{ maxHeight: 120, maxWidth: '100%', borderRadius: 'var(--radius-sm)', border: '1px solid var(--gold-border)', display: 'block' }}
+                />
+                <button
+                  type="button" onClick={onEditClear}
+                  style={{
+                    position: 'absolute', top: -7, right: -7, width: 20, height: 20, borderRadius: '50%',
+                    background: 'var(--surface2)', border: '1px solid var(--gold-border)',
+                    color: 'var(--text-muted)', fontSize: 13, lineHeight: 1,
+                    cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  }}
+                >×</button>
+              </div>
+            )}
+          </div>
+
+          {/* Actions */}
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={onSave} disabled={editSaving || !editText.trim()}
+              style={{
+                background: 'linear-gradient(135deg, var(--gold), #a8882e)',
+                border: 'none', color: '#05060F',
+                padding: '7px 20px', borderRadius: 8, fontSize: 13, fontWeight: 700,
+                cursor: editSaving || !editText.trim() ? 'not-allowed' : 'pointer',
+                opacity: editSaving || !editText.trim() ? 0.6 : 1,
+              }}
+            >
+              {editSaving ? 'Saving…' : 'Save Changes'}
+            </button>
+            <button
+              onClick={onCancelEdit}
+              style={{ background: 'none', border: '1px solid rgba(255,255,255,0.1)', color: 'var(--text-muted)', padding: '7px 16px', borderRadius: 8, fontSize: 13, cursor: 'pointer' }}
+            >
+              Cancel
+            </button>
+          </div>
+        </div>
+      )}
 
       {confirming && (
         <div style={{ padding: '10px 12px 13px', borderTop: '1px solid var(--red-border)', display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
