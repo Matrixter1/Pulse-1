@@ -117,3 +117,71 @@ export async function submitVote({ questionId, userId, type, spectrumValue, reas
   if (error) throw error
   return data
 }
+
+export async function fetchTotalVoteCount() {
+  const { count, error } = await supabase.from('votes').select('*', { count: 'exact', head: true })
+  if (error) return 0
+  return count || 0
+}
+
+export async function fetchFirstQuestionByType(type) {
+  const { data } = await supabase
+    .from('questions')
+    .select('*')
+    .eq('type', type)
+    .order('created_at', { ascending: true })
+    .limit(1)
+    .maybeSingle()
+  return data
+}
+
+export async function fetchSuggestions({ limit = 20, offset = 0 } = {}) {
+  const { data, error } = await supabase
+    .from('suggestions')
+    .select('*, users(nickname, tier)')
+    .order('upvotes', { ascending: false })
+    .order('created_at', { ascending: false })
+    .range(offset, offset + limit - 1)
+  if (error) throw error
+  return data || []
+}
+
+export async function submitSuggestion(text, userId) {
+  const { data, error } = await supabase
+    .from('suggestions')
+    .insert({ text, user_id: userId })
+    .select()
+    .single()
+  if (error) throw error
+  return data
+}
+
+export async function toggleUpvote(suggestionId, userId, hasUpvoted) {
+  if (hasUpvoted) {
+    const { error } = await supabase
+      .from('suggestion_upvotes')
+      .delete()
+      .eq('suggestion_id', suggestionId)
+      .eq('user_id', userId)
+    if (error) throw error
+  } else {
+    const { error } = await supabase
+      .from('suggestion_upvotes')
+      .insert({ suggestion_id: suggestionId, user_id: userId })
+    if (error) throw error
+  }
+}
+
+export async function fetchUserUpvotedIds(userId) {
+  if (!userId) return new Set()
+  const { data } = await supabase
+    .from('suggestion_upvotes')
+    .select('suggestion_id')
+    .eq('user_id', userId)
+  return new Set((data || []).map(r => r.suggestion_id))
+}
+
+export async function deleteSuggestion(suggestionId) {
+  const { error } = await supabase.from('suggestions').delete().eq('id', suggestionId)
+  if (error) throw error
+}

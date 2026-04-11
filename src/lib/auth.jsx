@@ -92,8 +92,21 @@ export function AuthProvider({ children }) {
     setProfile(null)
   }
 
+  async function updateNickname(nickname) {
+    const trimmed = nickname.trim() || null
+    const { data, error } = await supabase
+      .from('users')
+      .update({ nickname: trimmed })
+      .eq('id', user.id)
+      .select()
+      .single()
+    if (error) throw error
+    setProfile(data)
+    return data
+  }
+
   return (
-    <AuthContext.Provider value={{ user, profile, tier, loading, signUp, signIn, signOut, signInAnonymously }}>
+    <AuthContext.Provider value={{ user, profile, tier, loading, signUp, signIn, signOut, signInAnonymously, updateNickname }}>
       {children}
     </AuthContext.Provider>
   )
