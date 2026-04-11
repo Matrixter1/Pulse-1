@@ -29,27 +29,29 @@ export default function Feed() {
   async function loadQuestions() {
     setLoading(true)
 
-    // Fetch featured question independently — never blocks the main feed
+    // Fetch featured question independently so any failure never blocks the main feed
+    let featuredData = null
     try {
-      const { data: featuredData, error: featErr } = await supabase
+      const { data, error } = await supabase
         .from('questions')
         .select('*')
         .eq('featured', true)
         .maybeSingle()
-      if (!featErr) setFeaturedQuestion(featuredData || null)
-    } catch (_) { /* column may not exist yet — silently skip */ }
+      if (!error) featuredData = data || null
+      console.log('[Pulse] featured question:', featuredData)
+    } catch (_) { /* featured column may not exist yet */ }
+    setFeaturedQuestion(featuredData)
 
-    // Fetch the main questions list + vote counts
+    // Fetch main questions list + vote counts
     try {
       const data = await fetchQuestions(activeCategory)
       setQuestions(data)
 
-      // Include featured question in vote-count fetch even if category-filtered out
+      // Include featured question in vote fetch if category filter excludes it
       const toFetch = [...data]
-      setFeaturedQuestion(prev => {
-        if (prev && !data.find(q => q.id === prev.id)) toFetch.push(prev)
-        return prev
-      })
+      if (featuredData && !data.find(q => q.id === featuredData.id)) {
+        toFetch.push(featuredData)
+      }
 
       const counts = {}
       await Promise.all(toFetch.map(async q => {
