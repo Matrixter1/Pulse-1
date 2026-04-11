@@ -111,11 +111,11 @@ export default function Results() {
             <p style={{
               fontFamily: 'var(--font-display)',
               fontSize: 'clamp(20px, 3vw, 28px)',
-              fontStyle: 'italic',
+              fontStyle: (!question.type || question.type === 'statement') ? 'italic' : 'normal',
               lineHeight: 1.4,
               color: 'var(--text)',
             }}>
-              "{question.text}"
+              {(!question.type || question.type === 'statement') ? `"${question.text}"` : question.text}
             </p>
           </div>
         )}
@@ -202,8 +202,8 @@ export default function Results() {
           )}
         </div>
 
-        {/* Insight text */}
-        {canSeeVerified && allResults && verifiedResults && insight(allResults, verifiedResults) && (
+        {/* Insight text — statement type only (insight() uses Disagree/Neutral/Agree keys) */}
+        {question?.type === 'statement' && canSeeVerified && allResults && verifiedResults && insight(allResults, verifiedResults) && (
           <div style={{
             background: 'rgba(10,12,26,0.6)',
             border: '1px solid rgba(201,168,76,0.1)',

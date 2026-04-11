@@ -1,6 +1,6 @@
 export default function ChoiceResults({ allResults, verifiedResults, canSeeSplit }) {
-  if (!allResults || allResults.total === 0) {
-    return <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>No votes yet.</div>
+  if (!allResults || !allResults.options || allResults.total === 0) {
+    return <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>No votes yet — be the first to vote.</div>
   }
   const maxPct = Math.max(...allResults.options.map(o => o.pct), 1)
 

@@ -1,8 +1,8 @@
 const RANK_COLORS = ['#C9A84C', '#9B6FD8', '#4C8EC9', '#4CC9A8', '#7A7896']
 
 export default function RankedResults({ allResults, verifiedResults, canSeeSplit }) {
-  if (!allResults || allResults.total === 0) {
-    return <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>No votes yet.</div>
+  if (!allResults || !allResults.options || allResults.total === 0) {
+    return <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>No votes yet — be the first to rank.</div>
   }
 
   return (

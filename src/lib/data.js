@@ -104,7 +104,7 @@ export async function fetchVotesForQuestion(questionId) {
 
 export async function hasUserVoted(questionId, userId) {
   if (!userId) return false
-  const { data } = await supabase.from('votes').select('id').eq('question_id', questionId).eq('user_id', userId).single()
+  const { data } = await supabase.from('votes').select('id').eq('question_id', questionId).eq('user_id', userId).maybeSingle()
   return !!data
 }
 
