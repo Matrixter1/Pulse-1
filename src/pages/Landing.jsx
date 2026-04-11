@@ -141,6 +141,35 @@ function HeroSection({ animVotes }) {
           </Link>
         </div>
       </div>
+
+      {/* Scroll indicator */}
+      <div style={{
+        position: 'absolute',
+        bottom: 40,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        gap: 8,
+        animation: 'fade-in 2s ease forwards',
+        opacity: 0.6,
+      }}>
+        <span style={{
+          fontSize: 11,
+          letterSpacing: '0.2em',
+          textTransform: 'uppercase',
+          color: 'var(--text-muted)',
+        }}>
+          Scroll to explore
+        </span>
+        <div style={{
+          width: 1,
+          height: 40,
+          background: 'linear-gradient(to bottom, var(--gold), transparent)',
+          animation: 'pulse-dot 2s ease-in-out infinite',
+        }} />
+      </div>
     </section>
   )
 }
@@ -269,7 +298,7 @@ function ThreeTypesSection({ demos }) {
   return (
     <section ref={ref} style={{
       position: 'relative', zIndex: 1,
-      padding: '100px 24px',
+      padding: '80px 24px',
       borderTop: '1px solid rgba(201,168,76,0.08)',
       opacity: visible ? 1 : 0,
       transform: visible ? 'translateY(0)' : 'translateY(24px)',
@@ -329,7 +358,7 @@ function TruthGapSection() {
       background: 'rgba(5,6,15,0.92)',
       borderTop: '1px solid rgba(201,168,76,0.1)',
       borderBottom: '1px solid rgba(201,168,76,0.1)',
-      padding: '100px 24px',
+      padding: '80px 24px',
       textAlign: 'center',
       opacity: visible ? 1 : 0,
       transform: visible ? 'translateY(0)' : 'translateY(24px)',
@@ -411,7 +440,7 @@ function VisionSection() {
   return (
     <section ref={ref} style={{
       position: 'relative', zIndex: 1,
-      padding: '100px 24px',
+      padding: '80px 24px',
       textAlign: 'center',
       opacity: visible ? 1 : 0,
       transform: visible ? 'translateY(0)' : 'translateY(24px)',
@@ -453,7 +482,7 @@ function SuggestionsTeaser({ suggestions, user, tier, suggestionText, setSuggest
   return (
     <section ref={ref} style={{
       position: 'relative', zIndex: 1,
-      padding: '100px 24px',
+      padding: '80px 24px',
       borderTop: '1px solid rgba(76,201,168,0.1)',
       opacity: visible ? 1 : 0,
       transform: visible ? 'translateY(0)' : 'translateY(24px)',
@@ -569,6 +598,17 @@ function SuggestionsTeaser({ suggestions, user, tier, suggestionText, setSuggest
         </div>
       </div>
     </section>
+  )
+}
+
+/* ─── Divider ───────────────────────────────────────────────────────── */
+function Divider() {
+  return (
+    <div style={{
+      position: 'relative', zIndex: 1,
+      width: '100%', height: 1,
+      background: 'linear-gradient(to right, transparent, rgba(201,168,76,0.15), transparent)',
+    }} />
   )
 }
 
@@ -715,9 +755,13 @@ export default function Landing() {
         <NavBar />
       </div>
       <HeroSection animVotes={animVotes} />
+      <Divider />
       <ThreeTypesSection demos={demos} />
+      <Divider />
       <TruthGapSection />
+      <Divider />
       <VisionSection />
+      <Divider />
       <SuggestionsTeaser
         suggestions={suggestions}
         user={user}
