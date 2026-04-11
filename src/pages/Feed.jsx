@@ -183,7 +183,7 @@ function StatementCard({ question, counts, onClick }) {
       style={{
         background: 'rgba(10,12,26,0.8)',
         border: `1px solid ${hovered ? 'rgba(201,168,76,0.4)' : 'rgba(201,168,76,0.15)'}`,
-        borderRadius: 'var(--radius-lg)', padding: '22px 26px',
+        borderRadius: 'var(--radius-lg)', padding: '24px 28px',
         cursor: 'pointer', transition: 'all var(--transition)',
         transform: hovered ? 'translateY(-2px)' : 'none',
         boxShadow: hovered ? '0 8px 32px rgba(201,168,76,0.07)' : 'none',
@@ -196,8 +196,14 @@ function StatementCard({ question, counts, onClick }) {
             <TypeBadge type={type} />
           </div>
           <p style={{
-            fontFamily: 'var(--font-display)', fontSize: 17, lineHeight: 1.4,
-            color: 'var(--text)', fontStyle: type === 'statement' ? 'italic' : 'normal',
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(20px, 2.5vw, 24px)',
+            lineHeight: 1.35,
+            color: '#FFFFFF',
+            fontStyle: type === 'statement' ? 'italic' : 'normal',
+            fontWeight: 600,
+            letterSpacing: '0.01em',
+            marginTop: 4,
           }}>
             {type === 'statement' ? `"${question.text}"` : question.text}
           </p>
