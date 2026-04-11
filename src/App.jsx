@@ -6,6 +6,7 @@ import Vote from './pages/Vote'
 import Results from './pages/Results'
 import Verify from './pages/Verify'
 import ResetPassword from './pages/ResetPassword'
+import Admin from './pages/Admin'
 
 export default function App() {
   return (
@@ -19,6 +20,7 @@ export default function App() {
           <Route path="/results/:id" element={<Results />} />
           <Route path="/verify" element={<Verify />} />
           <Route path="/reset-password" element={<ResetPassword />} />
+          <Route path="/admin" element={<Admin />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

@@ -1,9 +1,12 @@
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 
+const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase()
+
 export default function NavBar() {
   const { tier, signOut, user } = useAuth()
   const navigate = useNavigate()
+  const isAdmin = !!user && user.email?.toLowerCase() === ADMIN_EMAIL
 
   const tierLabel = {
     guest: 'Guest',
@@ -53,6 +56,17 @@ export default function NavBar() {
           textTransform: 'uppercase',
           marginTop: 2,
         }}>by Matrixter</span>
+        {isAdmin && (
+          <Link to="/admin" style={{
+            fontSize: 10, fontWeight: 700, letterSpacing: '0.15em',
+            textTransform: 'uppercase', color: 'var(--gold)',
+            background: 'rgba(201,168,76,0.1)', border: '1px solid var(--gold-border)',
+            borderRadius: 20, padding: '2px 8px', marginLeft: 2,
+            textDecoration: 'none',
+          }}>
+            Admin
+          </Link>
+        )}
       </Link>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
