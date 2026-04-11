@@ -350,6 +350,110 @@ function ThreeTypesSection({ demos }) {
 }
 
 /* ─── Truth Gap Explainer ───────────────────────────────────────────── */
+function HowItWorksSection() {
+  const [ref, visible] = useFadeIn()
+  return (
+    <section ref={ref} style={{
+      padding: '80px 20px',
+      maxWidth: 700,
+      margin: '0 auto',
+      textAlign: 'center',
+      opacity: visible ? 1 : 0,
+      transform: visible ? 'translateY(0)' : 'translateY(24px)',
+      transition: 'opacity 0.7s ease, transform 0.7s ease',
+    }}>
+      <div style={{
+        fontSize: 11,
+        letterSpacing: '0.25em',
+        textTransform: 'uppercase',
+        color: 'var(--text-dim)',
+        marginBottom: 48,
+      }}>
+        How it works
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+        {[
+          { step: '01', verb: 'See',     desc: 'One question. No noise.'  },
+          { step: '02', verb: 'Decide',  desc: 'Your truth. Uninfluenced.' },
+          { step: '03', verb: 'Reveal',  desc: 'The signal emerges.'       },
+          { step: '04', verb: 'Reflect', desc: 'Where do you stand?'       },
+          { step: '05', verb: 'Return',  desc: 'The signal shifts daily.'  },
+        ].map(({ step, verb, desc }, index) => (
+          <div
+            key={step}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 24,
+              padding: '28px 0',
+              borderBottom: index < 4 ? '1px solid rgba(255,255,255,0.04)' : 'none',
+              textAlign: 'left',
+            }}
+          >
+            <div style={{
+              fontSize: 11,
+              letterSpacing: '0.15em',
+              color: 'var(--text-dim)',
+              fontWeight: 600,
+              minWidth: 28,
+              flexShrink: 0,
+            }}>
+              {step}
+            </div>
+            <div style={{
+              width: 1,
+              height: 40,
+              background: 'linear-gradient(to bottom, var(--gold), transparent)',
+              flexShrink: 0,
+              opacity: 0.4,
+            }} />
+            <div style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(28px, 4vw, 42px)',
+              fontWeight: 600,
+              color: '#FFFFFF',
+              minWidth: 160,
+              flexShrink: 0,
+              lineHeight: 1,
+            }}>
+              {verb}
+            </div>
+            <div style={{
+              fontSize: 15,
+              color: 'var(--text-muted)',
+              lineHeight: 1.5,
+              fontStyle: 'italic',
+              fontFamily: 'var(--font-display)',
+            }}>
+              {desc}
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div style={{
+        marginTop: 48,
+        fontSize: 13,
+        color: 'var(--text-dim)',
+        letterSpacing: '0.05em',
+      }}>
+        Ready?{' '}
+        <Link
+          to="/splash"
+          style={{
+            color: 'var(--gold)',
+            textDecoration: 'underline',
+            textUnderlineOffset: 3,
+          }}
+        >
+          Enter Pulse →
+        </Link>
+      </div>
+    </section>
+  )
+}
+
 function TruthGapSection() {
   const [ref, visible] = useFadeIn()
   return (
@@ -757,6 +861,8 @@ export default function Landing() {
       <HeroSection animVotes={animVotes} user={user} />
       <Divider />
       <ThreeTypesSection demos={demos} />
+      <Divider />
+      <HowItWorksSection />
       <Divider />
       <TruthGapSection />
       <Divider />
