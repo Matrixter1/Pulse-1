@@ -109,6 +109,29 @@ export default function Vote() {
           </p>
         </div>
 
+        {/* Question image */}
+        {question.image_url && (
+          <div style={{
+            marginBottom: 24,
+            borderRadius: 'var(--radius-lg)',
+            overflow: 'hidden',
+            border: '1px solid var(--gold-border)',
+            maxHeight: 320,
+          }}>
+            <img
+              src={question.image_url}
+              alt=""
+              style={{
+                width: '100%',
+                height: '100%',
+                maxHeight: 320,
+                objectFit: 'cover',
+                display: 'block',
+              }}
+            />
+          </div>
+        )}
+
         {/* Tier banner */}
         <div style={{ marginBottom: 24 }}>
           <TierBanner

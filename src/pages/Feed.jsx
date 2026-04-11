@@ -183,6 +183,27 @@ function StatementCard({ question, counts, onClick }) {
           )}
         </div>
       </div>
+      {question.image_url && (
+        <div style={{
+          marginTop: 14,
+          marginBottom: 14,
+          borderRadius: 'var(--radius)',
+          overflow: 'hidden',
+          maxHeight: 180,
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}>
+          <img
+            src={question.image_url}
+            alt=""
+            style={{
+              width: '100%',
+              height: 180,
+              objectFit: 'cover',
+              display: 'block',
+            }}
+          />
+        </div>
+      )}
       {total > 0
         ? getSummary()
         : <div style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>Be the first to vote →</div>
