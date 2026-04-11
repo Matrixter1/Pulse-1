@@ -1,5 +1,5 @@
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { useState } from 'react'
 import StarField from '../components/StarField'
 import PulseRings from '../components/PulseRings'
 import AuthModal from '../components/AuthModal'
@@ -7,9 +7,17 @@ import { useAuth } from '../lib/auth'
 
 export default function Splash() {
   const navigate = useNavigate()
-  const { signInAnonymously } = useAuth()
+  const { user, tier, loading, signInAnonymously } = useAuth()
   const [showAuth, setShowAuth] = useState(false)
   const [authTarget, setAuthTarget] = useState(null)
+
+  useEffect(() => {
+    if (!loading && user && tier !== 'guest') {
+      navigate('/feed', { replace: true })
+    }
+  }, [user, tier, loading])
+
+  if (loading) return null
 
   function handleGuest() {
     signInAnonymously()

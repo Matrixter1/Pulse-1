@@ -55,7 +55,7 @@ function TierBadge({ tier }) {
 }
 
 /* ─── Hero ─────────────────────────────────────────────────────────── */
-function HeroSection({ animVotes }) {
+function HeroSection({ animVotes, user }) {
   return (
     <section style={{
       position: 'relative', zIndex: 1,
@@ -135,7 +135,7 @@ function HeroSection({ animVotes }) {
         </div>
 
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link to="/splash"><Button size="xl">Enter Pulse →</Button></Link>
+          <Link to={user ? '/feed' : '/splash'}><Button size="xl">Enter Pulse →</Button></Link>
           <Link to="/feed">
             <Button variant="secondary" size="xl">Browse</Button>
           </Link>
@@ -754,7 +754,7 @@ export default function Landing() {
       <div style={{ position: 'relative', zIndex: 100 }}>
         <NavBar />
       </div>
-      <HeroSection animVotes={animVotes} />
+      <HeroSection animVotes={animVotes} user={user} />
       <Divider />
       <ThreeTypesSection demos={demos} />
       <Divider />
