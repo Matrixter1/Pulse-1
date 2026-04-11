@@ -61,10 +61,10 @@ export default function Feed() {
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 20px' }}>
         <div style={{ marginBottom: 32 }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
-            Public Statements
+            Statements
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-            Cast your vote. See where verified truth diverges from popular opinion.
+            Vote. Rank. Choose. See where verified truth diverges.
           </p>
         </div>
 
@@ -91,19 +91,49 @@ export default function Feed() {
         {loading
           ? <PageLoading />
           : questions.length === 0
-            ? <EmptyState message="No statements found." />
-            : (
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                {questions.map(q => (
-                  <StatementCard
-                    key={q.id}
-                    question={q}
-                    counts={voteCounts[q.id]}
-                    onClick={() => navigate(`/vote/${q.id}`)}
-                  />
-                ))}
-              </div>
-            )
+            ? <EmptyState message="Nothing here yet." />
+            : (() => {
+                const statements = questions.filter(q => (q.type || 'statement') === 'statement')
+                const choices    = questions.filter(q => q.type === 'choice')
+                const ranked     = questions.filter(q => q.type === 'ranked')
+                const sections = [
+                  { key: 'statement', icon: '◈', color: 'var(--gold)',  title: 'Statements', items: statements },
+                  { key: 'choice',    icon: '◉', color: 'var(--teal)',  title: 'Choices',    items: choices    },
+                  { key: 'ranked',    icon: '◆', color: '#9B6FD8',      title: 'Rankings',   items: ranked     },
+                ]
+                return sections
+                  .filter(s => s.items.length > 0)
+                  .map(s => (
+                    <div key={s.key} style={{ marginBottom: 48 }}>
+                      <div style={{
+                        display: 'flex', alignItems: 'center', gap: 12,
+                        marginBottom: 20, paddingBottom: 16,
+                        borderBottom: '1px solid rgba(201,168,76,0.12)',
+                      }}>
+                        <span style={{ fontSize: 20 }}>{s.icon}</span>
+                        <h2 style={{
+                          fontFamily: 'var(--font-display)',
+                          fontSize: 24, fontWeight: 600, color: s.color,
+                        }}>
+                          {s.title}
+                        </h2>
+                        <span style={{ fontSize: 12, color: 'var(--text-dim)', marginLeft: 'auto' }}>
+                          {s.items.length} {s.items.length === 1 ? 'item' : 'items'}
+                        </span>
+                      </div>
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        {s.items.map(q => (
+                          <StatementCard
+                            key={q.id}
+                            question={q}
+                            counts={voteCounts[q.id]}
+                            onClick={() => navigate(`/vote/${q.id}`)}
+                          />
+                        ))}
+                      </div>
+                    </div>
+                  ))
+              })()
         }
       </div>
     </div>

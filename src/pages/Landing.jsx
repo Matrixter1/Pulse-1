@@ -137,7 +137,7 @@ function HeroSection({ animVotes }) {
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
           <Link to="/splash"><Button size="xl">Enter Pulse →</Button></Link>
           <Link to="/feed">
-            <Button variant="secondary" size="xl">Browse Statements</Button>
+            <Button variant="secondary" size="xl">Browse</Button>
           </Link>
         </div>
       </div>

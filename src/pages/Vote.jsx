@@ -90,7 +90,7 @@ export default function Vote() {
           cursor: 'pointer', fontSize: 13, marginBottom: 32,
           display: 'flex', alignItems: 'center', gap: 6,
         }}>
-          ← Back to statements
+          ← Back
         </button>
 
         {/* Question card */}
