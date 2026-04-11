@@ -1,8 +1,10 @@
 import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
-import { fetchQuestion, fetchVotesForQuestion, calcResults, calcTruthGap } from '../lib/votes'
+import { fetchQuestion, fetchVotesForQuestion, calcResults, calcTruthGap, calcChoiceResults, calcRankedResults, calcChoiceTruthGap } from '../lib/data'
 import { useAuth } from '../lib/auth'
+import ChoiceResults from '../components/question-types/ChoiceResults'
+import RankedResults from '../components/question-types/RankedResults'
 
 export default function Results() {
   const { id } = useParams()
@@ -23,11 +25,26 @@ export default function Results() {
           fetchVotesForQuestion(id),
         ])
         setQuestion(q)
-        const all = calcResults(votes)
-        const verified = calcResults(votes.filter(v => v.is_verified))
+        const type = q.type || 'statement'
+        const options = q.options
+          ? (typeof q.options === 'string' ? JSON.parse(q.options) : q.options)
+          : []
+        let all, verified
+        if (type === 'statement') {
+          all = calcResults(votes)
+          verified = calcResults(votes.filter(v => v.is_verified))
+          setTruthGap(calcTruthGap(all, verified))
+        } else if (type === 'choice') {
+          all = calcChoiceResults(votes, options)
+          verified = calcChoiceResults(votes.filter(v => v.is_verified), options)
+          setTruthGap(calcChoiceTruthGap(all, verified))
+        } else {
+          all = calcRankedResults(votes, options)
+          verified = calcRankedResults(votes.filter(v => v.is_verified), options)
+          setTruthGap(calcChoiceTruthGap(all, verified))
+        }
         setAllResults(all)
         setVerifiedResults(verified)
-        setTruthGap(calcTruthGap(all, verified))
       } catch (err) {
         console.error(err)
       } finally {
@@ -202,7 +219,20 @@ export default function Results() {
           </div>
         )}
 
-        {/* Split panel charts */}
+        {/* Choice and Ranked results panels */}
+        {question?.type === 'choice' && allResults && (
+          <div style={{ marginBottom: 28 }}>
+            <ChoiceResults allResults={allResults} verifiedResults={verifiedResults} canSeeSplit={canSeeSplit} />
+          </div>
+        )}
+        {question?.type === 'ranked' && allResults && (
+          <div style={{ marginBottom: 28 }}>
+            <RankedResults allResults={allResults} verifiedResults={verifiedResults} canSeeSplit={canSeeSplit} />
+          </div>
+        )}
+
+        {/* Statement split panel charts (statement type only) */}
+        {(!question?.type || question?.type === 'statement') && (
         <div style={{
           display: 'grid',
           gridTemplateColumns: canSeeSplit ? '1fr 1fr' : '1fr',
@@ -270,6 +300,7 @@ export default function Results() {
             </div>
           )}
         </div>
+        )}
 
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
@@ -287,7 +318,7 @@ export default function Results() {
               cursor: 'pointer',
             }}
           >
-            ← More Questions
+            ← More Statements
           </button>
           <button
             onClick={() => {

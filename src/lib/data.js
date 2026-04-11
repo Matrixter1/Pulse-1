@@ -1,0 +1,119 @@
+import { supabase } from './supabase'
+
+export function bucket(value) {
+  if (value <= 33) return 'Disagree'
+  if (value <= 66) return 'Neutral'
+  return 'Agree'
+}
+
+export function bucketLabel(value) {
+  if (value <= 15) return 'Strongly Disagree'
+  if (value <= 33) return 'Disagree'
+  if (value <= 45) return 'Lean Disagree'
+  if (value <= 55) return 'Neutral'
+  if (value <= 66) return 'Lean Agree'
+  if (value <= 84) return 'Agree'
+  return 'Strongly Agree'
+}
+
+export function calcResults(votes) {
+  const total = votes.length
+  if (total === 0) return { Disagree: 0, Neutral: 0, Agree: 0, total: 0 }
+  const counts = { Disagree: 0, Neutral: 0, Agree: 0 }
+  votes.forEach(v => counts[bucket(v.spectrum_value)]++)
+  return {
+    Disagree: Math.round((counts.Disagree / total) * 100),
+    Neutral:  Math.round((counts.Neutral  / total) * 100),
+    Agree:    Math.round((counts.Agree    / total) * 100),
+    total,
+  }
+}
+
+export function calcTruthGap(allResults, verifiedResults) {
+  let maxGap = 0
+  ;['Disagree', 'Neutral', 'Agree'].forEach(cat => {
+    const gap = Math.abs((allResults[cat] || 0) - (verifiedResults[cat] || 0))
+    if (gap > maxGap) maxGap = gap
+  })
+  return maxGap
+}
+
+export function calcChoiceResults(votes, options) {
+  const total = votes.length
+  if (total === 0) return { options: options.map(o => ({ label: o, count: 0, pct: 0 })), total: 0 }
+  const counts = {}
+  options.forEach(o => { counts[o] = 0 })
+  votes.forEach(v => { if (v.choice_value && counts[v.choice_value] !== undefined) counts[v.choice_value]++ })
+  return {
+    options: options.map(o => ({ label: o, count: counts[o], pct: Math.round((counts[o] / total) * 100) })),
+    total,
+    winner: options.reduce((a, b) => counts[a] >= counts[b] ? a : b),
+  }
+}
+
+export function calcChoiceTruthGap(allResults, verifiedResults) {
+  if (!verifiedResults || verifiedResults.total === 0) return 0
+  let maxGap = 0
+  allResults.options.forEach((opt, i) => {
+    const verOpt = verifiedResults.options[i]
+    if (verOpt) {
+      const gap = Math.abs(opt.pct - verOpt.pct)
+      if (gap > maxGap) maxGap = gap
+    }
+  })
+  return maxGap
+}
+
+export function calcRankedResults(votes, options) {
+  const total = votes.length
+  if (total === 0) return { options: options.map((o, i) => ({ label: o, avgRank: i + 1, score: 0 })), total: 0 }
+  const rankSums = {}
+  options.forEach(o => { rankSums[o] = 0 })
+  votes.forEach(v => {
+    if (Array.isArray(v.ranked_values)) {
+      v.ranked_values.forEach((item, idx) => { if (rankSums[item] !== undefined) rankSums[item] += idx + 1 })
+    }
+  })
+  const avgRanks = options.map(o => ({
+    label: o,
+    avgRank: rankSums[o] / total,
+    score: Math.round(((options.length - (rankSums[o] / total)) / (options.length - 1)) * 100),
+  }))
+  return { options: avgRanks.sort((a, b) => a.avgRank - b.avgRank), total }
+}
+
+export async function fetchQuestions(category = null) {
+  let query = supabase.from('questions').select('*').order('created_at', { ascending: true })
+  if (category && category !== 'All') query = query.eq('category', category)
+  const { data, error } = await query
+  if (error) throw error
+  return data
+}
+
+export async function fetchQuestion(id) {
+  const { data, error } = await supabase.from('questions').select('*').eq('id', id).single()
+  if (error) throw error
+  return data
+}
+
+export async function fetchVotesForQuestion(questionId) {
+  const { data, error } = await supabase.from('votes').select('*').eq('question_id', questionId)
+  if (error) throw error
+  return data
+}
+
+export async function hasUserVoted(questionId, userId) {
+  if (!userId) return false
+  const { data } = await supabase.from('votes').select('id').eq('question_id', questionId).eq('user_id', userId).single()
+  return !!data
+}
+
+export async function submitVote({ questionId, userId, type, spectrumValue, reason, choiceValue, rankedValues, isVerified }) {
+  const payload = { question_id: questionId, user_id: userId, is_verified: isVerified }
+  if (type === 'statement') { payload.spectrum_value = spectrumValue; payload.reason = reason || null }
+  else if (type === 'choice') { payload.choice_value = choiceValue }
+  else if (type === 'ranked') { payload.ranked_values = rankedValues }
+  const { data, error } = await supabase.from('votes').insert(payload).select().single()
+  if (error) throw error
+  return data
+}

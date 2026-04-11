@@ -1,0 +1,29 @@
+:root {
+  --bg: #05060F;
+  --surface: #0A0C1A;
+  --surface2: #0F1228;
+  --surface3: #141630;
+  --gold: #C9A84C;
+  --gold-dim: rgba(201,168,76,0.12);
+  --gold-border: rgba(201,168,76,0.25);
+  --gold-glow: rgba(201,168,76,0.15);
+  --teal: #4CC9A8;
+  --teal-dim: rgba(76,201,168,0.12);
+  --teal-border: rgba(76,201,168,0.25);
+  --teal-glow: rgba(76,201,168,0.15);
+  --red: #C94C4C;
+  --red-dim: rgba(201,76,76,0.12);
+  --red-border: rgba(201,76,76,0.25);
+  --violet: #9B6FD8;
+  --violet-dim: rgba(155,111,216,0.12);
+  --text: #E8E6F0;
+  --text-muted: #7A7896;
+  --text-dim: #4A4866;
+  --font-display: 'Cormorant Garamond', serif;
+  --font-ui: 'Syne', sans-serif;
+  --space-xs: 4px; --space-sm: 8px; --space-md: 16px;
+  --space-lg: 24px; --space-xl: 32px; --space-2xl: 48px;
+  --radius-sm: 8px; --radius: 12px; --radius-lg: 18px; --radius-xl: 24px;
+  --transition-fast: 0.15s ease; --transition: 0.2s ease; --transition-slow: 0.4s ease;
+  --z-base: 1; --z-overlay: 100; --z-modal: 200; --z-toast: 300;
+}
