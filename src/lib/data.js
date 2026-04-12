@@ -83,7 +83,7 @@ export function calcRankedResults(votes, options) {
 }
 
 export async function fetchQuestions(category = null) {
-  let query = supabase.from('questions').select('*').order('created_at', { ascending: true })
+  let query = supabase.from('questions').select('*').order('created_at', { ascending: false })
   if (category && category !== 'All') query = query.eq('category', category)
   const { data, error } = await query
   if (error) throw error
