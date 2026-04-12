@@ -61,7 +61,6 @@ export default function Feed() {
         .eq('featured', true)
         .maybeSingle()
       if (!error) featuredData = data || null
-      console.log('[Pulse] featured question:', featuredData)
     } catch (_) { /* featured column may not exist yet */ }
     setFeaturedQuestion(featuredData)
 
