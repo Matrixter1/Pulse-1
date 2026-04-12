@@ -99,6 +99,27 @@ function AddQuestionForm() {
     setImagePreview(URL.createObjectURL(file))
   }
 
+  function handlePasteFile(file) {
+    setImageFile(file)
+    setImagePreview(URL.createObjectURL(file))
+  }
+
+  useEffect(() => {
+    function handleGlobalPaste(e) {
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) { setImageFile(file); setImagePreview(URL.createObjectURL(file)) }
+          break
+        }
+      }
+    }
+    window.addEventListener('paste', handleGlobalPaste)
+    return () => window.removeEventListener('paste', handleGlobalPaste)
+  }, [])
+
   function handleUrlInput(val) {
     setImageUrlInput(val)
     setImagePreview(val.trim())
@@ -278,6 +299,7 @@ function AddQuestionForm() {
           onFileChange={handleFileChange}
           onUrlChange={handleUrlInput}
           onClear={() => { setImageFile(null); setImagePreview(''); setImageUrlInput('') }}
+          onPasteFile={handlePasteFile}
         />
 
         {/* Results Visibility */}
@@ -309,7 +331,7 @@ function AddQuestionForm() {
 
 // ─── Image Picker component ────────────────────────────────────────────────
 
-function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, onFileChange, onUrlChange, onClear }) {
+function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, onFileChange, onUrlChange, onClear, onPasteFile }) {
   const fileInputRef = useRef(null)
 
   return (
@@ -341,7 +363,19 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
         <div>
           {/* Drop zone / file button */}
           <div
+            tabIndex={0}
             onClick={() => fileInputRef.current?.click()}
+            onPaste={e => {
+              const items = e.clipboardData?.items
+              if (!items) return
+              for (const item of items) {
+                if (item.type.startsWith('image/')) {
+                  const f = item.getAsFile()
+                  if (f && onPasteFile) onPasteFile(f)
+                  break
+                }
+              }
+            }}
             style={{
               border: `1px dashed ${file ? 'var(--gold-border)' : 'rgba(201,168,76,0.2)'}`,
               borderRadius: 'var(--radius)',
@@ -350,6 +384,7 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
               cursor: 'pointer',
               background: file ? 'rgba(201,168,76,0.04)' : 'transparent',
               transition: 'var(--transition)',
+              outline: 'none',
             }}
           >
             {file ? (
@@ -363,10 +398,21 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
               <div>
                 <div style={{ fontSize: 22, marginBottom: 6, opacity: 0.4 }}>↑</div>
                 <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                  Click to select an image
+                  Click to select · or paste from clipboard (Ctrl+V)
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
                   JPG, PNG, GIF, WEBP
+                </div>
+                <div style={{
+                  marginTop: 8, fontSize: 11, color: 'var(--text-dim)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                }}>
+                  <kbd style={{
+                    background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                    borderRadius: 4, padding: '1px 6px', fontSize: 10,
+                    fontFamily: 'monospace', color: 'var(--text-muted)',
+                  }}>Ctrl+V</kbd>
+                  <span style={{ color: 'var(--text-dim)' }}>to paste from clipboard</span>
                 </div>
               </div>
             )}
@@ -453,6 +499,23 @@ function ManageQuestions() {
   const [editRevealMode, setEditRevealMode]           = useState('instant')
   const [editRevealThreshold, setEditRevealThreshold] = useState('')
   const [editRevealDate, setEditRevealDate]           = useState('')
+
+  useEffect(() => {
+    function handleGlobalPaste(e) {
+      if (!editingId) return
+      const items = e.clipboardData?.items
+      if (!items) return
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          const file = item.getAsFile()
+          if (file) { setEditImageFile(file); setEditImagePreview(URL.createObjectURL(file)) }
+          break
+        }
+      }
+    }
+    window.addEventListener('paste', handleGlobalPaste)
+    return () => window.removeEventListener('paste', handleGlobalPaste)
+  }, [editingId])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -758,11 +821,24 @@ function QuestionRow({
 
             {editImageMode === 'upload' ? (
               <div
+                tabIndex={0}
                 onClick={() => editFileRef.current?.click()}
+                onPaste={e => {
+                  const items = e.clipboardData?.items
+                  if (!items) return
+                  for (const item of items) {
+                    if (item.type.startsWith('image/')) {
+                      const f = item.getAsFile()
+                      if (f) { onEditFileChange({ target: { files: [f] } }) }
+                      break
+                    }
+                  }
+                }}
                 style={{
                   border: `1px dashed ${editImageFile ? 'var(--gold-border)' : 'rgba(201,168,76,0.2)'}`,
                   borderRadius: 'var(--radius)', padding: '14px', textAlign: 'center', cursor: 'pointer',
                   background: editImageFile ? 'rgba(201,168,76,0.04)' : 'transparent',
+                  outline: 'none',
                 }}
               >
                 {editImageFile ? (
@@ -771,7 +847,22 @@ function QuestionRow({
                     <span style={{ color: 'var(--text-muted)', marginLeft: 8 }}>({(editImageFile.size / 1024).toFixed(0)} KB)</span>
                   </span>
                 ) : (
-                  <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>Click to select a new image</span>
+                  <div>
+                    <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
+                      Click to select · or paste from clipboard (Ctrl+V)
+                    </div>
+                    <div style={{
+                      marginTop: 8, fontSize: 11, color: 'var(--text-dim)',
+                      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                    }}>
+                      <kbd style={{
+                        background: 'rgba(255,255,255,0.06)', border: '1px solid rgba(255,255,255,0.1)',
+                        borderRadius: 4, padding: '1px 6px', fontSize: 10,
+                        fontFamily: 'monospace', color: 'var(--text-muted)',
+                      }}>Ctrl+V</kbd>
+                      <span style={{ color: 'var(--text-dim)' }}>to paste from clipboard</span>
+                    </div>
+                  </div>
                 )}
               </div>
             ) : (
