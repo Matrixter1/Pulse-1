@@ -68,14 +68,14 @@ function HeroSection({ animVotes, user }) {
         animation: 'fade-in 0.9s ease forwards',
       }}>
         {/* SacredMark above heading */}
-        <div style={{ animation: 'fadeIn 1.2s ease forwards', opacity: 0, marginBottom: 24 }}>
+        <div style={{ animation: 'fadeIn 1.2s ease forwards', opacity: 0, marginBottom: 0 }}>
           <style>{`@keyframes fadeIn { to { opacity: 1; } }`}</style>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <SacredMark size={320} showRings={true} />
           </div>
         </div>
 
-        <div style={{ marginBottom: 6, marginTop: 24 }}>
+        <div style={{ marginBottom: 6, marginTop: 0 }}>
           <span style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'clamp(80px, 13vw, 128px)',
