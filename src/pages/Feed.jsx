@@ -223,18 +223,21 @@ export default function Feed() {
               <PreviewCard
                 type="statement" label="Signal" icon="◈" color="var(--gold)"
                 tagline="Your position on the spectrum."
+                viewAllLabel="View all Signals →"
                 question={signalPreview} count={statements.length}
                 onClick={() => setActiveType('statement')}
               />
               <PreviewCard
                 type="choice" label="Decide" icon="◉" color="var(--teal)"
                 tagline="One choice. No middle ground."
+                viewAllLabel="View all Decisions →"
                 question={decidePreview} count={choices.length}
                 onClick={() => setActiveType('choice')}
               />
               <PreviewCard
                 type="ranked" label="Rank" icon="◆" color="#9B6FD8"
                 tagline="Your order. Your truth."
+                viewAllLabel="View all Rankings →"
                 question={rankPreview} count={ranked.length}
                 onClick={() => setActiveType('ranked')}
               />
@@ -359,7 +362,7 @@ export default function Feed() {
   )
 }
 
-function PreviewCard({ type, label, icon, color, tagline, question, count, onClick }) {
+function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question, count, onClick }) {
   const [hovered, setHovered] = useState(false)
   return (
     <div
@@ -419,7 +422,7 @@ function PreviewCard({ type, label, icon, color, tagline, question, count, onCli
         opacity: hovered ? 1 : 0.7,
         transition: 'opacity 0.2s',
       }}>
-        View all {label}s →
+        {viewAllLabel}
       </div>
     </div>
   )
