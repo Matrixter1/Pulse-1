@@ -373,23 +373,24 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
         position: 'relative',
         overflow: 'hidden',
         background: hovered
-          ? `linear-gradient(135deg, rgba(10,12,26,0.95), ${color}08)`
+          ? `linear-gradient(135deg, rgba(15,18,35,0.98), ${color}12)`
           : 'rgba(10,12,26,0.8)',
         border: `1px solid ${hovered ? color + '55' : color + '18'}`,
         borderRadius: 'var(--radius-lg)',
         padding: '20px',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
-        transform: hovered ? 'translateY(-3px)' : 'none',
+        transform: hovered ? 'translateY(-4px)' : 'none',
         boxShadow: hovered ? `0 12px 32px ${color}22, 0 0 0 1px ${color}33` : 'none',
       }}
     >
       {/* Animated bottom border */}
       <div style={{
         position: 'absolute', bottom: 0, left: 0, right: 0,
-        height: 2,
+        height: 3,
         borderRadius: '0 0 var(--radius-lg) var(--radius-lg)',
         background: `linear-gradient(to right, transparent, ${color}, transparent)`,
+        filter: 'blur(1px)',
         opacity: hovered ? 1 : 0,
         transition: 'opacity 0.2s ease',
       }} />
@@ -431,10 +432,10 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
       )}
 
       <div style={{
-        fontSize: 12, color, fontWeight: 600,
+        fontSize: 13, color, fontWeight: 600,
         letterSpacing: '0.05em',
         opacity: hovered ? 1 : 0.7,
-        transform: hovered ? 'translateX(4px)' : 'none',
+        transform: hovered ? 'translateX(6px)' : 'none',
         transition: 'all 0.2s ease',
       }}>
         {viewAllLabel}
