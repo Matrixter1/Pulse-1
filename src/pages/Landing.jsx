@@ -59,9 +59,9 @@ function HeroSection({ animVotes, user }) {
   return (
     <section style={{
       position: 'relative', zIndex: 1,
-      minHeight: 'calc(100vh - 60px)',
+      minHeight: '100vh',
       display: 'flex', alignItems: 'center', justifyContent: 'center',
-      overflow: 'hidden', padding: '60px 24px',
+      overflow: 'hidden', padding: '60px 24px 100px',
     }}>
       <div style={{
         position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: 720,
@@ -71,11 +71,11 @@ function HeroSection({ animVotes, user }) {
         <div style={{ animation: 'fadeIn 1.2s ease forwards', opacity: 0, marginBottom: 24 }}>
           <style>{`@keyframes fadeIn { to { opacity: 1; } }`}</style>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <SacredMark size={260} />
+            <SacredMark size={320} showRings={true} />
           </div>
         </div>
 
-        <div style={{ marginBottom: 6 }}>
+        <div style={{ marginBottom: 6, marginTop: 24 }}>
           <span style={{
             fontFamily: 'var(--font-display)',
             fontSize: 'clamp(80px, 13vw, 128px)',
@@ -144,9 +144,10 @@ function HeroSection({ animVotes, user }) {
       {/* Scroll indicator */}
       <div style={{
         position: 'absolute',
-        bottom: 40,
+        bottom: 20,
         left: '50%',
         transform: 'translateX(-50%)',
+        zIndex: 1,
         display: 'flex',
         flexDirection: 'column',
         alignItems: 'center',
