@@ -125,24 +125,26 @@ export default function Feed() {
             style={{
               position: 'relative',
               background: 'linear-gradient(135deg, rgba(201,168,76,0.08), rgba(10,12,26,0.95))',
-              border: '1px solid rgba(201,168,76,0.4)',
+              border: '1px solid rgba(201,168,76,0.5)',
               borderRadius: 'var(--radius-xl)',
               padding: '32px 36px',
               marginBottom: 36,
               cursor: 'pointer',
               overflow: 'hidden',
               transition: 'var(--transition)',
+              boxShadow: '0 0 40px rgba(201,168,76,0.06), inset 0 0 40px rgba(201,168,76,0.02)',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <div style={{
-                width: 8, height: 8, borderRadius: '50%',
+                width: 10, height: 10, borderRadius: '50%',
                 background: 'var(--gold)',
                 animation: 'pulse-dot 1.5s ease-in-out infinite',
               }} />
               <span style={{
-                fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase',
-                color: 'var(--gold)', fontWeight: 700,
+                fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase',
+                color: 'var(--gold)', fontWeight: 800,
+                textShadow: '0 0 20px rgba(201,168,76,0.4)',
               }}>
                 Pulse of the Day
               </span>
@@ -195,6 +197,50 @@ export default function Feed() {
             }} />
           </div>
         )}
+
+        {/* Mobile responsive style for preview grid */}
+        <style>{`
+          @media (max-width: 768px) {
+            .preview-grid { grid-template-columns: 1fr !important; }
+          }
+        `}</style>
+
+        {/* Three type preview cards */}
+        {!loading && questions.length > 0 && (() => {
+          const statements    = questions.filter(q => (q.type || 'statement') === 'statement' && !q.featured)
+          const choices       = questions.filter(q => q.type === 'choice' && !q.featured)
+          const ranked        = questions.filter(q => q.type === 'ranked' && !q.featured)
+          const signalPreview = statements[0] || null
+          const decidePreview = choices[0] || null
+          const rankPreview   = ranked[0] || null
+          return (
+            <div className="preview-grid" style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: 12,
+              marginBottom: 32,
+            }}>
+              <PreviewCard
+                type="statement" label="Signal" icon="◈" color="var(--gold)"
+                tagline="Your position on the spectrum."
+                question={signalPreview} count={statements.length}
+                onClick={() => setActiveType('statement')}
+              />
+              <PreviewCard
+                type="choice" label="Decide" icon="◉" color="var(--teal)"
+                tagline="One choice. No middle ground."
+                question={decidePreview} count={choices.length}
+                onClick={() => setActiveType('choice')}
+              />
+              <PreviewCard
+                type="ranked" label="Rank" icon="◆" color="#9B6FD8"
+                tagline="Your order. Your truth."
+                question={rankPreview} count={ranked.length}
+                onClick={() => setActiveType('ranked')}
+              />
+            </div>
+          )
+        })()}
 
         {/* Category filter pills */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
@@ -308,6 +354,72 @@ export default function Feed() {
                   ))
               })()
         }
+      </div>
+    </div>
+  )
+}
+
+function PreviewCard({ type, label, icon, color, tagline, question, count, onClick }) {
+  const [hovered, setHovered] = useState(false)
+  return (
+    <div
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      onClick={onClick}
+      style={{
+        background: 'rgba(10,12,26,0.8)',
+        border: `1px solid ${hovered ? color + '55' : color + '22'}`,
+        borderRadius: 'var(--radius-lg)',
+        padding: '20px',
+        cursor: 'pointer',
+        transition: 'all 0.2s ease',
+        transform: hovered ? 'translateY(-2px)' : 'none',
+        boxShadow: hovered ? `0 8px 24px ${color}11` : 'none',
+      }}
+    >
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+          <span style={{ color, fontSize: 14 }}>{icon}</span>
+          <span style={{ fontSize: 13, fontWeight: 700, color, letterSpacing: '0.05em' }}>{label}</span>
+        </div>
+        <span style={{
+          fontSize: 11, color: 'var(--text-dim)',
+          background: 'rgba(255,255,255,0.04)',
+          padding: '2px 8px', borderRadius: 10,
+        }}>
+          {count}
+        </span>
+      </div>
+
+      <p style={{
+        fontSize: 12, color: 'var(--text-muted)',
+        fontStyle: 'italic', marginBottom: 14, lineHeight: 1.4,
+      }}>
+        {tagline}
+      </p>
+
+      {question && (
+        <p style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 13, color: 'var(--text)', lineHeight: 1.4,
+          fontStyle: type === 'statement' ? 'italic' : 'normal',
+          marginBottom: 14,
+          display: '-webkit-box',
+          WebkitLineClamp: 2,
+          WebkitBoxOrient: 'vertical',
+          overflow: 'hidden',
+        }}>
+          {type === 'statement' ? `"${question.text}"` : question.text}
+        </p>
+      )}
+
+      <div style={{
+        fontSize: 12, color, fontWeight: 600,
+        letterSpacing: '0.05em',
+        opacity: hovered ? 1 : 0.7,
+        transition: 'opacity 0.2s',
+      }}>
+        View all {label}s →
       </div>
     </div>
   )
