@@ -18,6 +18,7 @@ function parseOptions(raw) {
 
 export default function Feed() {
   const [activeCategory, setActiveCategory] = useState('All')
+  const [activeType, setActiveType] = useState('all')
   const [questions, setQuestions] = useState([])
   const [featuredQuestion, setFeaturedQuestion] = useState(null)
   const [voteCounts, setVoteCounts] = useState({})
@@ -107,7 +108,7 @@ export default function Feed() {
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 20px' }}>
         <div style={{ marginBottom: 32 }}>
           <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
-            Statements
+            Signals
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
             Signal. Decide. Rank. See where verified truth diverges.
@@ -196,7 +197,7 @@ export default function Feed() {
         )}
 
         {/* Category filter pills */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28 }}>
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
           {CATEGORIES.map(cat => {
             const isActive = activeCategory === cat
             const catColor = cat === 'All' ? 'var(--gold)' : (CATEGORY_COLORS[cat] || 'var(--gold)')
@@ -215,6 +216,45 @@ export default function Feed() {
           })}
         </div>
 
+        {/* Type tab switcher */}
+        <div style={{
+          display: 'flex', gap: 4, marginBottom: 28,
+          background: 'rgba(255,255,255,0.03)',
+          borderRadius: 'var(--radius)', padding: 4,
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}>
+          {[
+            { id: 'all',       label: 'All',    icon: '◎', color: 'var(--text-muted)' },
+            { id: 'statement', label: 'Signal', icon: '◈', color: 'var(--gold)'       },
+            { id: 'choice',    label: 'Decide', icon: '◉', color: 'var(--teal)'       },
+            { id: 'ranked',    label: 'Rank',   icon: '◆', color: '#9B6FD8'           },
+          ].map(tab => {
+            const isActive = activeType === tab.id
+            const count = tab.id === 'all'
+              ? questions.length
+              : questions.filter(q => (q.type || 'statement') === tab.id).length
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setActiveType(tab.id)}
+                style={{
+                  flex: 1, padding: '10px 8px', borderRadius: 8, border: 'none',
+                  background: isActive ? 'rgba(10,12,26,0.9)' : 'transparent',
+                  color: isActive ? tab.color : 'var(--text-dim)',
+                  fontSize: 13, fontWeight: isActive ? 700 : 400,
+                  cursor: 'pointer', transition: 'all 0.2s ease',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
+                  boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.3)' : 'none',
+                }}
+              >
+                <span style={{ fontSize: 12 }}>{tab.icon}</span>
+                <span>{tab.label}</span>
+                <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 400 }}>{count}</span>
+              </button>
+            )
+          })}
+        </div>
+
         {loading
           ? <PageLoading />
           : questions.length === 0
@@ -223,11 +263,14 @@ export default function Feed() {
                 const statements = questions.filter(q => (q.type || 'statement') === 'statement' && !q.featured)
                 const choices    = questions.filter(q => q.type === 'choice' && !q.featured)
                 const ranked     = questions.filter(q => q.type === 'ranked' && !q.featured)
-                const sections = [
+                const allSections = [
                   { key: 'statement', icon: '◈', color: 'var(--gold)',  title: 'Signals',   items: statements },
                   { key: 'choice',    icon: '◉', color: 'var(--teal)',  title: 'Decisions', items: choices    },
                   { key: 'ranked',    icon: '◆', color: '#9B6FD8',      title: 'Rankings',  items: ranked     },
                 ]
+                const sections = activeType === 'all'
+                  ? allSections
+                  : allSections.filter(s => s.key === activeType)
                 return sections
                   .filter(s => s.items.length > 0)
                   .map(s => (
