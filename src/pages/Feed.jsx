@@ -223,21 +223,21 @@ export default function Feed() {
               <PreviewCard
                 type="statement" label="Signal" icon="◈" color="var(--gold)"
                 tagline="Your position on the spectrum."
-                viewAllLabel="View all Signals →"
+                viewAllLabel="Explore Signals →"
                 question={signalPreview} count={statements.length}
                 onClick={() => setActiveType('statement')}
               />
               <PreviewCard
                 type="choice" label="Decide" icon="◉" color="var(--teal)"
                 tagline="One choice. No middle ground."
-                viewAllLabel="View all Decisions →"
+                viewAllLabel="Explore Decisions →"
                 question={decidePreview} count={choices.length}
                 onClick={() => setActiveType('choice')}
               />
               <PreviewCard
                 type="ranked" label="Rank" icon="◆" color="#9B6FD8"
                 tagline="Your order. Your truth."
-                viewAllLabel="View all Rankings →"
+                viewAllLabel="Explore Rankings →"
                 question={rankPreview} count={ranked.length}
                 onClick={() => setActiveType('ranked')}
               />
@@ -370,16 +370,30 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
       onMouseLeave={() => setHovered(false)}
       onClick={onClick}
       style={{
-        background: 'rgba(10,12,26,0.8)',
-        border: `1px solid ${hovered ? color + '55' : color + '22'}`,
+        position: 'relative',
+        overflow: 'hidden',
+        background: hovered
+          ? `linear-gradient(135deg, rgba(10,12,26,0.95), ${color}08)`
+          : 'rgba(10,12,26,0.8)',
+        border: `1px solid ${hovered ? color + '55' : color + '18'}`,
         borderRadius: 'var(--radius-lg)',
         padding: '20px',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
-        transform: hovered ? 'translateY(-2px)' : 'none',
-        boxShadow: hovered ? `0 8px 24px ${color}11` : 'none',
+        transform: hovered ? 'translateY(-3px)' : 'none',
+        boxShadow: hovered ? `0 12px 32px ${color}22, 0 0 0 1px ${color}33` : 'none',
       }}
     >
+      {/* Animated bottom border */}
+      <div style={{
+        position: 'absolute', bottom: 0, left: 0, right: 0,
+        height: 2,
+        borderRadius: '0 0 var(--radius-lg) var(--radius-lg)',
+        background: `linear-gradient(to right, transparent, ${color}, transparent)`,
+        opacity: hovered ? 1 : 0,
+        transition: 'opacity 0.2s ease',
+      }} />
+
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color, fontSize: 14 }}>{icon}</span>
@@ -420,7 +434,8 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
         fontSize: 12, color, fontWeight: 600,
         letterSpacing: '0.05em',
         opacity: hovered ? 1 : 0.7,
-        transition: 'opacity 0.2s',
+        transform: hovered ? 'translateX(4px)' : 'none',
+        transition: 'all 0.2s ease',
       }}>
         {viewAllLabel}
       </div>
