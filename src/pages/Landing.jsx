@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import StarField from '../components/StarField'
-import PulseRings from '../components/PulseRings'
+import SacredMark from '../components/SacredMark'
 import NavBar from '../components/NavBar'
 import { Button } from '../components/ui'
 import { useAuth } from '../lib/auth'
@@ -63,19 +63,18 @@ function HeroSection({ animVotes, user }) {
       display: 'flex', alignItems: 'center', justifyContent: 'center',
       overflow: 'hidden', padding: '60px 24px',
     }}>
-      {/* Rings behind content */}
-      <div style={{
-        position: 'absolute', inset: 0,
-        display: 'flex', alignItems: 'center', justifyContent: 'center',
-        pointerEvents: 'none',
-      }}>
-        <PulseRings size={600} />
-      </div>
-
       <div style={{
         position: 'relative', zIndex: 2, textAlign: 'center', maxWidth: 720,
         animation: 'fade-in 0.9s ease forwards',
       }}>
+        {/* SacredMark above heading */}
+        <div style={{ animation: 'fadeIn 1.2s ease forwards', opacity: 0, marginBottom: 24 }}>
+          <style>{`@keyframes fadeIn { to { opacity: 1; } }`}</style>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <SacredMark size={260} />
+          </div>
+        </div>
+
         <div style={{ marginBottom: 6 }}>
           <span style={{
             fontFamily: 'var(--font-display)',

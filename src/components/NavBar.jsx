@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import SacredMark from './SacredMark'
 
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase()
 
@@ -62,7 +63,7 @@ export default function NavBar() {
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     }}>
       <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <PulseLogo size={28} />
+        <SacredMark size={32} showRings={false} />
         <span style={{
           fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600,
           letterSpacing: '0.05em', color: 'var(--gold)',

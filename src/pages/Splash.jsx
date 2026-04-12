@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import StarField from '../components/StarField'
-import PulseRings from '../components/PulseRings'
+import SacredMark from '../components/SacredMark'
 import AuthModal from '../components/AuthModal'
 import { useAuth } from '../lib/auth'
 
@@ -41,29 +41,28 @@ export default function Splash() {
       {/* Hero section */}
       <div style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '0 24px' }}>
         {/* Logo mark */}
-        <div style={{ position: 'relative', width: 340, height: 340, margin: '0 auto 32px' }}>
-          <PulseRings size={340} />
-          <div style={{
-            position: 'absolute', top: '50%', left: '50%',
-            transform: 'translate(-50%, -50%)',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 4 }}>
-              <span style={{
-                fontFamily: 'var(--font-display)',
-                fontWeight: 700,
-                color: 'var(--gold)',
-                letterSpacing: '0.05em',
-              }}>Pulse</span>
-            </div>
-            <div style={{
-              fontFamily: 'var(--font-ui)',
-              fontSize: 11,
-              letterSpacing: '0.3em',
-              textTransform: 'uppercase',
-              color: 'var(--text-muted)',
-            }}>by Matrixter</div>
+        <div style={{ animation: 'fadeIn 1.2s ease forwards', opacity: 0, margin: '0 auto 24px' }}>
+          <style>{`@keyframes fadeIn { to { opacity: 1; } }`}</style>
+          <div style={{ display: 'flex', justifyContent: 'center' }}>
+            <SacredMark size={200} />
           </div>
+        </div>
+        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+          <div style={{ fontSize: 56, lineHeight: 1, marginBottom: 4 }}>
+            <span style={{
+              fontFamily: 'var(--font-display)',
+              fontWeight: 700,
+              color: 'var(--gold)',
+              letterSpacing: '0.05em',
+            }}>Pulse</span>
+          </div>
+          <div style={{
+            fontFamily: 'var(--font-ui)',
+            fontSize: 11,
+            letterSpacing: '0.3em',
+            textTransform: 'uppercase',
+            color: 'var(--text-muted)',
+          }}>by Matrixter</div>
         </div>
 
         <h1 style={{
