@@ -9,9 +9,9 @@ import { CATEGORIES } from '../constants'
 const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase()
 
 const TYPE_OPTIONS = [
-  { value: 'statement', label: 'Statement', icon: '◈' },
-  { value: 'choice',    label: 'Choice',    icon: '◉' },
-  { value: 'ranked',    label: 'Ranked',    icon: '◆' },
+  { value: 'statement', label: 'Signal', icon: '◈' },
+  { value: 'choice',    label: 'Decide', icon: '◉' },
+  { value: 'ranked',    label: 'Rank',   icon: '◆' },
 ]
 
 export default function Admin() {
@@ -297,9 +297,9 @@ function AddQuestionForm() {
           <Button type="submit" size="lg" loading={submitting}>
             {uploading
               ? 'Uploading image…'
-              : type === 'statement' ? '◈ Add Statement'
-              : type === 'choice'   ? '◉ Add Choice Question'
-              :                       '◆ Add Ranked Question'}
+              : type === 'statement' ? '◈ Add Signal'
+              : type === 'choice'   ? '◉ Add Decision'
+              :                       '◆ Add Ranking'}
           </Button>
         </div>
       </form>

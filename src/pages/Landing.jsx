@@ -321,24 +321,24 @@ function ThreeTypesSection({ demos }) {
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
           <TypeCard
             icon="◈" iconColor="var(--gold)"
-            title="Statement"
-            description="Agree or disagree on a spectrum. The slider reveals where you truly stand."
+            title="Signal"
+            description="Your position on the spectrum."
             demo={<StatementDemo data={demos.statement} />}
-            ctaText="View Statements →"
+            ctaText="View Signals →"
             ctaLink="/feed"
           />
           <TypeCard
             icon="◉" iconColor="var(--teal)"
-            title="Choice"
-            description="Pick one. See what the crowd chose — and whether verified humans agreed."
+            title="Decide"
+            description="One choice. No middle ground."
             demo={<ChoiceDemo data={demos.choice} />}
-            ctaText="View Choices →"
+            ctaText="View Decisions →"
             ctaLink="/feed"
           />
           <TypeCard
             icon="◆" iconColor="var(--violet)"
-            title="Ranked"
-            description="Drag to order. Discover how your priorities compare to the verified majority."
+            title="Rank"
+            description="Your order. Your truth."
             demo={<RankedDemo data={demos.ranked} />}
             ctaText="View Rankings →"
             ctaLink="/feed"

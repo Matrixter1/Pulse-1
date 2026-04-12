@@ -100,9 +100,9 @@ export function CategoryBadge({ category }) {
 }
 
 const TYPE_META = {
-  statement: { label: 'Statement', icon: '◈', color: 'var(--gold)' },
-  choice:    { label: 'Choice',    icon: '◉', color: 'var(--teal)' },
-  ranked:    { label: 'Ranked',    icon: '◆', color: '#9B6FD8'     },
+  statement: { label: 'Signal', icon: '◈', color: 'var(--gold)' },
+  choice:    { label: 'Decide', icon: '◉', color: 'var(--teal)' },
+  ranked:    { label: 'Rank',   icon: '◆', color: '#9B6FD8'     },
 }
 
 export function TypeBadge({ type }) {

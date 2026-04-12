@@ -11,9 +11,9 @@ export const CATEGORY_COLORS = {
 export const QUESTION_TYPES = { STATEMENT: 'statement', CHOICE: 'choice', RANKED: 'ranked' }
 
 export const QUESTION_TYPE_META = {
-  statement: { label: 'Statement', icon: '◈', color: 'var(--gold)',   description: 'Agree or disagree on a spectrum' },
-  choice:    { label: 'Choice',    icon: '◉', color: 'var(--teal)',   description: 'Pick one from multiple options' },
-  ranked:    { label: 'Ranked',    icon: '◆', color: '#9B6FD8',      description: 'Drag to rank in order of preference' },
+  statement: { label: 'Signal', icon: '◈', color: 'var(--gold)', description: 'Your position on the spectrum.' },
+  choice:    { label: 'Decide', icon: '◉', color: 'var(--teal)', description: 'One choice. No middle ground.' },
+  ranked:    { label: 'Rank',   icon: '◆', color: '#9B6FD8',    description: 'Your order. Your truth.' },
 }
 
 export const REASON_CHIPS = [

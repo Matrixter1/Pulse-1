@@ -110,7 +110,7 @@ export default function Feed() {
             Statements
           </h1>
           <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
-            Vote. Rank. Choose. See where verified truth diverges.
+            Signal. Decide. Rank. See where verified truth diverges.
           </p>
         </div>
 
@@ -224,9 +224,9 @@ export default function Feed() {
                 const choices    = questions.filter(q => q.type === 'choice' && !q.featured)
                 const ranked     = questions.filter(q => q.type === 'ranked' && !q.featured)
                 const sections = [
-                  { key: 'statement', icon: '◈', color: 'var(--gold)',  title: 'Statements', items: statements },
-                  { key: 'choice',    icon: '◉', color: 'var(--teal)',  title: 'Choices',    items: choices    },
-                  { key: 'ranked',    icon: '◆', color: '#9B6FD8',      title: 'Rankings',   items: ranked     },
+                  { key: 'statement', icon: '◈', color: 'var(--gold)',  title: 'Signals',   items: statements },
+                  { key: 'choice',    icon: '◉', color: 'var(--teal)',  title: 'Decisions', items: choices    },
+                  { key: 'ranked',    icon: '◆', color: '#9B6FD8',      title: 'Rankings',  items: ranked     },
                 ]
                 return sections
                   .filter(s => s.items.length > 0)
