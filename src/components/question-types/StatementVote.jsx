@@ -99,7 +99,7 @@ export default function StatementVote({ onSubmit, submitting, canVote }) {
         onClick={() => onSubmit({ spectrumValue: value, reason })}
         style={canVote ? { background: `linear-gradient(135deg, ${color}, ${color}99)`, color: '#05060F' } : {}}
       >
-        {!canVote ? 'Sign in to Vote' : '✦ Cast Your Vote'}
+        {!canVote ? 'Sign in to Reveal the Signal' : '◈ Reveal the Signal →'}
       </Button>
     </div>
   )
