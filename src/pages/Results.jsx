@@ -43,7 +43,27 @@ export default function Results() {
   const [allResults, setAllResults] = useState(null)
   const [verifiedResults, setVerifiedResults] = useState(null)
   const [truthGap, setTruthGap] = useState(0)
+  const [displayGap, setDisplayGap] = useState(0)
   const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    if (!truthGap) return
+    let start = 0
+    const end = truthGap
+    const duration = 1200
+    const step = 16
+    const increment = end / (duration / step)
+    const timer = setInterval(() => {
+      start += increment
+      if (start >= end) {
+        setDisplayGap(end)
+        clearInterval(timer)
+      } else {
+        setDisplayGap(Math.floor(start))
+      }
+    }, step)
+    return () => clearInterval(timer)
+  }, [truthGap])
 
   useEffect(() => {
     async function load() {
@@ -198,7 +218,7 @@ export default function Results() {
                 WebkitBackgroundClip: 'text',
                 WebkitTextFillColor: 'transparent',
               }}>
-                {truthGap}%
+                {displayGap}%
               </div>
               <p style={{ color: 'var(--text-muted)', fontSize: 14, maxWidth: 380, margin: '0 auto' }}>
                 Divergence between public sentiment and verified-human opinion
