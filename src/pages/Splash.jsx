@@ -63,6 +63,17 @@ export default function Splash() {
             textTransform: 'uppercase',
             color: 'var(--text-muted)',
           }}>by Matrixter</div>
+          <span style={{
+            fontFamily: "'Cormorant Garamond', serif",
+            fontStyle: 'italic',
+            fontWeight: 300,
+            fontSize: 13,
+            letterSpacing: '0.2em',
+            color: 'rgba(201, 168, 76, 0.55)',
+            marginTop: 14,
+            textAlign: 'center',
+            display: 'block',
+          }}>✦ early access · truth in progress ✦</span>
         </div>
 
         <h1 style={{
