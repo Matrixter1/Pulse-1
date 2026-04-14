@@ -140,19 +140,34 @@ export default function Vote() {
           />
         </div>
 
-        {/* Already voted notice */}
+        {/* Already voted state */}
         {alreadyVoted && (
-          <div style={{
-            background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
-            borderRadius: 'var(--radius)', padding: '14px 18px', marginBottom: 24,
-            fontSize: 13, color: 'var(--gold)',
-          }}>
-            You've already voted.{' '}
+          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+            <div style={{
+              fontSize: 32, marginBottom: 16, color: 'var(--teal)'
+            }}>◈</div>
+            <div style={{
+              fontFamily: 'var(--font-display)', fontSize: 24,
+              color: 'var(--text)', marginBottom: 12
+            }}>
+              You've already signalled on this.
+            </div>
+            <p style={{
+              color: 'var(--text-muted)', fontSize: 14,
+              marginBottom: 28
+            }}>
+              Your anonymous vote is recorded in the Truth Layer.
+            </p>
             <button
               onClick={() => navigate(`/results/${id}`)}
-              style={{ background: 'none', border: 'none', color: 'var(--gold)', cursor: 'pointer', fontWeight: 700, fontSize: 13, textDecoration: 'underline' }}
+              style={{
+                background: 'linear-gradient(135deg, #C9A84C, #a8882e)',
+                border: 'none', color: '#05060F',
+                padding: '14px 32px', borderRadius: 10,
+                fontSize: 14, fontWeight: 700, cursor: 'pointer'
+              }}
             >
-              See results →
+              See the Truth Gap →
             </button>
           </div>
         )}
