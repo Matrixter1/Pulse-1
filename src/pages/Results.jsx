@@ -356,7 +356,7 @@ export default function Results() {
               cursor: 'pointer',
             }}
           >
-            ← More Statements
+            ← Back to Feed
           </button>
           <button
             onClick={() => {

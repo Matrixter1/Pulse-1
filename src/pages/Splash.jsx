@@ -122,6 +122,7 @@ export default function Splash() {
             label="Member"
             icon="✦"
             description="Register to cast your vote and see combined sentiment data across all users."
+            note="Your vote is always anonymous."
             cta="Register / Sign In"
             accent="var(--gold)"
             borderColor="var(--gold-border)"
@@ -132,6 +133,7 @@ export default function Splash() {
             label="Verified"
             icon="◈"
             description="Complete KYC identity verification. Your vote enters the Truth Layer — the signal that matters."
+            note="Your vote is always anonymous."
             cta="Get Verified"
             accent="var(--teal)"
             borderColor="var(--teal-border)"
@@ -172,7 +174,7 @@ export default function Splash() {
   )
 }
 
-function TierCard({ label, icon, description, cta, accent, borderColor, highlighted, onClick }) {
+function TierCard({ label, icon, description, note, cta, accent, borderColor, highlighted, onClick }) {
   const [hovered, setHovered] = useState(false)
 
   return (
@@ -210,11 +212,16 @@ function TierCard({ label, icon, description, cta, accent, borderColor, highligh
         fontSize: 13,
         color: 'var(--text-muted)',
         lineHeight: 1.6,
-        marginBottom: 24,
+        marginBottom: note ? 6 : 24,
         minHeight: 60,
       }}>
         {description}
       </p>
+      {note && (
+        <p style={{ fontSize: 11, color: 'var(--teal)', marginTop: 6, marginBottom: 24 }}>
+          {note}
+        </p>
+      )}
       <button onClick={onClick} style={{
         width: '100%',
         padding: '10px 16px',

@@ -168,6 +168,19 @@ export default function Vote() {
           </div>
         )}
 
+        {/* Anonymity assurance */}
+        {!alreadyVoted && (
+          <p style={{
+            fontSize: 12,
+            color: 'var(--text-muted)',
+            fontStyle: 'italic',
+            textAlign: 'center',
+            marginBottom: 16,
+          }}>
+            ◈ Your vote is anonymous — your identity is never linked to your response.
+          </p>
+        )}
+
         {/* Vote UI — type-aware */}
         {!alreadyVoted && (
           <>
