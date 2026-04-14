@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import { CategoryBadge, TypeBadge, PageLoading, EmptyState } from '../components/ui'
@@ -24,6 +24,14 @@ export default function Feed() {
   const [voteCounts, setVoteCounts] = useState({})
   const [loading, setLoading] = useState(true)
   const navigate = useNavigate()
+  const contentRef = useRef(null)
+
+  function handleFilterAndScroll(typeId) {
+    setActiveType(typeId)
+    setTimeout(() => {
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
 
   useEffect(() => { loadQuestions() }, [activeCategory])
 
@@ -213,39 +221,49 @@ export default function Feed() {
           const decidePreview = choices[0] || null
           const rankPreview   = ranked[0] || null
           return (
-            <div className="preview-grid" style={{
-              display: 'grid',
-              gridTemplateColumns: 'repeat(3, 1fr)',
-              gap: 12,
-              marginBottom: 32,
-            }}>
-              <PreviewCard
-                type="statement" label="Signal" icon="◈" color="var(--gold)"
-                tagline="Your position on the spectrum."
-                viewAllLabel="Explore Signals →"
-                question={signalPreview} count={statements.length}
-                onClick={() => setActiveType('statement')}
-              />
-              <PreviewCard
-                type="choice" label="Decide" icon="◉" color="var(--teal)"
-                tagline="One choice. No middle ground."
-                viewAllLabel="Explore Decisions →"
-                question={decidePreview} count={choices.length}
-                onClick={() => setActiveType('choice')}
-              />
-              <PreviewCard
-                type="ranked" label="Rank" icon="◆" color="#9B6FD8"
-                tagline="Your order. Your truth."
-                viewAllLabel="Explore Rankings →"
-                question={rankPreview} count={ranked.length}
-                onClick={() => setActiveType('ranked')}
-              />
-            </div>
+            <>
+              <p style={{
+                fontFamily: 'var(--font-display)',
+                fontSize: 15, fontStyle: 'italic',
+                color: 'var(--text-muted)', textAlign: 'center',
+                marginBottom: 16,
+              }}>
+                Explore how people think, choose, and prioritize.
+              </p>
+              <div className="preview-grid" style={{
+                display: 'grid',
+                gridTemplateColumns: 'repeat(3, 1fr)',
+                gap: 12,
+                marginBottom: 32,
+              }}>
+                <PreviewCard
+                  type="statement" label="Signal" icon="◈" color="var(--gold)"
+                  tagline="Where do you stand?"
+                  viewAllLabel="Explore Signals →"
+                  question={signalPreview} count={statements.length}
+                  onClick={() => handleFilterAndScroll('statement')}
+                />
+                <PreviewCard
+                  type="choice" label="Decide" icon="◉" color="var(--teal)"
+                  tagline="One choice. No middle ground."
+                  viewAllLabel="Explore Decisions →"
+                  question={decidePreview} count={choices.length}
+                  onClick={() => handleFilterAndScroll('choice')}
+                />
+                <PreviewCard
+                  type="ranked" label="Rank" icon="◆" color="#9B6FD8"
+                  tagline="Your order. Your truth."
+                  viewAllLabel="Explore Rankings →"
+                  question={rankPreview} count={ranked.length}
+                  onClick={() => handleFilterAndScroll('ranked')}
+                />
+              </div>
+            </>
           )
         })()}
 
         {/* Category filter pills */}
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+        <div ref={contentRef} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28, scrollMarginTop: 80 }}>
           {CATEGORIES.map(cat => {
             const isActive = activeCategory === cat
             const catColor = cat === 'All' ? 'var(--gold)' : (CATEGORY_COLORS[cat] || 'var(--gold)')
@@ -264,45 +282,6 @@ export default function Feed() {
           })}
         </div>
 
-        {/* Type tab switcher */}
-        <div style={{
-          display: 'flex', gap: 4, marginBottom: 28,
-          background: 'rgba(255,255,255,0.03)',
-          borderRadius: 'var(--radius)', padding: 4,
-          border: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          {[
-            { id: 'all',       label: 'All',    icon: '◎', color: 'var(--text-muted)' },
-            { id: 'statement', label: 'Signal', icon: '◈', color: 'var(--gold)'       },
-            { id: 'choice',    label: 'Decide', icon: '◉', color: 'var(--teal)'       },
-            { id: 'ranked',    label: 'Rank',   icon: '◆', color: '#9B6FD8'           },
-          ].map(tab => {
-            const isActive = activeType === tab.id
-            const count = tab.id === 'all'
-              ? questions.length
-              : questions.filter(q => (q.type || 'statement') === tab.id).length
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveType(tab.id)}
-                style={{
-                  flex: 1, padding: '10px 8px', borderRadius: 8, border: 'none',
-                  background: isActive ? 'rgba(10,12,26,0.9)' : 'transparent',
-                  color: isActive ? tab.color : 'var(--text-dim)',
-                  fontSize: 13, fontWeight: isActive ? 700 : 400,
-                  cursor: 'pointer', transition: 'all 0.2s ease',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-                  boxShadow: isActive ? '0 1px 4px rgba(0,0,0,0.3)' : 'none',
-                }}
-              >
-                <span style={{ fontSize: 12 }}>{tab.icon}</span>
-                <span>{tab.label}</span>
-                <span style={{ fontSize: 11, opacity: 0.6, fontWeight: 400 }}>{count}</span>
-              </button>
-            )
-          })}
-        </div>
-
         {loading
           ? <PageLoading />
           : questions.length === 0
@@ -312,7 +291,7 @@ export default function Feed() {
                 const choices    = questions.filter(q => q.type === 'choice' && !q.featured)
                 const ranked     = questions.filter(q => q.type === 'ranked' && !q.featured)
                 const allSections = [
-                  { key: 'statement', icon: '◈', color: 'var(--gold)',  title: 'Signals',   items: statements },
+                  { key: 'statement', icon: '◈', color: 'var(--gold)',  title: 'Signals',   subtitle: 'What people feel across the spectrum', items: statements },
                   { key: 'choice',    icon: '◉', color: 'var(--teal)',  title: 'Decisions', items: choices    },
                   { key: 'ranked',    icon: '◆', color: '#9B6FD8',      title: 'Rankings',  items: ranked     },
                 ]
@@ -324,20 +303,30 @@ export default function Feed() {
                   .map(s => (
                     <div key={s.key} style={{ marginBottom: 48 }}>
                       <div style={{
-                        display: 'flex', alignItems: 'center', gap: 12,
                         marginBottom: 20, paddingBottom: 16,
                         borderBottom: '1px solid rgba(201,168,76,0.12)',
                       }}>
-                        <span style={{ fontSize: 20 }}>{s.icon}</span>
-                        <h2 style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: 24, fontWeight: 600, color: s.color,
-                        }}>
-                          {s.title}
-                        </h2>
-                        <span style={{ fontSize: 12, color: 'var(--text-dim)', marginLeft: 'auto' }}>
-                          {s.items.length} {s.items.length === 1 ? 'item' : 'items'}
-                        </span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+                          <span style={{ fontSize: 20 }}>{s.icon}</span>
+                          <h2 style={{
+                            fontFamily: 'var(--font-display)',
+                            fontSize: 24, fontWeight: 600, color: s.color,
+                          }}>
+                            {s.title}
+                          </h2>
+                          <span style={{ fontSize: 12, color: 'var(--text-dim)', marginLeft: 'auto' }}>
+                            {s.items.length} {s.items.length === 1 ? 'item' : 'items'}
+                          </span>
+                        </div>
+                        {s.subtitle && (
+                          <p style={{
+                            fontSize: 13, fontStyle: 'italic',
+                            color: 'var(--text-muted)',
+                            marginTop: 8, marginLeft: 32,
+                          }}>
+                            {s.subtitle}
+                          </p>
+                        )}
                       </div>
                       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
                         {s.items.map(q => (
@@ -379,8 +368,8 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
         padding: '20px',
         cursor: 'pointer',
         transition: 'all 0.2s ease',
-        transform: hovered ? 'translateY(-5px)' : 'none',
-        boxShadow: hovered ? `0 8px 32px ${color}44, 0 0 0 1px ${color}55` : 'none',
+        transform: hovered ? 'translateY(-5px) scale(1.03)' : 'none',
+        boxShadow: hovered ? `0 12px 40px ${color}55, 0 0 0 1px ${color}66` : 'none',
       }}
     >
       {/* Animated bottom border */}
