@@ -246,7 +246,7 @@ export default function Feed() {
                 marginBottom: 32,
               }}>
                 <PreviewCard
-                  type="statement" label="Signal" icon="◈" color="var(--gold)"
+                  type="statement" label="Signal" icon="◈" color="#C9A84C"
                   tagline="Where do you stand?"
                   viewAllLabel="Explore Signals →"
                   question={signalPreview} count={statements.length}
@@ -255,7 +255,7 @@ export default function Feed() {
                   isDimmed={activeType !== 'all' && activeType !== 'statement'}
                 />
                 <PreviewCard
-                  type="choice" label="Decide" icon="◉" color="var(--teal)"
+                  type="choice" label="Decide" icon="◉" color="#4CC9A8"
                   tagline="One choice. No middle ground."
                   viewAllLabel="Explore Decisions →"
                   question={decidePreview} count={choices.length}
