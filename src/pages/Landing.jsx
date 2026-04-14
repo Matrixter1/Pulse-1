@@ -363,7 +363,7 @@ function HowItWorksSection() {
       transition: 'opacity 0.7s ease, transform 0.7s ease',
     }}>
       <div style={{
-        fontSize: 11,
+        fontSize: 13,
         letterSpacing: '0.25em',
         textTransform: 'uppercase',
         color: 'var(--text-dim)',
@@ -392,7 +392,7 @@ function HowItWorksSection() {
             }}
           >
             <div style={{
-              fontSize: 11,
+              fontSize: 16,
               letterSpacing: '0.15em',
               color: 'var(--text-dim)',
               fontWeight: 600,
@@ -410,7 +410,7 @@ function HowItWorksSection() {
             }} />
             <div style={{
               fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(28px, 4vw, 42px)',
+              fontSize: 'clamp(32px, 4vw, 52px)',
               fontWeight: 600,
               color: '#FFFFFF',
               minWidth: 160,
@@ -420,7 +420,7 @@ function HowItWorksSection() {
               {verb}
             </div>
             <div style={{
-              fontSize: 15,
+              fontSize: 18,
               color: 'var(--text-muted)',
               lineHeight: 1.5,
               fontStyle: 'italic',
@@ -434,7 +434,7 @@ function HowItWorksSection() {
 
       <div style={{
         marginTop: 48,
-        fontSize: 13,
+        fontSize: 18,
         color: 'var(--text-dim)',
         letterSpacing: '0.05em',
       }}>
