@@ -23,8 +23,11 @@ export default function Feed() {
   const [featuredQuestion, setFeaturedQuestion] = useState(null)
   const [voteCounts, setVoteCounts] = useState({})
   const [loading, setLoading] = useState(true)
+  const [featuredBeat, setFeaturedBeat] = useState(false)
+  const [ripple, setRipple] = useState(null)
   const navigate = useNavigate()
   const contentRef = useRef(null)
+  const featuredCardRef = useRef(null)
 
   function handleFilterAndScroll(typeId) {
     // Toggle off — clicking the active card returns to All
@@ -130,9 +133,14 @@ export default function Feed() {
         {/* Featured / Pulse of the Day */}
         {featuredQuestion && (
           <div
+            ref={featuredCardRef}
+            className={`pulse-card${featuredBeat ? ' beat' : ''}`}
             onClick={() => {
+              // Single strong beat — one-shot spike animation, then navigate
+              setFeaturedBeat(true)
+              setTimeout(() => setFeaturedBeat(false), 400)
               sessionStorage.setItem('feed_scroll', window.scrollY)
-              navigate(`/vote/${featuredQuestion.id}`)
+              setTimeout(() => navigate(`/vote/${featuredQuestion.id}`), 280)
             }}
             style={{
               position: 'relative',
@@ -143,8 +151,6 @@ export default function Feed() {
               marginBottom: 36,
               cursor: 'pointer',
               overflow: 'hidden',
-              transition: 'var(--transition)',
-              animation: 'heartbeat-border 2.5s ease-in-out infinite',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -198,10 +204,45 @@ export default function Feed() {
                   return n < 10 ? 'Be among the first to signal' : `${n} voices heard`
                 })()}
               </span>
-              <span className="reveal-btn">
+              <span
+                className="reveal-btn"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  const card = featuredCardRef.current
+                  if (card) {
+                    const cardRect = card.getBoundingClientRect()
+                    const btnRect = e.currentTarget.getBoundingClientRect()
+                    setRipple({
+                      x: btnRect.left - cardRect.left + btnRect.width / 2,
+                      y: btnRect.top - cardRect.top + btnRect.height / 2,
+                      key: Date.now(),
+                    })
+                  }
+                  sessionStorage.setItem('feed_scroll', window.scrollY)
+                  setTimeout(() => navigate(`/vote/${featuredQuestion.id}`), 420)
+                }}
+              >
                 Reveal the Signal →
               </span>
             </div>
+
+            {/* Ripple broadcast overlay — fires on Reveal button click */}
+            {ripple && (
+              <div
+                key={ripple.key}
+                style={{
+                  position: 'absolute',
+                  left: ripple.x,
+                  top: ripple.y,
+                  pointerEvents: 'none',
+                  zIndex: 5,
+                }}
+              >
+                <span className="ripple-ring" style={{ animationDelay: '0ms' }} />
+                <span className="ripple-ring" style={{ animationDelay: '80ms' }} />
+                <span className="ripple-ring" style={{ animationDelay: '160ms' }} />
+              </div>
+            )}
 
             {/* Background glow */}
             <div style={{
@@ -222,7 +263,7 @@ export default function Feed() {
             from { opacity: 0; transform: translateY(20px); }
             to   { opacity: 1; transform: translateY(0); }
           }
-          @keyframes heartbeat-border {
+          @keyframes heartbeat-calm {
             0%, 100% {
               box-shadow:
                 0 0 20px rgba(201,168,76,0.12),
@@ -235,6 +276,49 @@ export default function Feed() {
                 0 0 0 1px rgba(201,168,76,0.75),
                 inset 0 0 60px rgba(201,168,76,0.04);
             }
+          }
+          @keyframes heartbeat-intense {
+            0%, 100% {
+              box-shadow:
+                0 0 30px rgba(201,168,76,0.20),
+                0 0 0 1px rgba(201,168,76,0.55),
+                inset 0 0 50px rgba(201,168,76,0.03);
+            }
+            50% {
+              box-shadow:
+                0 0 70px rgba(201,168,76,0.60),
+                0 0 0 1px rgba(201,168,76,0.95),
+                inset 0 0 80px rgba(201,168,76,0.08);
+            }
+          }
+          @keyframes heartbeat-spike {
+            0% {
+              box-shadow:
+                0 0 20px rgba(201,168,76,0.12),
+                0 0 0 1px rgba(201,168,76,0.35);
+            }
+            25% {
+              box-shadow:
+                0 0 90px rgba(201,168,76,0.85),
+                0 0 0 2px rgba(201,168,76,1),
+                inset 0 0 90px rgba(201,168,76,0.14);
+            }
+            100% {
+              box-shadow:
+                0 0 20px rgba(201,168,76,0.12),
+                0 0 0 1px rgba(201,168,76,0.35);
+            }
+          }
+          .pulse-card {
+            animation: heartbeat-calm 2.5s ease-in-out infinite;
+          }
+          .pulse-card:hover {
+            animation: heartbeat-intense 1.2s ease-in-out infinite;
+          }
+          /* Click beat overrides both calm and intense — placed last for specificity */
+          .pulse-card.beat,
+          .pulse-card:hover.beat {
+            animation: heartbeat-spike 0.4s ease-out;
           }
           .reveal-btn {
             display: inline-block;
@@ -250,6 +334,22 @@ export default function Feed() {
           .reveal-btn:hover {
             background: rgba(201,168,76,0.15);
             box-shadow: 0 0 20px rgba(201,168,76,0.35);
+          }
+          @keyframes ripple-expand {
+            0%   { transform: translate(-50%, -50%) scale(1);   opacity: 0.85; }
+            100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0;    }
+          }
+          .ripple-ring {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 180px;
+            height: 36px;
+            border: 2px solid #C9A84C;
+            border-radius: 10px;
+            opacity: 0;
+            pointer-events: none;
+            animation: ripple-expand 0.5s ease-out forwards;
           }
         `}</style>
 
