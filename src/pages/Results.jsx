@@ -379,11 +379,27 @@ export default function Results() {
             ← Back to Feed
           </button>
           <button
+            id="share-btn"
             onClick={() => {
               if (navigator.share) {
-                navigator.share({ title: 'Pulse by Matrixter', url: window.location.href })
+                navigator.share({
+                  title: 'Pulse by Matrixter',
+                  text: `Truth Gap: ${truthGap}% — see where verified truth diverges from popular opinion.`,
+                  url: window.location.href
+                })
               } else {
-                navigator.clipboard.writeText(window.location.href)
+                navigator.clipboard.writeText(window.location.href).then(() => {
+                  const btn = document.getElementById('share-btn')
+                  if (btn) {
+                    const original = btn.textContent
+                    btn.textContent = '✓ Link Copied'
+                    btn.style.background = 'linear-gradient(135deg, #4CC9A8, #2a9a7a)'
+                    setTimeout(() => {
+                      btn.textContent = original
+                      btn.style.background = 'linear-gradient(135deg, #C9A84C, #a8882e)'
+                    }, 2000)
+                  }
+                })
               }
             }}
             style={{
