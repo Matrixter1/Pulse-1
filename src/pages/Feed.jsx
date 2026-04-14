@@ -27,6 +27,11 @@ export default function Feed() {
   const contentRef = useRef(null)
 
   function handleFilterAndScroll(typeId) {
+    // Toggle off — clicking the active card returns to All
+    if (activeType === typeId) {
+      setActiveType('all')
+      return
+    }
     setActiveType(typeId)
     setTimeout(() => {
       contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -205,10 +210,14 @@ export default function Feed() {
           </div>
         )}
 
-        {/* Mobile responsive style for preview grid */}
+        {/* Mobile responsive style for preview grid + fade-slide-up animation */}
         <style>{`
           @media (max-width: 768px) {
             .preview-grid { grid-template-columns: 1fr !important; }
+          }
+          @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(20px); }
+            to   { opacity: 1; transform: translateY(0); }
           }
         `}</style>
 
@@ -242,6 +251,8 @@ export default function Feed() {
                   viewAllLabel="Explore Signals →"
                   question={signalPreview} count={statements.length}
                   onClick={() => handleFilterAndScroll('statement')}
+                  isActive={activeType === 'statement'}
+                  isDimmed={activeType !== 'all' && activeType !== 'statement'}
                 />
                 <PreviewCard
                   type="choice" label="Decide" icon="◉" color="var(--teal)"
@@ -249,6 +260,8 @@ export default function Feed() {
                   viewAllLabel="Explore Decisions →"
                   question={decidePreview} count={choices.length}
                   onClick={() => handleFilterAndScroll('choice')}
+                  isActive={activeType === 'choice'}
+                  isDimmed={activeType !== 'all' && activeType !== 'choice'}
                 />
                 <PreviewCard
                   type="ranked" label="Rank" icon="◆" color="#9B6FD8"
@@ -256,6 +269,8 @@ export default function Feed() {
                   viewAllLabel="Explore Rankings →"
                   question={rankPreview} count={ranked.length}
                   onClick={() => handleFilterAndScroll('ranked')}
+                  isActive={activeType === 'ranked'}
+                  isDimmed={activeType !== 'all' && activeType !== 'ranked'}
                 />
               </div>
             </>
@@ -292,8 +307,8 @@ export default function Feed() {
                 const ranked     = questions.filter(q => q.type === 'ranked' && !q.featured)
                 const allSections = [
                   { key: 'statement', icon: '◈', color: 'var(--gold)',  title: 'Signals',   subtitle: 'What people feel across the spectrum', items: statements },
-                  { key: 'choice',    icon: '◉', color: 'var(--teal)',  title: 'Decisions', items: choices    },
-                  { key: 'ranked',    icon: '◆', color: '#9B6FD8',      title: 'Rankings',  items: ranked     },
+                  { key: 'choice',    icon: '◉', color: 'var(--teal)',  title: 'Decisions', subtitle: 'One choice. No middle ground.',        items: choices    },
+                  { key: 'ranked',    icon: '◆', color: '#9B6FD8',      title: 'Rankings',  subtitle: 'Your order. Your truth.',              items: ranked     },
                 ]
                 const sections = activeType === 'all'
                   ? allSections
@@ -328,17 +343,24 @@ export default function Feed() {
                           </p>
                         )}
                       </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-                        {s.items.map(q => (
-                          <StatementCard
+                      <div key={`${activeType}-${s.key}`} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                        {s.items.map((q, i) => (
+                          <div
                             key={q.id}
-                            question={q}
-                            counts={voteCounts[q.id]}
-                            onClick={() => {
-                              sessionStorage.setItem('feed_scroll', window.scrollY)
-                              navigate(`/vote/${q.id}`)
+                            style={{
+                              animation: 'fadeSlideUp 0.3s ease-out both',
+                              animationDelay: `${i * 50}ms`,
                             }}
-                          />
+                          >
+                            <StatementCard
+                              question={q}
+                              counts={voteCounts[q.id]}
+                              onClick={() => {
+                                sessionStorage.setItem('feed_scroll', window.scrollY)
+                                navigate(`/vote/${q.id}`)
+                              }}
+                            />
+                          </div>
                         ))}
                       </div>
                     </div>
@@ -350,8 +372,10 @@ export default function Feed() {
   )
 }
 
-function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question, count, onClick }) {
+function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question, count, onClick, isActive, isDimmed }) {
   const [hovered, setHovered] = useState(false)
+  // Elevated = actively selected, or hovered while not dimmed
+  const elevated = isActive || (!isDimmed && hovered)
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -360,16 +384,25 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
       style={{
         position: 'relative',
         overflow: 'hidden',
-        background: hovered
-          ? `linear-gradient(135deg, rgba(15,18,35,0.98), ${color}18)`
+        background: elevated
+          ? `linear-gradient(135deg, rgba(15,18,35,0.98), ${color}22)`
           : 'rgba(10,12,26,0.8)',
-        border: `1px solid ${hovered ? color + '99' : color + '1A'}`,
+        border: `1px solid ${isActive ? color : elevated ? color + '99' : color + '1A'}`,
         borderRadius: 'var(--radius-lg)',
         padding: '20px',
         cursor: 'pointer',
-        transition: 'all 0.2s ease',
-        transform: hovered ? 'translateY(-5px) scale(1.03)' : 'none',
-        boxShadow: hovered ? `0 12px 40px ${color}55, 0 0 0 1px ${color}66` : 'none',
+        transition: 'all 0.25s ease',
+        transform: isDimmed
+          ? 'scale(0.97)'
+          : elevated
+            ? 'translateY(-5px) scale(1.02)'
+            : 'none',
+        opacity: isDimmed ? 0.5 : 1,
+        boxShadow: isActive
+          ? `0 16px 48px ${color}66, 0 0 0 1px ${color}, 0 0 24px ${color}44`
+          : elevated
+            ? `0 12px 40px ${color}55, 0 0 0 1px ${color}66`
+            : 'none',
       }}
     >
       {/* Animated bottom border */}
@@ -378,8 +411,8 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
         height: 3,
         borderRadius: '0 0 var(--radius-lg) var(--radius-lg)',
         background: `linear-gradient(to right, transparent, ${color}ee, transparent)`,
-        opacity: hovered ? 1 : 0,
-        transition: 'opacity 0.2s ease',
+        opacity: elevated ? 1 : 0,
+        transition: 'opacity 0.25s ease',
       }} />
 
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
@@ -421,11 +454,11 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
       <div style={{
         fontSize: 13, color, fontWeight: 600,
         letterSpacing: '0.05em',
-        opacity: hovered ? 1 : 0.7,
-        transform: hovered ? 'translateX(6px)' : 'none',
-        transition: 'all 0.2s ease',
+        opacity: elevated ? 1 : 0.7,
+        transform: elevated ? 'translateX(6px)' : 'none',
+        transition: 'all 0.25s ease',
       }}>
-        {viewAllLabel}
+        {isActive ? `← Back to All` : viewAllLabel}
       </div>
     </div>
   )
