@@ -118,11 +118,11 @@ export default function Feed() {
     <div className="page">
       <NavBar />
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 20px' }}>
-        <div style={{ marginBottom: 32 }}>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(28px, 5vw, 40px)', fontWeight: 600, color: 'var(--text)', marginBottom: 6 }}>
+        <div style={{ marginBottom: 24 }}>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(18px, 2.5vw, 22px)', fontWeight: 400, color: 'var(--text-muted)', marginBottom: 4, letterSpacing: '0.02em' }}>
             Signals
           </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 14 }}>
+          <p style={{ color: 'var(--text-dim)', fontSize: 12, letterSpacing: '0.02em' }}>
             Signal. Decide. Rank. See where verified truth diverges.
           </p>
         </div>
@@ -144,7 +144,7 @@ export default function Feed() {
               cursor: 'pointer',
               overflow: 'hidden',
               transition: 'var(--transition)',
-              boxShadow: '0 0 40px rgba(201,168,76,0.06), inset 0 0 40px rgba(201,168,76,0.02)',
+              animation: 'heartbeat-border 2.5s ease-in-out infinite',
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
@@ -193,9 +193,12 @@ export default function Feed() {
               justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
             }}>
               <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                {voteCounts[featuredQuestion.id]?.all?.total || 0} votes cast
+                {(() => {
+                  const n = voteCounts[featuredQuestion.id]?.all?.total || 0
+                  return n < 10 ? 'Be among the first to signal' : `${n} voices heard`
+                })()}
               </span>
-              <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--gold)', letterSpacing: '0.05em' }}>
+              <span className="reveal-btn">
                 Reveal the Signal →
               </span>
             </div>
@@ -210,7 +213,7 @@ export default function Feed() {
           </div>
         )}
 
-        {/* Mobile responsive style for preview grid + fade-slide-up animation */}
+        {/* Mobile responsive style for preview grid + animations */}
         <style>{`
           @media (max-width: 768px) {
             .preview-grid { grid-template-columns: 1fr !important; }
@@ -218,6 +221,35 @@ export default function Feed() {
           @keyframes fadeSlideUp {
             from { opacity: 0; transform: translateY(20px); }
             to   { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes heartbeat-border {
+            0%, 100% {
+              box-shadow:
+                0 0 20px rgba(201,168,76,0.12),
+                0 0 0 1px rgba(201,168,76,0.35),
+                inset 0 0 40px rgba(201,168,76,0.02);
+            }
+            50% {
+              box-shadow:
+                0 0 50px rgba(201,168,76,0.32),
+                0 0 0 1px rgba(201,168,76,0.75),
+                inset 0 0 60px rgba(201,168,76,0.04);
+            }
+          }
+          .reveal-btn {
+            display: inline-block;
+            padding: 8px 20px;
+            border: 1px solid #C9A84C;
+            border-radius: 6px;
+            color: #C9A84C;
+            font-size: 13px;
+            font-weight: 700;
+            letter-spacing: 0.05em;
+            transition: all 0.2s ease;
+          }
+          .reveal-btn:hover {
+            background: rgba(201,168,76,0.15);
+            box-shadow: 0 0 20px rgba(201,168,76,0.35);
           }
         `}</style>
 
@@ -567,7 +599,7 @@ function StatementCard({ question, counts, onClick }) {
           marginBottom: 14,
           borderRadius: 'var(--radius)',
           overflow: 'hidden',
-          maxHeight: 180,
+          maxHeight: 220,
           border: '1px solid rgba(255,255,255,0.06)',
         }}>
           <img
@@ -575,7 +607,7 @@ function StatementCard({ question, counts, onClick }) {
             alt=""
             style={{
               width: '100%',
-              height: 180,
+              height: 220,
               objectFit: 'cover',
               display: 'block',
             }}
