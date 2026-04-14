@@ -77,6 +77,11 @@ export default function NavBar() {
           color: 'var(--gold)', letterSpacing: '0.12em', marginTop: 2,
           opacity: 1, fontWeight: 400,
         }}>· ✦ early access · truth in progress ✦</span>
+        <span style={{
+          fontFamily: 'var(--font-ui)', fontSize: 10,
+          color: 'var(--teal)', letterSpacing: '0.1em',
+          marginTop: 2, opacity: 0.7,
+        }}>· votes anonymous</span>
         {isAdmin && (
           <Link to="/admin" style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase',
