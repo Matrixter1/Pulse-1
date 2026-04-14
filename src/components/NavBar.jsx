@@ -72,6 +72,11 @@ export default function NavBar() {
           fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-muted)',
           letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 2,
         }}>by Matrixter</span>
+        <span style={{
+          fontFamily: 'var(--font-display)', fontSize: 11, fontStyle: 'italic',
+          color: 'var(--gold)', letterSpacing: '0.12em', marginTop: 2,
+          opacity: 1, fontWeight: 400,
+        }}>· ✦ early access · truth in progress ✦</span>
         {isAdmin && (
           <Link to="/admin" style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase',
