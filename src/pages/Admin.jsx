@@ -497,6 +497,7 @@ function ManageQuestions() {
   // Edit state
   const [editingId, setEditingId]           = useState(null)
   const [editText, setEditText]             = useState('')
+  const [editOptions, setEditOptions]       = useState([])
   const [editImageFile, setEditImageFile]   = useState(null)
   const [editImageUrl, setEditImageUrl]     = useState('')
   const [editImageMode, setEditImageMode]   = useState('upload')
@@ -557,6 +558,11 @@ function ManageQuestions() {
   function openEdit(question) {
     setEditingId(question.id)
     setEditText(question.text)
+    // Pre-fill options for choice / ranked questions
+    const rawOpts = question.options
+      ? (typeof question.options === 'string' ? JSON.parse(question.options) : question.options)
+      : []
+    setEditOptions(Array.isArray(rawOpts) ? [...rawOpts] : [])
     setEditImageUrl(question.image_url || '')
     setEditImagePreview(question.image_url || '')
     setEditImageFile(null)
@@ -570,6 +576,7 @@ function ManageQuestions() {
   function closeEdit() {
     setEditingId(null)
     setEditText('')
+    setEditOptions([])
     setEditImageFile(null)
     setEditImageUrl('')
     setEditImagePreview('')
@@ -594,10 +601,14 @@ function ManageQuestions() {
         resolvedImageUrl = publicUrl
       }
 
+      const needsOptions = question.type === 'choice' || question.type === 'ranked'
+      const cleanedOptions = editOptions.map(o => o.trim()).filter(Boolean)
+
       const { error } = await supabase
         .from('questions')
         .update({
           text: editText.trim(),
+          options: needsOptions ? cleanedOptions : null,
           image_url: resolvedImageUrl,
           reveal_mode: editRevealMode,
           reveal_threshold: editRevealMode === 'threshold' && editRevealThreshold ? parseInt(editRevealThreshold) : null,
@@ -825,6 +836,7 @@ function ManageQuestions() {
               featuring={featuring === q.id}
               editing={editingId === q.id}
               editText={editText}
+              editOptions={editOptions}
               editImageMode={editImageMode}
               editImageFile={editImageFile}
               editImagePreview={editImagePreview}
@@ -839,6 +851,7 @@ function ManageQuestions() {
               onFeature={() => handleFeature(q.id, q.text)}
               onEditClick={() => editingId === q.id ? closeEdit() : openEdit(q)}
               onEditTextChange={setEditText}
+              onEditOptionsChange={setEditOptions}
               onEditImageModeSwitch={mode => {
                 setEditImageMode(mode)
                 setEditImageFile(null)
@@ -867,10 +880,10 @@ function ManageQuestions() {
 
 function QuestionRow({
   question, voteCount, confirming, deleting, featuring,
-  editing, editText, editImageMode, editImageFile, editImagePreview, editImageUrl, editSaving,
+  editing, editText, editOptions, editImageMode, editImageFile, editImagePreview, editImageUrl, editSaving,
   editRevealMode, editRevealThreshold, editRevealDate,
   onDeleteClick, onConfirm, onCancel, onFeature,
-  onEditClick, onEditTextChange, onEditImageModeSwitch, onEditFileChange, onEditUrlChange, onEditClear,
+  onEditClick, onEditTextChange, onEditOptionsChange, onEditImageModeSwitch, onEditFileChange, onEditUrlChange, onEditClear,
   onEditRevealModeChange, onEditRevealThresholdChange, onEditRevealDateChange,
   onSave, onCancelEdit,
 }) {
@@ -953,6 +966,15 @@ function QuestionRow({
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5, width: '100%', boxSizing: 'border-box' }}
             />
           </div>
+
+          {/* Options — choice / ranked only */}
+          {(question.type === 'choice' || question.type === 'ranked') && (
+            <EditOptionsSection
+              type={question.type}
+              options={editOptions}
+              onChange={onEditOptionsChange}
+            />
+          )}
 
           {/* Image */}
           <div style={{ marginBottom: 18 }}>
@@ -1102,6 +1124,138 @@ function QuestionRow({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+// ─── Edit Options Section ─────────────────────────────────────────────────
+
+function EditOptionsSection({ type, options, onChange }) {
+  const maxOpts = type === 'choice' ? 6 : 8
+  const minOpts = 2
+
+  function update(i, val) {
+    const next = [...options]; next[i] = val; onChange(next)
+  }
+  function add() {
+    if (options.length < maxOpts) onChange([...options, ''])
+  }
+  function remove(i) {
+    if (options.length > minOpts) onChange(options.filter((_, idx) => idx !== i))
+  }
+  function move(i, dir) {
+    const next = [...options]
+    const j = i + dir
+    if (j < 0 || j >= next.length) return
+    ;[next[i], next[j]] = [next[j], next[i]]
+    onChange(next)
+  }
+
+  return (
+    <div style={{ marginBottom: 18 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
+        <label style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>
+          Options
+        </label>
+        <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
+          {options.length} option{options.length !== 1 ? 's' : ''} · max {maxOpts}
+        </span>
+      </div>
+
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        {options.map((opt, i) => (
+          <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
+            {/* Index badge */}
+            <div style={{
+              width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+              background: 'rgba(201,168,76,0.08)', border: '1px solid var(--gold-border)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
+            }}>
+              {type === 'choice' ? String.fromCharCode(65 + i) : i + 1}
+            </div>
+
+            {/* Text input */}
+            <input
+              type="text"
+              value={opt}
+              onChange={e => update(i, e.target.value)}
+              placeholder={`Option ${i + 1}`}
+              style={{ ...inputStyle, flex: 1, fontSize: 13, padding: '7px 12px' }}
+            />
+
+            {/* Move up */}
+            <button
+              type="button"
+              onClick={() => move(i, -1)}
+              disabled={i === 0}
+              title="Move up"
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: i === 0 ? 'rgba(255,255,255,0.15)' : 'var(--text-muted)',
+                width: 24, height: 24, borderRadius: 4, fontSize: 12,
+                cursor: i === 0 ? 'default' : 'pointer', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'var(--transition)',
+              }}
+            >↑</button>
+
+            {/* Move down */}
+            <button
+              type="button"
+              onClick={() => move(i, 1)}
+              disabled={i === options.length - 1}
+              title="Move down"
+              style={{
+                background: 'none',
+                border: '1px solid rgba(255,255,255,0.08)',
+                color: i === options.length - 1 ? 'rgba(255,255,255,0.15)' : 'var(--text-muted)',
+                width: 24, height: 24, borderRadius: 4, fontSize: 12,
+                cursor: i === options.length - 1 ? 'default' : 'pointer', flexShrink: 0,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                transition: 'var(--transition)',
+              }}
+            >↓</button>
+
+            {/* Remove */}
+            <button
+              type="button"
+              onClick={() => remove(i)}
+              disabled={options.length <= minOpts}
+              title={options.length <= minOpts ? `Minimum ${minOpts} options` : 'Remove option'}
+              style={{
+                background: 'none', border: 'none',
+                color: options.length <= minOpts ? 'rgba(255,255,255,0.15)' : 'var(--red)',
+                cursor: options.length <= minOpts ? 'default' : 'pointer',
+                fontSize: 18, lineHeight: 1, padding: '0 4px', flexShrink: 0,
+                transition: 'var(--transition)',
+              }}
+            >×</button>
+          </div>
+        ))}
+
+        {options.length < maxOpts && (
+          <button
+            type="button"
+            onClick={add}
+            style={{
+              background: 'none',
+              border: '1px dashed rgba(201,168,76,0.25)',
+              color: 'var(--text-muted)',
+              borderRadius: 'var(--radius)',
+              padding: '6px 14px',
+              fontSize: 12,
+              cursor: 'pointer',
+              transition: 'var(--transition)',
+              alignSelf: 'flex-start',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            + Add Option
+          </button>
+        )}
+      </div>
     </div>
   )
 }
