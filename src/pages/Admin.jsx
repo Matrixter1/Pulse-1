@@ -82,9 +82,22 @@ function AddQuestionForm() {
   const [imageUrlInput, setImageUrlInput] = useState('')     // pasted URL string
   const [uploading, setUploading]       = useState(false)
 
-  function addOption()         { if (options.length < 8) setOptions([...options, '']) }
-  function removeOption(i)     { if (options.length > 2) setOptions(options.filter((_, idx) => idx !== i)) }
+  const optMax = type === 'statement' ? 6 : 8
+  const optMin = type === 'statement' ? 0 : 2
+  function addOption()         { if (options.length < optMax) setOptions([...options, '']) }
+  function removeOption(i)     { if (options.length > optMin) setOptions(options.filter((_, idx) => idx !== i)) }
   function updateOption(i, val){ const n = [...options]; n[i] = val; setOptions(n) }
+
+  function handleTypeChange(newType) {
+    setType(newType)
+    // Reset options to sane defaults when switching types
+    if (newType === 'statement') {
+      setOptions([])
+    } else if (type === 'statement') {
+      setOptions(['', ''])
+    }
+    // choice ↔ ranked: keep existing options
+  }
 
   function handleImageModeSwitch(mode) {
     setImageMode(mode)
@@ -127,7 +140,7 @@ function AddQuestionForm() {
   }
 
   function resetForm() {
-    setType('statement'); setCategory('Consumer'); setText(''); setOptions(['', ''])
+    setType('statement'); setCategory('Consumer'); setText(''); setOptions([])
     setImageMode('upload'); setImageFile(null); setImagePreview(''); setImageUrlInput('')
     setRevealMode('instant'); setRevealThreshold(''); setRevealDate('')
   }
@@ -141,6 +154,7 @@ function AddQuestionForm() {
       const filled = options.filter(o => o.trim())
       if (filled.length < 2) { setError('Add at least 2 options.'); return }
     }
+    const filledOptions = options.filter(o => o.trim())
 
     setSubmitting(true)
     let resolvedImageUrl = null
@@ -169,7 +183,7 @@ function AddQuestionForm() {
         text: text.trim(),
         category,
         type,
-        options: needsOptions ? options.filter(o => o.trim()) : null,
+        options: filledOptions.length > 0 ? filledOptions : null,
         ...(resolvedImageUrl ? { image_url: resolvedImageUrl } : {}),
         reveal_mode: revealMode,
         reveal_threshold: revealMode === 'threshold' && revealThreshold ? parseInt(revealThreshold) : null,
@@ -207,7 +221,7 @@ function AddQuestionForm() {
           <FieldLabel>Question Type</FieldLabel>
           <div style={{ display: 'flex', borderRadius: 'var(--radius)', overflow: 'hidden', border: '1px solid var(--gold-border)', width: 'fit-content' }}>
             {TYPE_OPTIONS.map((opt, i) => (
-              <button key={opt.value} type="button" onClick={() => setType(opt.value)} style={{
+              <button key={opt.value} type="button" onClick={() => handleTypeChange(opt.value)} style={{
                 padding: '9px 22px', border: 'none',
                 borderRight: i < TYPE_OPTIONS.length - 1 ? '1px solid var(--gold-border)' : 'none',
                 background: type === opt.value ? 'rgba(201,168,76,0.15)' : 'transparent',
@@ -246,10 +260,54 @@ function AddQuestionForm() {
           />
         </div>
 
-        {/* Options — Choice / Ranked only */}
+        {/* Reason Chips — Signal only (optional) */}
+        {type === 'statement' && (
+          <div>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <FieldLabel>
+                Reason Chips <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(optional · max 6)</span>
+              </FieldLabel>
+              {options.length > 0 && (
+                <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{options.length} / 6</span>
+              )}
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+              {options.map((opt, i) => (
+                <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
+                  <input
+                    type="text" value={opt} onChange={e => updateOption(i, e.target.value)}
+                    placeholder="e.g. Privacy Concerns"
+                    style={{ ...inputStyle, flex: 1 }}
+                  />
+                  <button type="button" onClick={() => removeOption(i)}
+                    style={{
+                      background: 'none', border: 'none', color: 'var(--red)',
+                      cursor: 'pointer', fontSize: 18, lineHeight: 1, padding: '0 4px', flexShrink: 0,
+                    }}
+                  >×</button>
+                </div>
+              ))}
+              {options.length < 6 && (
+                <button type="button" onClick={addOption} style={{
+                  background: 'none', border: '1px dashed var(--gold-border)',
+                  color: 'var(--text-muted)', borderRadius: 'var(--radius)',
+                  padding: '8px 16px', fontSize: 13, cursor: 'pointer',
+                  transition: 'var(--transition)', alignSelf: 'flex-start', fontFamily: 'var(--font-ui)',
+                }}>
+                  ＋ Add Reason
+                </button>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Options — Decide / Rank (required, 2–8) */}
         {needsOptions && (
           <div>
-            <FieldLabel>Options <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(2–8)</span></FieldLabel>
+            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 8 }}>
+              <FieldLabel>Options <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(2–{optMax})</span></FieldLabel>
+              <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>{options.filter(o=>o.trim()).length} filled</span>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
               {options.map((opt, i) => (
                 <div key={i} style={{ display: 'flex', gap: 8, alignItems: 'center' }}>
@@ -275,14 +333,14 @@ function AddQuestionForm() {
                   >×</button>
                 </div>
               ))}
-              {options.length < 8 && (
+              {options.length < optMax && (
                 <button type="button" onClick={addOption} style={{
                   background: 'none', border: '1px dashed var(--gold-border)',
                   color: 'var(--text-muted)', borderRadius: 'var(--radius)',
                   padding: '8px 16px', fontSize: 13, cursor: 'pointer',
-                  transition: 'var(--transition)', alignSelf: 'flex-start',
+                  transition: 'var(--transition)', alignSelf: 'flex-start', fontFamily: 'var(--font-ui)',
                 }}>
-                  + Add option
+                  ＋ Add Option
                 </button>
               )}
             </div>
@@ -558,11 +616,16 @@ function ManageQuestions() {
   function openEdit(question) {
     setEditingId(question.id)
     setEditText(question.text)
-    // Pre-fill options for choice / ranked questions
-    const rawOpts = question.options
-      ? (typeof question.options === 'string' ? JSON.parse(question.options) : question.options)
-      : []
-    setEditOptions(Array.isArray(rawOpts) ? [...rawOpts] : [])
+    // Pre-fill options / reason chips for all question types
+    let parsed = []
+    try {
+      if (question.options) {
+        const raw = question.options
+        const arr = typeof raw === 'string' ? JSON.parse(raw) : raw
+        parsed = Array.isArray(arr) ? arr.map(String) : []
+      }
+    } catch { parsed = [] }
+    setEditOptions(parsed)
     setEditImageUrl(question.image_url || '')
     setEditImagePreview(question.image_url || '')
     setEditImageFile(null)
@@ -601,14 +664,13 @@ function ManageQuestions() {
         resolvedImageUrl = publicUrl
       }
 
-      const needsOptions = question.type === 'choice' || question.type === 'ranked'
       const cleanedOptions = editOptions.map(o => o.trim()).filter(Boolean)
 
       const { error } = await supabase
         .from('questions')
         .update({
           text: editText.trim(),
-          options: needsOptions ? cleanedOptions : null,
+          options: cleanedOptions.length > 0 ? cleanedOptions : null,
           image_url: resolvedImageUrl,
           reveal_mode: editRevealMode,
           reveal_threshold: editRevealMode === 'threshold' && editRevealThreshold ? parseInt(editRevealThreshold) : null,
@@ -967,14 +1029,12 @@ function QuestionRow({
             />
           </div>
 
-          {/* Options — choice / ranked only */}
-          {(question.type === 'choice' || question.type === 'ranked') && (
-            <EditOptionsSection
-              type={question.type}
-              options={editOptions}
-              onChange={onEditOptionsChange}
-            />
-          )}
+          {/* Options / Reason Chips — all types */}
+          <EditOptionsSection
+            type={question.type || 'statement'}
+            options={editOptions}
+            onChange={onEditOptionsChange}
+          />
 
           {/* Image */}
           <div style={{ marginBottom: 18 }}>
@@ -1131,8 +1191,12 @@ function QuestionRow({
 // ─── Edit Options Section ─────────────────────────────────────────────────
 
 function EditOptionsSection({ type, options, onChange }) {
-  const maxOpts = type === 'choice' ? 6 : 8
-  const minOpts = 2
+  const isSignal = type === 'statement'
+  const maxOpts  = isSignal ? 6 : (type === 'choice' ? 6 : 8)
+  const minOpts  = isSignal ? 0 : 2
+  const label    = isSignal ? 'Reason Chips' : 'Options'
+  const addLabel = isSignal ? '＋ Add Reason' : '＋ Add Option'
+  const placeholder = isSignal ? 'e.g. Privacy Concerns' : (i) => `Option ${i + 1}`
 
   function update(i, val) {
     const next = [...options]; next[i] = val; onChange(next)
@@ -1151,79 +1215,87 @@ function EditOptionsSection({ type, options, onChange }) {
     onChange(next)
   }
 
+  // Signal with no reasons yet — show only the add button, no empty rows
+  if (isSignal && options.length === 0) {
+    return (
+      <div style={{ marginBottom: 18 }}>
+        <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, marginBottom: 10 }}>
+          Reason Chips <span style={{ color: 'var(--text-dim)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}>(optional · max 6)</span>
+        </label>
+        <button type="button" onClick={add} style={{
+          background: 'none', border: '1px dashed rgba(201,168,76,0.25)',
+          color: 'var(--text-muted)', borderRadius: 'var(--radius)',
+          padding: '6px 14px', fontSize: 12, cursor: 'pointer',
+          transition: 'var(--transition)', fontFamily: 'var(--font-ui)',
+        }}>
+          {addLabel}
+        </button>
+      </div>
+    )
+  }
+
   return (
     <div style={{ marginBottom: 18 }}>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <label style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>
-          Options
+          {label}{isSignal && <span style={{ color: 'var(--text-dim)', fontWeight: 400, textTransform: 'none', letterSpacing: 0 }}> (optional)</span>}
         </label>
         <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
-          {options.length} option{options.length !== 1 ? 's' : ''} · max {maxOpts}
+          {options.length} {isSignal ? 'reason' : 'option'}{options.length !== 1 ? 's' : ''} · max {maxOpts}
         </span>
       </div>
 
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {options.map((opt, i) => (
           <div key={i} style={{ display: 'flex', gap: 6, alignItems: 'center' }}>
-            {/* Index badge */}
-            <div style={{
-              width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
-              background: 'rgba(201,168,76,0.08)', border: '1px solid var(--gold-border)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
-            }}>
-              {type === 'choice' ? String.fromCharCode(65 + i) : i + 1}
-            </div>
+            {/* Index badge — choice / ranked only */}
+            {!isSignal && (
+              <div style={{
+                width: 24, height: 24, borderRadius: '50%', flexShrink: 0,
+                background: 'rgba(201,168,76,0.08)', border: '1px solid var(--gold-border)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                fontSize: 10, fontWeight: 700, color: 'var(--text-muted)',
+              }}>
+                {type === 'choice' ? String.fromCharCode(65 + i) : i + 1}
+              </div>
+            )}
 
             {/* Text input */}
             <input
               type="text"
               value={opt}
               onChange={e => update(i, e.target.value)}
-              placeholder={`Option ${i + 1}`}
+              placeholder={isSignal ? 'e.g. Privacy Concerns' : `Option ${i + 1}`}
               style={{ ...inputStyle, flex: 1, fontSize: 13, padding: '7px 12px' }}
             />
 
-            {/* Move up */}
-            <button
-              type="button"
-              onClick={() => move(i, -1)}
-              disabled={i === 0}
-              title="Move up"
-              style={{
-                background: 'none',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: i === 0 ? 'rgba(255,255,255,0.15)' : 'var(--text-muted)',
-                width: 24, height: 24, borderRadius: 4, fontSize: 12,
-                cursor: i === 0 ? 'default' : 'pointer', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'var(--transition)',
-              }}
-            >↑</button>
-
-            {/* Move down */}
-            <button
-              type="button"
-              onClick={() => move(i, 1)}
-              disabled={i === options.length - 1}
-              title="Move down"
-              style={{
-                background: 'none',
-                border: '1px solid rgba(255,255,255,0.08)',
-                color: i === options.length - 1 ? 'rgba(255,255,255,0.15)' : 'var(--text-muted)',
-                width: 24, height: 24, borderRadius: 4, fontSize: 12,
-                cursor: i === options.length - 1 ? 'default' : 'pointer', flexShrink: 0,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                transition: 'var(--transition)',
-              }}
-            >↓</button>
+            {/* Move up / down — choice / ranked only */}
+            {!isSignal && (<>
+              <button type="button" onClick={() => move(i, -1)} disabled={i === 0} title="Move up"
+                style={{
+                  background: 'none', border: '1px solid rgba(255,255,255,0.08)',
+                  color: i === 0 ? 'rgba(255,255,255,0.15)' : 'var(--text-muted)',
+                  width: 24, height: 24, borderRadius: 4, fontSize: 12,
+                  cursor: i === 0 ? 'default' : 'pointer', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'var(--transition)',
+                }}
+              >↑</button>
+              <button type="button" onClick={() => move(i, 1)} disabled={i === options.length - 1} title="Move down"
+                style={{
+                  background: 'none', border: '1px solid rgba(255,255,255,0.08)',
+                  color: i === options.length - 1 ? 'rgba(255,255,255,0.15)' : 'var(--text-muted)',
+                  width: 24, height: 24, borderRadius: 4, fontSize: 12,
+                  cursor: i === options.length - 1 ? 'default' : 'pointer', flexShrink: 0,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  transition: 'var(--transition)',
+                }}
+              >↓</button>
+            </>)}
 
             {/* Remove */}
-            <button
-              type="button"
-              onClick={() => remove(i)}
-              disabled={options.length <= minOpts}
-              title={options.length <= minOpts ? `Minimum ${minOpts} options` : 'Remove option'}
+            <button type="button" onClick={() => remove(i)} disabled={options.length <= minOpts}
+              title={options.length <= minOpts ? `Minimum ${minOpts} required` : `Remove ${isSignal ? 'reason' : 'option'}`}
               style={{
                 background: 'none', border: 'none',
                 color: options.length <= minOpts ? 'rgba(255,255,255,0.15)' : 'var(--red)',
@@ -1236,23 +1308,13 @@ function EditOptionsSection({ type, options, onChange }) {
         ))}
 
         {options.length < maxOpts && (
-          <button
-            type="button"
-            onClick={add}
-            style={{
-              background: 'none',
-              border: '1px dashed rgba(201,168,76,0.25)',
-              color: 'var(--text-muted)',
-              borderRadius: 'var(--radius)',
-              padding: '6px 14px',
-              fontSize: 12,
-              cursor: 'pointer',
-              transition: 'var(--transition)',
-              alignSelf: 'flex-start',
-              fontFamily: 'var(--font-ui)',
-            }}
-          >
-            + Add Option
+          <button type="button" onClick={add} style={{
+            background: 'none', border: '1px dashed rgba(201,168,76,0.25)',
+            color: 'var(--text-muted)', borderRadius: 'var(--radius)',
+            padding: '6px 14px', fontSize: 12, cursor: 'pointer',
+            transition: 'var(--transition)', alignSelf: 'flex-start', fontFamily: 'var(--font-ui)',
+          }}>
+            {addLabel}
           </button>
         )}
       </div>
