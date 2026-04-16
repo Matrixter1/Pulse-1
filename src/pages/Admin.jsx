@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
+import * as XLSX from 'xlsx'
 import NavBar from '../components/NavBar'
 import { Button, CategoryBadge, TypeBadge } from '../components/ui'
 import { supabase } from '../lib/supabase'
@@ -487,6 +488,12 @@ function ManageQuestions() {
   const [featuring, setFeaturing]         = useState(null)
   const [featureSuccess, setFeatureSuccess] = useState('')
 
+  // Export / Import state
+  const [importing, setImporting]         = useState(false)
+  const [importSuccess, setImportSuccess] = useState('')
+  const [importError, setImportError]     = useState('')
+  const importFileRef                     = useRef(null)
+
   // Edit state
   const [editingId, setEditingId]           = useState(null)
   const [editText, setEditText]             = useState('')
@@ -627,6 +634,86 @@ function ManageQuestions() {
     }
   }
 
+  // ── Export ──────────────────────────────────────────────────────────────
+  function handleExport() {
+    const rows = questions.map(q => {
+      let options = ''
+      if (q.options) {
+        const parsed = typeof q.options === 'string' ? JSON.parse(q.options) : q.options
+        options = Array.isArray(parsed) ? parsed.join(', ') : String(parsed)
+      }
+      const typeLabel = q.type === 'statement' ? 'signal' : q.type === 'choice' ? 'decide' : 'rank'
+      return {
+        'ID': q.id,
+        'Type': typeLabel,
+        'Category': q.category || '',
+        'Question Text': q.text || '',
+        'Options': options,
+        'Image URL': q.image_url || '',
+        'Votes': voteCounts[q.id] || 0,
+        'Created Date': new Date(q.created_at).toLocaleDateString('en-GB'),
+        'Is Featured': q.featured ? 'true' : 'false',
+      }
+    })
+    const ws = XLSX.utils.json_to_sheet(rows)
+    const wb = XLSX.utils.book_new()
+    XLSX.utils.book_append_sheet(wb, ws, 'Questions')
+    XLSX.writeFile(wb, `pulse-questions-${new Date().toISOString().slice(0, 10)}.xlsx`)
+  }
+
+  // ── Import ──────────────────────────────────────────────────────────────
+  async function handleImportFile(e) {
+    const file = e.target.files?.[0]
+    if (!file) return
+    e.target.value = ''     // reset so same file can be re-selected
+    setImporting(true)
+    setImportError('')
+    setImportSuccess('')
+    try {
+      const arrayBuffer = await file.arrayBuffer()
+      const wb = XLSX.read(arrayBuffer)
+      const ws = wb.Sheets[wb.SheetNames[0]]
+      const rows = XLSX.utils.sheet_to_json(ws)
+
+      const toInsert = rows.map(row => {
+        const typeRaw = String(row['Type'] || '').toLowerCase().trim()
+        const type = typeRaw === 'signal' ? 'statement'
+          : typeRaw === 'decide' ? 'choice'
+          : typeRaw === 'rank'   ? 'ranked'
+          : typeRaw              // pass through if already db value
+
+        const optionsStr = String(row['Options'] || '').trim()
+        const parsedOptions = optionsStr
+          ? optionsStr.split(',').map(s => s.trim()).filter(Boolean)
+          : null
+
+        const needsOptions = type === 'choice' || type === 'ranked'
+        return {
+          text:        String(row['Question Text'] || '').trim(),
+          category:    String(row['Category']      || 'Consumer').trim(),
+          type,
+          options:     needsOptions && parsedOptions && parsedOptions.length >= 2 ? parsedOptions : null,
+          image_url:   row['Image URL'] ? String(row['Image URL']).trim() || null : null,
+          reveal_mode: 'instant',
+        }
+      }).filter(q => q.text && q.type)
+
+      if (toInsert.length === 0) throw new Error('No valid rows found in the spreadsheet.')
+
+      const { error } = await supabase.from('questions').insert(toInsert)
+      if (error) throw error
+
+      await load()
+      setImportSuccess(`✓ Imported ${toInsert.length} question${toInsert.length !== 1 ? 's' : ''}`)
+      setTimeout(() => setImportSuccess(''), 6000)
+    } catch (err) {
+      setImportError(err.message)
+      setTimeout(() => setImportError(''), 6000)
+    } finally {
+      setImporting(false)
+    }
+  }
+
   return (
     <div style={{
       background: 'rgba(10,12,26,0.8)', border: '1px solid var(--gold-border)',
@@ -636,7 +723,56 @@ function ManageQuestions() {
         <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--gold)' }}>
           Manage Questions
         </h2>
-        <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>{questions.length} total</span>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 4 }}>{questions.length} total</span>
+          <button
+            onClick={handleExport}
+            disabled={questions.length === 0}
+            title="Export all questions to Excel"
+            style={{
+              background: 'none',
+              border: '1px solid rgba(201,168,76,0.35)',
+              color: 'var(--gold)',
+              padding: '5px 14px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: questions.length === 0 ? 'not-allowed' : 'pointer',
+              opacity: questions.length === 0 ? 0.4 : 1,
+              transition: 'var(--transition)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            ↓ Export Excel
+          </button>
+          <button
+            onClick={() => importFileRef.current?.click()}
+            disabled={importing}
+            title="Import questions from Excel"
+            style={{
+              background: importing ? 'rgba(76,201,168,0.1)' : 'none',
+              border: '1px solid rgba(76,201,168,0.35)',
+              color: 'var(--teal)',
+              padding: '5px 14px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: importing ? 'not-allowed' : 'pointer',
+              opacity: importing ? 0.6 : 1,
+              transition: 'var(--transition)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            {importing ? '…Importing' : '↑ Import Excel'}
+          </button>
+          <input
+            ref={importFileRef}
+            type="file"
+            accept=".xlsx,.xls,.csv"
+            onChange={handleImportFile}
+            style={{ display: 'none' }}
+          />
+        </div>
       </div>
 
       {(featureSuccess || editSuccess) && (
@@ -646,6 +782,24 @@ function ManageQuestions() {
           fontSize: 13, color: 'var(--gold)',
         }}>
           {featureSuccess || editSuccess}
+        </div>
+      )}
+      {importSuccess && (
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+          background: 'var(--teal-dim)', border: '1px solid var(--teal-border)',
+          fontSize: 13, color: 'var(--teal)',
+        }}>
+          {importSuccess}
+        </div>
+      )}
+      {importError && (
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+          background: 'var(--red-dim)', border: '1px solid var(--red-border)',
+          fontSize: 13, color: 'var(--red)',
+        }}>
+          ⚠ Import failed: {importError}
         </div>
       )}
 
