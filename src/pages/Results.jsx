@@ -45,6 +45,7 @@ export default function Results() {
   const [truthGap, setTruthGap] = useState(0)
   const [displayGap, setDisplayGap] = useState(0)
   const [loading, setLoading] = useState(true)
+  const [copied, setCopied] = useState(false)
 
   useEffect(() => {
     if (!truthGap) return
@@ -379,42 +380,36 @@ export default function Results() {
             ← Back to Feed
           </button>
           <button
-            id="share-btn"
             onClick={() => {
               if (navigator.share) {
                 navigator.share({
                   title: 'Pulse by Matrixter',
                   text: `Truth Gap: ${truthGap}% — see where verified truth diverges from popular opinion.`,
-                  url: window.location.href
+                  url: window.location.href,
                 })
               } else {
                 navigator.clipboard.writeText(window.location.href).then(() => {
-                  const btn = document.getElementById('share-btn')
-                  if (btn) {
-                    const original = btn.textContent
-                    btn.textContent = '✓ Link Copied'
-                    btn.style.background = 'linear-gradient(135deg, #4CC9A8, #2a9a7a)'
-                    setTimeout(() => {
-                      btn.textContent = original
-                      btn.style.background = 'linear-gradient(135deg, #C9A84C, #a8882e)'
-                    }, 2000)
-                  }
+                  setCopied(true)
+                  setTimeout(() => setCopied(false), 2000)
                 })
               }
             }}
             style={{
               flex: 1,
               padding: '12px 20px',
-              background: 'linear-gradient(135deg, #C9A84C, #a8882e)',
-              border: 'none',
-              color: '#05060F',
+              background: copied
+                ? 'rgba(76,201,168,0.12)'
+                : 'linear-gradient(135deg, #C9A84C, #a8882e)',
+              border: copied ? '1px solid rgba(76,201,168,0.5)' : 'none',
+              color: copied ? 'var(--teal)' : '#05060F',
               borderRadius: 10,
               fontSize: 14,
               fontWeight: 700,
               cursor: 'pointer',
+              transition: 'background 0.2s, color 0.2s, border 0.2s',
             }}
           >
-            Share Results ↗
+            {copied ? '✓ Link Copied' : 'Share Results ↗'}
           </button>
         </div>
       </div>
