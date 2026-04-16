@@ -62,7 +62,7 @@ export default function NavBar() {
       padding: '0 24px', height: 60,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
     }}>
-      <Link to="/" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+      <a href="https://www.matrixter.com" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
         <SacredMark size={32} showRings={false} />
         <span style={{
           fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600,
@@ -92,7 +92,7 @@ export default function NavBar() {
             Admin
           </Link>
         )}
-      </Link>
+      </a>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {tier === 'registered' && (

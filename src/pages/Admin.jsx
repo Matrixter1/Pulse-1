@@ -34,6 +34,18 @@ export default function Admin() {
     <div className="page">
       <NavBar />
       <div style={{ maxWidth: 900, margin: '0 auto', padding: '36px 20px 80px' }}>
+        <button
+          onClick={() => navigate('/feed')}
+          style={{
+            background: 'none', border: 'none', color: 'var(--gold)',
+            cursor: 'pointer', fontSize: 13, marginBottom: 24,
+            display: 'flex', alignItems: 'center', gap: 6,
+            fontFamily: 'var(--font-ui)', padding: 0,
+          }}
+        >
+          ← Back to Feed
+        </button>
+
         <div style={{ marginBottom: 36 }}>
           <div style={{
             display: 'inline-flex', alignItems: 'center', gap: 8,
