@@ -558,6 +558,10 @@ function ManageQuestions() {
   const [featuring, setFeaturing]         = useState(null)
   const [featureSuccess, setFeatureSuccess] = useState('')
 
+  // Archive state
+  const [archiveFilter, setArchiveFilter] = useState('active') // 'active' | 'archived' | 'all'
+  const [archiving, setArchiving]         = useState(null)
+
   // Export / Import state
   const [importing, setImporting]         = useState(false)
   const [importSuccess, setImportSuccess] = useState('')
@@ -702,6 +706,22 @@ function ManageQuestions() {
     }
   }
 
+  async function handleArchive(id, currentlyArchived) {
+    setArchiving(id)
+    try {
+      const { error } = await supabase
+        .from('questions')
+        .update({ archived: !currentlyArchived })
+        .eq('id', id)
+      if (error) throw error
+      await load()
+    } catch (err) {
+      console.error(err)
+    } finally {
+      setArchiving(null)
+    }
+  }
+
   async function handleFeature(id, text) {
     setFeaturing(id)
     try {
@@ -805,11 +825,29 @@ function ManageQuestions() {
       borderRadius: 'var(--radius-lg)', padding: '32px 36px',
     }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-        <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--gold)' }}>
-          Manage Questions
-        </h2>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14 }}>
+          <h2 style={{ fontFamily: 'var(--font-display)', fontSize: 24, fontWeight: 600, color: 'var(--gold)' }}>
+            Manage Questions
+          </h2>
+          {/* Archive filter toggle */}
+          <div style={{ display: 'flex', border: '1px solid rgba(255,255,255,0.08)', borderRadius: 20, overflow: 'hidden' }}>
+            {[['active', 'Active'], ['archived', 'Archived'], ['all', 'All']].map(([val, label]) => (
+              <button key={val} type="button" onClick={() => setArchiveFilter(val)} style={{
+                padding: '4px 13px', border: 'none', fontSize: 11, fontWeight: 600,
+                letterSpacing: '0.05em', cursor: 'pointer', transition: 'var(--transition)',
+                background: archiveFilter === val ? 'rgba(255,255,255,0.08)' : 'transparent',
+                color: archiveFilter === val ? 'var(--text)' : 'var(--text-dim)',
+                fontFamily: 'var(--font-ui)',
+              }}>
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 4 }}>{questions.length} total</span>
+          <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 4 }}>
+            {questions.filter(q => archiveFilter === 'active' ? !q.archived : archiveFilter === 'archived' ? !!q.archived : true).length} shown
+          </span>
           <button
             onClick={handleExport}
             disabled={questions.length === 0}
@@ -895,7 +933,7 @@ function ManageQuestions() {
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{
-            display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 230px',
+            display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 280px',
             gap: 12, padding: '8px 12px',
             fontSize: 10, letterSpacing: '0.15em', textTransform: 'uppercase',
             color: 'var(--text-dim)', fontWeight: 700,
@@ -903,11 +941,14 @@ function ManageQuestions() {
             <span>Question</span><span>Category</span><span>Type</span>
             <span style={{ textAlign: 'right' }}>Votes</span><span>Created</span><span></span>
           </div>
-          {questions.map(q => (
+          {questions
+            .filter(q => archiveFilter === 'active' ? !q.archived : archiveFilter === 'archived' ? !!q.archived : true)
+            .map(q => (
             <QuestionRow
               key={q.id} question={q} voteCount={voteCounts[q.id] || 0}
               confirming={confirmDelete === q.id} deleting={deleting === q.id}
               featuring={featuring === q.id}
+              archiving={archiving === q.id}
               editing={editingId === q.id}
               editText={editText}
               editOptions={editOptions}
@@ -923,6 +964,7 @@ function ManageQuestions() {
               onConfirm={() => handleDelete(q.id)}
               onCancel={() => setConfirmDelete(null)}
               onFeature={() => handleFeature(q.id, q.text)}
+              onArchive={() => handleArchive(q.id, !!q.archived)}
               onEditClick={() => editingId === q.id ? closeEdit() : openEdit(q)}
               onEditTextChange={setEditText}
               onEditOptionsChange={setEditOptions}
@@ -953,10 +995,10 @@ function ManageQuestions() {
 }
 
 function QuestionRow({
-  question, voteCount, confirming, deleting, featuring,
+  question, voteCount, confirming, deleting, featuring, archiving,
   editing, editText, editOptions, editImageMode, editImageFile, editImagePreview, editImageUrl, editSaving,
   editRevealMode, editRevealThreshold, editRevealDate,
-  onDeleteClick, onConfirm, onCancel, onFeature,
+  onDeleteClick, onConfirm, onCancel, onFeature, onArchive,
   onEditClick, onEditTextChange, onEditOptionsChange, onEditImageModeSwitch, onEditFileChange, onEditUrlChange, onEditClear,
   onEditRevealModeChange, onEditRevealThresholdChange, onEditRevealDateChange,
   onSave, onCancelEdit,
@@ -965,14 +1007,16 @@ function QuestionRow({
   const truncated = question.text.length > 60 ? question.text.slice(0, 60) + '…' : question.text
   const date = new Date(question.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: '2-digit' })
   const isFeatured = !!question.featured
+  const isArchived = !!question.archived
 
   return (
     <div style={{
-      background: editing ? 'rgba(201,168,76,0.05)' : isFeatured ? 'rgba(201,168,76,0.04)' : confirming ? 'rgba(201,76,76,0.06)' : 'rgba(255,255,255,0.02)',
-      border: `1px solid ${editing ? 'var(--gold-border)' : isFeatured ? 'rgba(201,168,76,0.25)' : confirming ? 'var(--red-border)' : 'rgba(255,255,255,0.05)'}`,
+      background: editing ? 'rgba(201,168,76,0.05)' : isArchived ? 'rgba(255,255,255,0.01)' : isFeatured ? 'rgba(201,168,76,0.04)' : confirming ? 'rgba(201,76,76,0.06)' : 'rgba(255,255,255,0.02)',
+      border: `1px solid ${editing ? 'var(--gold-border)' : isArchived ? 'rgba(255,255,255,0.04)' : isFeatured ? 'rgba(201,168,76,0.25)' : confirming ? 'var(--red-border)' : 'rgba(255,255,255,0.05)'}`,
       borderRadius: 'var(--radius)', transition: 'var(--transition)',
+      opacity: isArchived ? 0.55 : 1,
     }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 230px', gap: 12, padding: '13px 12px', alignItems: 'center' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 100px 80px 60px 90px 280px', gap: 12, padding: '13px 12px', alignItems: 'center' }}>
         <span style={{ fontSize: 13, color: 'var(--text)', fontStyle: question.type === 'statement' ? 'italic' : 'normal', lineHeight: 1.4 }} title={question.text}>
           {isFeatured && <span style={{ fontSize: 10, color: 'var(--gold)', marginRight: 5 }}>★</span>}
           {question.type === 'statement' ? `"${truncated}"` : truncated}
@@ -1014,6 +1058,24 @@ function QuestionRow({
               }}
             >
               {isFeatured ? '★ Featured' : featuring ? '…' : '☆ Feature'}
+            </button>
+          )}
+          {!confirming && !editing && (
+            <button
+              onClick={onArchive}
+              disabled={!!archiving}
+              title={isArchived ? 'Restore to active' : 'Archive this question'}
+              style={{
+                background: isArchived ? 'rgba(76,201,168,0.1)' : 'none',
+                border: `1px solid ${isArchived ? 'rgba(76,201,168,0.4)' : 'rgba(201,168,76,0.25)'}`,
+                color: isArchived ? 'var(--teal)' : 'var(--text-dim)',
+                padding: '4px 8px', borderRadius: 6, fontSize: 12,
+                cursor: archiving ? 'default' : 'pointer',
+                opacity: archiving ? 0.5 : 1,
+                transition: 'var(--transition)', whiteSpace: 'nowrap',
+              }}
+            >
+              {archiving ? '…' : isArchived ? '↑ Unarchive' : '↓ Archive'}
             </button>
           )}
           {!confirming && !editing && (

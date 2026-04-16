@@ -88,6 +88,7 @@ export default function Feed() {
         .from('questions')
         .select('*')
         .eq('featured', true)
+        .eq('archived', false)
         .maybeSingle()
       if (!error) featuredData = data || null
     } catch (_) { /* featured column may not exist yet */ }

@@ -83,7 +83,21 @@ export function calcRankedResults(votes, options) {
 }
 
 export async function fetchQuestions(category = null) {
-  let query = supabase.from('questions').select('*').order('created_at', { ascending: false })
+  // Auto-archive questions older than 30 days that aren't featured — fire-and-forget
+  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
+  supabase
+    .from('questions')
+    .update({ archived: true })
+    .lt('created_at', cutoff)
+    .eq('featured', false)
+    .eq('archived', false)
+    .then(() => {})
+
+  let query = supabase
+    .from('questions')
+    .select('*')
+    .eq('archived', false)
+    .order('created_at', { ascending: false })
   if (category && category !== 'All') query = query.eq('category', category)
   const { data, error } = await query
   if (error) throw error
