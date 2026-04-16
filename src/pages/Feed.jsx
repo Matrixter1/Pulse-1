@@ -25,9 +25,22 @@ export default function Feed() {
   const [loading, setLoading] = useState(true)
   const [featuredBeat, setFeaturedBeat] = useState(false)
   const [ripple, setRipple] = useState(null)
+  const [categories, setCategories] = useState(CATEGORIES)
   const navigate = useNavigate()
   const contentRef = useRef(null)
   const featuredCardRef = useRef(null)
+
+  // Fetch distinct categories from DB; fall back to the hardcoded constant on error
+  useEffect(() => {
+    supabase
+      .from('questions')
+      .select('category')
+      .then(({ data, error }) => {
+        if (error || !data) return
+        const distinct = [...new Set(data.map(r => r.category).filter(Boolean))].sort()
+        if (distinct.length > 0) setCategories(['All', ...distinct])
+      })
+  }, [])
 
   function handleFilterAndScroll(typeId) {
     // Toggle off — clicking the active card returns to All
@@ -411,7 +424,7 @@ export default function Feed() {
 
         {/* Category filter pills */}
         <div ref={contentRef} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28, scrollMarginTop: 80 }}>
-          {CATEGORIES.map(cat => {
+          {categories.map(cat => {
             const isActive = activeCategory === cat
             const catColor = cat === 'All' ? 'var(--gold)' : (CATEGORY_COLORS[cat] || 'var(--gold)')
             const rgb = cat === 'All' ? '201,168,76' : hexToRgb(CATEGORY_COLORS[cat] || '#C9A84C')
