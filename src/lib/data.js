@@ -64,6 +64,24 @@ export function calcChoiceTruthGap(allResults, verifiedResults) {
   return maxGap
 }
 
+// Ranked results have { label, avgRank, score } and are sorted by avgRank per set,
+// so the sort order differs between all and verified. Match by label and compare
+// the 0–100 score field (pct does not exist on ranked results).
+export function calcRankedTruthGap(allResults, verifiedResults) {
+  if (!verifiedResults || verifiedResults.total === 0) return 0
+  const allByLabel = {}
+  allResults.options.forEach(o => { allByLabel[o.label] = o.score })
+  let maxGap = 0
+  verifiedResults.options.forEach(verOpt => {
+    const allScore = allByLabel[verOpt.label]
+    if (allScore !== undefined) {
+      const gap = Math.abs(allScore - verOpt.score)
+      if (gap > maxGap) maxGap = gap
+    }
+  })
+  return maxGap
+}
+
 export function calcRankedResults(votes, options) {
   const total = votes.length
   if (total === 0) return { options: options.map((o, i) => ({ label: o, avgRank: i + 1, score: 0 })), total: 0 }

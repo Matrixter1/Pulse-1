@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
-import { fetchQuestion, fetchVotesForQuestion, calcResults, calcTruthGap, calcChoiceResults, calcRankedResults, calcChoiceTruthGap } from '../lib/data'
+import { fetchQuestion, fetchVotesForQuestion, calcResults, calcTruthGap, calcChoiceResults, calcRankedResults, calcChoiceTruthGap, calcRankedTruthGap } from '../lib/data'
 import { useAuth } from '../lib/auth'
 import ChoiceResults from '../components/question-types/ChoiceResults'
 import RankedResults from '../components/question-types/RankedResults'
@@ -90,7 +90,7 @@ export default function Results() {
         } else {
           all = calcRankedResults(votes, options)
           verified = calcRankedResults(votes.filter(v => v.is_verified), options)
-          setTruthGap(calcChoiceTruthGap(all, verified))
+          setTruthGap(calcRankedTruthGap(all, verified))
         }
         setAllResults(all)
         setVerifiedResults(verified)
