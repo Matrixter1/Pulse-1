@@ -3,6 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import AuthModal from '../components/AuthModal'
 import { TierBanner, PageLoading, CategoryBadge, TypeBadge } from '../components/ui'
+import QuestionMedia from '../components/QuestionMedia'
 import StatementVote from '../components/question-types/StatementVote'
 import ChoiceVote from '../components/question-types/ChoiceVote'
 import RankedVote from '../components/question-types/RankedVote'
@@ -118,17 +119,7 @@ export default function Vote() {
             border: '1px solid var(--gold-border)',
             maxHeight: 320,
           }}>
-            <img
-              src={question.image_url}
-              alt=""
-              style={{
-                width: '100%',
-                height: '100%',
-                maxHeight: 320,
-                objectFit: 'cover',
-                display: 'block',
-              }}
-            />
+            <QuestionMedia src={question.image_url} alt="" variant="detail" />
           </div>
         )}
 

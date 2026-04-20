@@ -2,6 +2,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import { CategoryBadge, TypeBadge, PageLoading, EmptyState } from '../components/ui'
+import QuestionMedia from '../components/QuestionMedia'
 import { fetchQuestions, fetchVotesForQuestion, calcResults, calcChoiceResults, calcRankedResults } from '../lib/data'
 import { supabase } from '../lib/supabase'
 import { CATEGORIES, CATEGORY_COLORS } from '../constants'
@@ -201,10 +202,7 @@ export default function Feed() {
                 maxHeight: 200, marginBottom: 20,
                 border: '1px solid rgba(201,168,76,0.2)',
               }}>
-                <img
-                  src={featuredQuestion.image_url} alt=""
-                  style={{ width: '100%', height: 200, objectFit: 'cover', display: 'block' }}
-                />
+                <QuestionMedia src={featuredQuestion.image_url} alt="" variant="hero" />
               </div>
             )}
 
@@ -716,16 +714,7 @@ function StatementCard({ question, counts, onClick }) {
           maxHeight: 220,
           border: '1px solid rgba(255,255,255,0.06)',
         }}>
-          <img
-            src={question.image_url}
-            alt=""
-            style={{
-              width: '100%',
-              height: 220,
-              objectFit: 'cover',
-              display: 'block',
-            }}
-          />
+          <QuestionMedia src={question.image_url} alt="" variant="card" />
         </div>
       )}
       {total > 0

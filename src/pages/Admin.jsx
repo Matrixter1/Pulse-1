@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom'
 import * as XLSX from 'xlsx'
 import NavBar from '../components/NavBar'
 import { Button, CategoryBadge, TypeBadge } from '../components/ui'
+import QuestionMedia from '../components/QuestionMedia'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { CATEGORIES } from '../constants'
@@ -180,7 +181,7 @@ function AddQuestionForm() {
         const { error: uploadErr } = await supabase.storage
           .from('question-images')
           .upload(name, imageFile, { contentType: imageFile.type, upsert: false })
-        if (uploadErr) throw new Error(`Image upload failed: ${uploadErr.message}`)
+        if (uploadErr) throw new Error(`Media upload failed: ${uploadErr.message}`)
         const { data: { publicUrl } } = supabase.storage
           .from('question-images')
           .getPublicUrl(name)
@@ -389,7 +390,7 @@ function AddQuestionForm() {
         <div>
           <Button type="submit" size="lg" loading={submitting}>
             {uploading
-              ? 'Uploading image…'
+              ? 'Uploading media…'
               : type === 'statement' ? '◈ Add Signal'
               : type === 'choice'   ? '◉ Add Decision'
               :                       '◆ Add Ranking'}
@@ -409,7 +410,7 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
     <div>
       <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
         <FieldLabel>
-          Image <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(optional)</span>
+          Media <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(optional · image, gif, or mp4)</span>
         </FieldLabel>
         {/* Mode toggle pills */}
         <div style={{
@@ -440,7 +441,7 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
               const items = e.clipboardData?.items
               if (!items) return
               for (const item of items) {
-                if (item.type.startsWith('image/')) {
+                if (item.type.startsWith('image/') || item.type.startsWith('video/')) {
                   const f = item.getAsFile()
                   if (f && onPasteFile) onPasteFile(f)
                   break
@@ -472,7 +473,7 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
                   Click to select · or paste from clipboard (Ctrl+V)
                 </div>
                 <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
-                  JPG, PNG, GIF, WEBP
+                  JPG, PNG, GIF, WEBP, MP4, MOV, M4V, WEBM
                 </div>
                 <div style={{
                   marginTop: 8, fontSize: 11, color: 'var(--text-dim)',
@@ -491,7 +492,7 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
           <input
             ref={fileInputRef}
             type="file"
-            accept=".jpg,.jpeg,.png,.gif,.webp,image/*"
+            accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.m4v,.webm,image/*,video/*"
             onChange={onFileChange}
             style={{ display: 'none' }}
           />
@@ -501,7 +502,7 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
           type="text"
           value={urlInput}
           onChange={e => onUrlChange(e.target.value)}
-          placeholder="https://media.giphy.com/... or any image URL"
+          placeholder="https://... image, gif, or mp4 URL"
           style={inputStyle}
         />
       )}
@@ -509,14 +510,18 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
       {/* Preview */}
       {preview && (
         <div style={{ marginTop: 12, position: 'relative', display: 'inline-block' }}>
-          <img
+          <QuestionMedia
             src={preview}
             alt="Preview"
-            onError={e => { e.target.style.display = 'none' }}
+            variant="detail"
+            controls
             style={{
-              maxHeight: 160, maxWidth: '100%', borderRadius: 'var(--radius-sm)',
-              border: '1px solid var(--gold-border)', display: 'block',
-              opacity: uploading ? 0.5 : 1, transition: 'opacity 0.2s',
+              maxHeight: 160,
+              maxWidth: '100%',
+              borderRadius: 'var(--radius-sm)',
+              border: '1px solid var(--gold-border)',
+              opacity: uploading ? 0.5 : 1,
+              transition: 'opacity 0.2s',
             }}
           />
           {uploading && (
@@ -675,7 +680,7 @@ function ManageQuestions() {
         const { error: uploadErr } = await supabase.storage
           .from('question-images')
           .upload(name, editImageFile, { contentType: editImageFile.type, upsert: false })
-        if (uploadErr) throw new Error(`Image upload failed: ${uploadErr.message}`)
+        if (uploadErr) throw new Error(`Media upload failed: ${uploadErr.message}`)
         const { data: { publicUrl } } = supabase.storage.from('question-images').getPublicUrl(name)
         resolvedImageUrl = publicUrl
       }
@@ -1114,7 +1119,7 @@ function QuestionRow({
           <div style={{ marginBottom: 18 }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <label style={{ fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600 }}>
-                Image <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(optional)</span>
+                Media <span style={{ color: 'var(--text-dim)', fontWeight: 400 }}>(optional · image, gif, or mp4)</span>
               </label>
               <div style={{ display: 'flex', border: '1px solid rgba(201,168,76,0.2)', borderRadius: 20, overflow: 'hidden' }}>
                 {[['upload', '↑ Upload'], ['url', '⊕ Paste URL']].map(([val, label]) => (
@@ -1137,7 +1142,7 @@ function QuestionRow({
                   const items = e.clipboardData?.items
                   if (!items) return
                   for (const item of items) {
-                    if (item.type.startsWith('image/')) {
+                    if (item.type.startsWith('image/') || item.type.startsWith('video/')) {
                       const f = item.getAsFile()
                       if (f) { onEditFileChange({ target: { files: [f] } }) }
                       break
@@ -1180,19 +1185,21 @@ function QuestionRow({
                 type="text"
                 value={editImageUrl}
                 onChange={e => onEditUrlChange(e.target.value)}
-                placeholder="https://... image URL"
+                placeholder="https://... image, gif, or mp4 URL"
                 style={{ ...inputStyle, width: '100%', boxSizing: 'border-box' }}
               />
             )}
-            <input ref={editFileRef} type="file" accept=".jpg,.jpeg,.png,.gif,.webp,image/*" onChange={onEditFileChange} style={{ display: 'none' }} />
+            <input ref={editFileRef} type="file" accept=".jpg,.jpeg,.png,.gif,.webp,.mp4,.mov,.m4v,.webm,image/*,video/*" onChange={onEditFileChange} style={{ display: 'none' }} />
 
             {/* Preview */}
             {editImagePreview && (
               <div style={{ marginTop: 10, position: 'relative', display: 'inline-block' }}>
-                <img
-                  src={editImagePreview} alt="Preview"
-                  onError={e => { e.target.style.display = 'none' }}
-                  style={{ maxHeight: 120, maxWidth: '100%', borderRadius: 'var(--radius-sm)', border: '1px solid var(--gold-border)', display: 'block' }}
+                <QuestionMedia
+                  src={editImagePreview}
+                  alt="Preview"
+                  variant="detail"
+                  controls
+                  style={{ maxHeight: 120, maxWidth: '100%', borderRadius: 'var(--radius-sm)', border: '1px solid var(--gold-border)' }}
                 />
                 <button
                   type="button" onClick={onEditClear}

@@ -5,6 +5,7 @@ import { fetchQuestion, fetchVotesForQuestion, calcResults, calcTruthGap, calcCh
 import { useAuth } from '../lib/auth'
 import ChoiceResults from '../components/question-types/ChoiceResults'
 import RankedResults from '../components/question-types/RankedResults'
+import QuestionMedia from '../components/QuestionMedia'
 
 function isResultsVisible(question, totalVotes) {
   const mode = question?.reveal_mode || 'instant'
@@ -168,6 +169,17 @@ export default function Results() {
             }}>
               {(!question.type || question.type === 'statement') ? `"${question.text}"` : question.text}
             </p>
+            {question.image_url && (
+              <div style={{
+                marginTop: 18,
+                borderRadius: 'var(--radius-lg)',
+                overflow: 'hidden',
+                border: '1px solid var(--gold-border)',
+                maxHeight: 320,
+              }}>
+                <QuestionMedia src={question.image_url} alt="" variant="detail" />
+              </div>
+            )}
           </div>
         )}
 
