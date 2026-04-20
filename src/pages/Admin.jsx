@@ -4,11 +4,10 @@ import * as XLSX from 'xlsx'
 import NavBar from '../components/NavBar'
 import { Button, CategoryBadge, TypeBadge } from '../components/ui'
 import QuestionMedia from '../components/QuestionMedia'
+import { isAdminUser } from '../lib/adminAccess'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
 import { CATEGORIES } from '../constants'
-
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase()
 
 const TYPE_OPTIONS = [
   { value: 'statement', label: 'Signal', icon: '◈' },
@@ -22,12 +21,12 @@ export default function Admin() {
 
   useEffect(() => {
     if (loading) return
-    if (!user || user.email?.toLowerCase() !== ADMIN_EMAIL) {
+    if (!isAdminUser(user)) {
       navigate('/feed', { replace: true })
     }
   }, [user, loading, navigate])
 
-  if (loading || !user || user.email?.toLowerCase() !== ADMIN_EMAIL) {
+  if (loading || !isAdminUser(user)) {
     return null
   }
 

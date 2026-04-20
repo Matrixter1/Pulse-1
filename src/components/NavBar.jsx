@@ -1,14 +1,13 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
+import { isAdminUser } from '../lib/adminAccess'
 import SacredMark from './SacredMark'
-
-const ADMIN_EMAIL = import.meta.env.VITE_ADMIN_EMAIL?.toLowerCase()
 
 export default function NavBar() {
   const { tier, signOut, user, profile, updateNickname } = useAuth()
   const navigate = useNavigate()
-  const isAdmin = !!user && user.email?.toLowerCase() === ADMIN_EMAIL
+  const isAdmin = isAdminUser(user)
 
   const [dropdownOpen, setDropdownOpen] = useState(false)
   const [nicknameInput, setNicknameInput] = useState('')
@@ -18,19 +17,19 @@ export default function NavBar() {
   const tierLabel = { guest: 'Guest', registered: 'Member', verified: 'Verified' }[tier] || 'Guest'
   const tierColor = { guest: 'var(--text-muted)', registered: 'var(--gold)', verified: 'var(--teal)' }[tier] || 'var(--text-muted)'
 
-  // Sync nickname input when profile changes
   useEffect(() => {
     setNicknameInput(profile?.nickname || '')
   }, [profile?.nickname])
 
-  // Close dropdown on outside click
   useEffect(() => {
     if (!dropdownOpen) return
+
     function handleClick(e) {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
         setDropdownOpen(false)
       }
     }
+
     document.addEventListener('mousedown', handleClick)
     return () => document.removeEventListener('mousedown', handleClick)
   }, [dropdownOpen])
@@ -51,7 +50,7 @@ export default function NavBar() {
     }
   }
 
-  const hasNickname = !!(profile?.nickname)
+  const hasNickname = !!profile?.nickname
 
   return (
     <nav style={{
@@ -59,29 +58,32 @@ export default function NavBar() {
       background: 'rgba(5,6,15,0.85)',
       backdropFilter: 'blur(20px)',
       borderBottom: '1px solid rgba(201,168,76,0.12)',
-      padding: '0 24px', height: 60,
+      padding: '0 24px', minHeight: 60,
       display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+      gap: 12, flexWrap: 'wrap',
     }}>
-      <a href="https://www.matrixter.com" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-        <SacredMark size={32} showRings={false} />
-        <span style={{
-          fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600,
-          letterSpacing: '0.05em', color: 'var(--gold)',
-        }}>Pulse</span>
-        <span style={{
-          fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-muted)',
-          letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 2,
-        }}>by Matrixter</span>
-        <span style={{
-          fontFamily: 'var(--font-display)', fontSize: 11, fontStyle: 'italic',
-          color: 'var(--gold)', letterSpacing: '0.12em', marginTop: 2,
-          opacity: 1, fontWeight: 400,
-        }}>· ✦ early access · truth in progress ✦</span>
-        <span style={{
-          fontFamily: 'var(--font-ui)', fontSize: 10,
-          color: 'var(--teal)', letterSpacing: '0.1em',
-          marginTop: 2, opacity: 0.7,
-        }}>· votes anonymous</span>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+        <a href="https://www.matrixter.com" style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <SacredMark size={32} showRings={false} />
+          <span style={{
+            fontFamily: 'var(--font-display)', fontSize: 20, fontWeight: 600,
+            letterSpacing: '0.05em', color: 'var(--gold)',
+          }}>Pulse</span>
+          <span style={{
+            fontFamily: 'var(--font-ui)', fontSize: 11, color: 'var(--text-muted)',
+            letterSpacing: '0.15em', textTransform: 'uppercase', marginTop: 2,
+          }}>by Matrixter</span>
+          <span style={{
+            fontFamily: 'var(--font-display)', fontSize: 11, fontStyle: 'italic',
+            color: 'var(--gold)', letterSpacing: '0.12em', marginTop: 2,
+            opacity: 1, fontWeight: 400,
+          }}>· ✦ early access · truth in progress ✦</span>
+          <span style={{
+            fontFamily: 'var(--font-ui)', fontSize: 10,
+            color: 'var(--teal)', letterSpacing: '0.1em',
+            marginTop: 2, opacity: 0.7,
+          }}>· votes anonymous</span>
+        </a>
         {isAdmin && (
           <Link to="/admin" style={{
             fontSize: 10, fontWeight: 700, letterSpacing: '0.15em', textTransform: 'uppercase',
@@ -92,7 +94,7 @@ export default function NavBar() {
             Admin
           </Link>
         )}
-      </a>
+      </div>
 
       <div style={{ display: 'flex', alignItems: 'center', gap: 16 }}>
         {tier === 'registered' && (
@@ -101,10 +103,9 @@ export default function NavBar() {
           </Link>
         )}
 
-        {/* Tier badge — clickable dropdown when logged in */}
         <div ref={dropdownRef} style={{ position: 'relative' }}>
           <button
-            onClick={() => user ? setDropdownOpen(o => !o) : navigate('/splash')}
+            onClick={() => user ? setDropdownOpen((open) => !open) : navigate('/splash')}
             style={{
               position: 'relative', fontSize: 12, fontWeight: 600,
               letterSpacing: '0.1em', textTransform: 'uppercase',
@@ -117,7 +118,6 @@ export default function NavBar() {
             }}
           >
             {tier === 'verified' && '✓ '}{tierLabel}
-            {/* Gold dot if no nickname and logged in */}
             {user && !hasNickname && (
               <span style={{
                 position: 'absolute', top: -3, right: -3,
@@ -129,7 +129,6 @@ export default function NavBar() {
             )}
           </button>
 
-          {/* Dropdown */}
           {dropdownOpen && user && (
             <div style={{
               position: 'absolute', top: 'calc(100% + 10px)', right: 0,
@@ -140,7 +139,6 @@ export default function NavBar() {
               boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
               backdropFilter: 'blur(20px)',
             }}>
-              {/* Email + tier */}
               <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
                 <div style={{
                   fontSize: 12, color: 'var(--text-muted)',
@@ -156,21 +154,25 @@ export default function NavBar() {
                 </div>
               </div>
 
-              {/* Nickname */}
               <div style={{ marginBottom: 14 }}>
                 <label style={{
                   fontSize: 11, color: hasNickname ? 'var(--text-muted)' : 'var(--gold)',
                   letterSpacing: '0.08em', textTransform: 'uppercase',
                   display: 'block', marginBottom: 7, fontWeight: 600,
                 }}>
-                  {hasNickname ? 'Display name' : '⚡ Set display name'}
+                  {hasNickname ? 'Display name' : 'Set display name'}
                 </label>
                 <div style={{ display: 'flex', gap: 6 }}>
                   <input
                     value={nicknameInput}
-                    onChange={e => setNicknameInput(e.target.value)}
-                    onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleNicknameSave() } }}
-                    placeholder="your name…"
+                    onChange={(e) => setNicknameInput(e.target.value)}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        handleNicknameSave()
+                      }
+                    }}
+                    placeholder="your name..."
                     maxLength={30}
                     style={{
                       flex: 1, background: 'rgba(5,6,15,0.8)',
@@ -191,12 +193,11 @@ export default function NavBar() {
                       transition: 'opacity var(--transition)',
                     }}
                   >
-                    {nicknameSaving ? '…' : 'Save'}
+                    {nicknameSaving ? '...' : 'Save'}
                   </button>
                 </div>
               </div>
 
-              {/* Links */}
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                 <Link
                   to="/suggestions"
@@ -218,7 +219,6 @@ export default function NavBar() {
                 </Link>
               </div>
 
-              {/* Sign out */}
               <button
                 onClick={handleSignOut}
                 style={{
@@ -247,15 +247,5 @@ export default function NavBar() {
         )}
       </div>
     </nav>
-  )
-}
-
-function PulseLogo({ size = 32 }) {
-  return (
-    <svg width={size} height={size} viewBox="0 0 32 32" fill="none">
-      <circle cx="16" cy="16" r="15" stroke="#C9A84C" strokeWidth="1" opacity="0.3" />
-      <circle cx="16" cy="16" r="10" stroke="#C9A84C" strokeWidth="1" opacity="0.5" />
-      <circle cx="16" cy="16" r="5" fill="#C9A84C" opacity="0.9" />
-    </svg>
   )
 }
