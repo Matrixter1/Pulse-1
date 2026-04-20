@@ -45,6 +45,7 @@ export function AuthProvider({ children }) {
 
     setProfile(data)
     setLoading(false)
+    return data
   }
 
   const tier = profile?.tier ?? 'guest'
@@ -105,8 +106,32 @@ export function AuthProvider({ children }) {
     return data
   }
 
+  async function completeVerification() {
+    if (!user) throw new Error('Sign in before starting verification.')
+
+    let existing = profile
+
+    if (!existing) {
+      existing = await fetchProfile(user.id)
+    }
+
+    const { data, error } = await supabase
+      .from('users')
+      .update({
+        email: user.email ?? existing?.email ?? '',
+        tier: 'verified',
+      })
+      .eq('id', user.id)
+      .select()
+      .single()
+
+    if (error) throw error
+    setProfile(data)
+    return data
+  }
+
   return (
-    <AuthContext.Provider value={{ user, profile, tier, loading, signUp, signIn, signOut, signInAnonymously, updateNickname }}>
+    <AuthContext.Provider value={{ user, profile, tier, loading, signUp, signIn, signOut, signInAnonymously, updateNickname, completeVerification }}>
       {children}
     </AuthContext.Provider>
   )

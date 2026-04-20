@@ -1,71 +1,110 @@
+import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import { useAuth } from '../lib/auth'
 
-const STEPS = [
-  {
-    icon: '◎',
-    title: 'Government ID',
-    description: 'Upload a photo of your passport, driver\'s licence, or national ID card.',
-    status: 'pending',
-  },
-  {
-    icon: '◉',
-    title: 'Liveness Check',
-    description: 'A brief facial scan confirms you are a real, live person — not a bot or proxy.',
-    status: 'pending',
-  },
-  {
-    icon: '◈',
-    title: 'Address Verification',
-    description: 'Provide a utility bill or bank statement from the last 90 days.',
-    status: 'pending',
-  },
+const DOC_OPTIONS = [
+  { value: 'passport', label: 'Passport' },
+  { value: 'drivers_license', label: "Driver's License" },
+  { value: 'national_id', label: 'National ID' },
+]
+
+const CAPTURE_OPTIONS = [
+  { value: 'camera', label: 'Take photo', detail: 'Use your device camera for a live capture.' },
+  { value: 'library', label: 'Upload from library', detail: 'Use an existing clean image from your device.' },
 ]
 
 export default function Verify() {
   const navigate = useNavigate()
-  const { tier } = useAuth()
+  const { user, tier, completeVerification } = useAuth()
+  const [step, setStep] = useState(0)
+  const [docType, setDocType] = useState('')
+  const [captureMethod, setCaptureMethod] = useState('')
+  const [startedLiveness, setStartedLiveness] = useState(false)
+  const [confirmedLiveness, setConfirmedLiveness] = useState(false)
+  const [street, setStreet] = useState('')
+  const [city, setCity] = useState('')
+  const [region, setRegion] = useState('')
+  const [postalCode, setPostalCode] = useState('')
+  const [country, setCountry] = useState('')
+  const [submitting, setSubmitting] = useState(false)
+  const [error, setError] = useState('')
 
-  if (tier === 'verified') {
+  const canFinish = useMemo(() => (
+    street.trim() &&
+    city.trim() &&
+    region.trim() &&
+    postalCode.trim() &&
+    country.trim()
+  ), [street, city, region, postalCode, country])
+
+  async function handleComplete() {
+    if (!canFinish || submitting) return
+
+    setSubmitting(true)
+    setError('')
+
+    try {
+      await completeVerification()
+      setStep(3)
+    } catch (err) {
+      setError(err.message || 'Unable to complete verification right now.')
+      setSubmitting(false)
+    }
+  }
+
+  if (!user || tier === 'guest') {
     return (
       <div className="page">
         <NavBar />
-        <div style={{ maxWidth: 600, margin: '0 auto', padding: '80px 20px', textAlign: 'center' }}>
-          <div style={{
-            width: 72,
-            height: 72,
-            borderRadius: '50%',
-            background: 'rgba(76,201,168,0.12)',
-            border: '2px solid var(--teal)',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            margin: '0 auto 24px',
-            fontSize: 28,
-            color: 'var(--teal)',
-          }}>◈</div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 32, color: 'var(--teal)', marginBottom: 12 }}>
-            Identity Verified
-          </h1>
-          <p style={{ color: 'var(--text-muted)', fontSize: 15, marginBottom: 28 }}>
-            Your identity has been confirmed. Your votes enter the Truth Layer and are visible in verified-only results.
-          </p>
-          <button
-            onClick={() => navigate('/feed')}
-            style={{
-              background: 'linear-gradient(135deg, #4CC9A8, #2a9a7e)',
-              border: 'none',
-              color: '#05060F',
-              padding: '12px 28px',
-              borderRadius: 10,
-              fontSize: 15,
-              fontWeight: 700,
-              cursor: 'pointer',
-            }}
-          >
-            Continue to Feed
-          </button>
+        <div style={shellStyle}>
+          <BackButton onClick={() => navigate(-1)} />
+          <Panel>
+            <Eyebrow color="var(--gold)">Identity Verification</Eyebrow>
+            <HeroTitle>Sign in before you verify.</HeroTitle>
+            <BodyCopy>
+              Verification belongs to your Pulse member account, not to a guest browsing session.
+            </BodyCopy>
+            <ActionRow>
+              <PrimaryButton onClick={() => navigate('/splash')}>
+                Sign in
+              </PrimaryButton>
+              <SecondaryButton onClick={() => navigate('/feed')}>
+                Maybe later
+              </SecondaryButton>
+            </ActionRow>
+          </Panel>
+        </div>
+      </div>
+    )
+  }
+
+  if (tier === 'verified' || step === 3) {
+    return (
+      <div className="page">
+        <NavBar />
+        <div style={shellStyle}>
+          <Panel centered>
+            <VerifiedOrb />
+            <Eyebrow color="var(--teal)">Truth Layer Active</Eyebrow>
+            <HeroTitle>You are now part of the Truth Layer.</HeroTitle>
+            <BodyCopy>
+              Your future votes now carry verified weight across Pulse web and Pulse mobile.
+            </BodyCopy>
+            <InsightCard
+              title="Verified Insight"
+              body="This is still a mock verification flow, but it updates the same shared account tier that the mobile app and results pages already read."
+              accent="var(--teal)"
+            />
+            <ActionRow>
+              <PrimaryButton onClick={() => navigate('/feed')}>
+                Enter the Pulse
+              </PrimaryButton>
+              <SecondaryButton onClick={() => navigate('/results/1')}>
+                View results
+              </SecondaryButton>
+            </ActionRow>
+          </Panel>
         </div>
       </div>
     )
@@ -75,175 +114,544 @@ export default function Verify() {
     <div className="page">
       <NavBar />
 
-      <div style={{ maxWidth: 640, margin: '0 auto', padding: '40px 20px 80px' }}>
-        {/* Back */}
-        <button onClick={() => navigate(-1)} style={{
-          background: 'none', border: 'none',
-          color: 'var(--text-muted)', cursor: 'pointer',
-          fontSize: 13, marginBottom: 32,
-          display: 'flex', alignItems: 'center', gap: 6,
-        }}>
-          ← Back
-        </button>
+      <div style={shellStyle}>
+        <BackButton onClick={() => (step === 0 ? navigate(-1) : setStep(step - 1))} />
+        <Progress current={step + 1} total={3} />
 
-        {/* Header */}
-        <div style={{ marginBottom: 40 }}>
-          <div style={{
-            display: 'inline-flex',
-            alignItems: 'center',
-            gap: 8,
-            background: 'rgba(76,201,168,0.08)',
-            border: '1px solid rgba(76,201,168,0.2)',
-            borderRadius: 20,
-            padding: '6px 14px',
-            marginBottom: 20,
-          }}>
-            <span style={{ color: 'var(--teal)', fontSize: 12, fontWeight: 600, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
-              ◈ Identity Verification
-            </span>
-          </div>
-
-          <h1 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(28px, 5vw, 40px)',
-            fontWeight: 600,
-            color: 'var(--text)',
-            marginBottom: 14,
-            lineHeight: 1.2,
-          }}>
-            Join the Truth Layer
-          </h1>
-
-          <p style={{ color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.7, maxWidth: 480 }}>
-            Identity verification is what separates signal from noise. When you verify, your votes enter a separate data layer — letting us measure the gap between public sentiment and what real, confirmed humans actually believe.
-          </p>
+        <div style={{ marginBottom: 28 }}>
+          <Eyebrow color={step === 1 ? 'var(--teal)' : 'var(--gold)'}>
+            Step {step + 1} of 3
+          </Eyebrow>
+          <HeroTitle>
+            {step === 0 && 'Show us your credential.'}
+            {step === 1 && 'Breathe life into the signal.'}
+            {step === 2 && 'Anchor your location.'}
+          </HeroTitle>
+          <BodyCopy>
+            {step === 0 && 'Choose which identity document you want to use, then tell Pulse how you want to provide it.'}
+            {step === 1 && 'Center your face, steady your gaze, and confirm the capture when you are ready.'}
+            {step === 2 && 'Complete the final address step, then Pulse will mark your shared account as verified.'}
+          </BodyCopy>
         </div>
 
-        {/* Truth Gap explanation */}
-        <div style={{
-          background: 'linear-gradient(135deg, rgba(201,168,76,0.06), rgba(76,201,168,0.06))',
-          border: '1px solid rgba(201,168,76,0.2)',
-          borderRadius: 14,
-          padding: '24px 28px',
-          marginBottom: 36,
-          display: 'grid',
-          gridTemplateColumns: '1fr 1fr',
-          gap: 24,
-        }}>
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--text-muted)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>Without verification</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--gold)', marginBottom: 6 }}>Public Poll</div>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Anyone can vote. Results may include bots, brigading, or coordinated manipulation.
-            </p>
-          </div>
-          <div>
-            <div style={{ fontSize: 11, color: 'var(--teal)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 8 }}>With verification</div>
-            <div style={{ fontFamily: 'var(--font-display)', fontSize: 18, color: 'var(--teal)', marginBottom: 6 }}>Truth Layer</div>
-            <p style={{ fontSize: 12, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-              Only confirmed humans. The purest signal of genuine opinion — the Truth Gap reveals what's real.
-            </p>
-          </div>
-        </div>
+        {step === 0 && (
+          <>
+            <Panel>
+              <DocumentPreview />
+              <small style={mutedSmall}>
+                Encrypted via Celestial Ledger. Pulse stores only your verification status, never your raw document.
+              </small>
+            </Panel>
 
-        {/* Steps */}
-        <div style={{ marginBottom: 36 }}>
-          <h2 style={{ fontSize: 13, color: 'var(--text-muted)', letterSpacing: '0.15em', textTransform: 'uppercase', marginBottom: 20 }}>
-            Verification Steps
-          </h2>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {STEPS.map((step, i) => (
-              <div key={i} style={{
-                background: 'rgba(10,12,26,0.8)',
-                border: '1px solid rgba(201,168,76,0.12)',
-                borderRadius: 12,
-                padding: '20px 24px',
-                display: 'flex',
-                gap: 16,
-                alignItems: 'flex-start',
-              }}>
-                <div style={{
-                  width: 36,
-                  height: 36,
-                  borderRadius: '50%',
-                  background: 'rgba(76,201,168,0.08)',
-                  border: '1px solid rgba(76,201,168,0.2)',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  color: 'var(--teal)',
-                  fontSize: 16,
-                  flexShrink: 0,
-                }}>
-                  {step.icon}
-                </div>
-                <div>
-                  <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text)', marginBottom: 4 }}>
-                    {step.title}
-                  </div>
-                  <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-                    {step.description}
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
+            <SectionLabel>Accepted Documents</SectionLabel>
+            <Stack>
+              {DOC_OPTIONS.map(option => (
+                <SelectableCard
+                  key={option.value}
+                  label={option.label}
+                  selected={docType === option.value}
+                  onClick={() => setDocType(option.value)}
+                />
+              ))}
+            </Stack>
 
-        {/* Privacy note */}
-        <div style={{
-          background: 'rgba(10,12,26,0.5)',
-          border: '1px solid rgba(201,168,76,0.08)',
-          borderRadius: 10,
-          padding: '16px 20px',
-          marginBottom: 32,
-          fontSize: 12,
-          color: 'var(--text-muted)',
-          lineHeight: 1.6,
-        }}>
-          🔒 <strong style={{ color: 'var(--text)' }}>Privacy-first design.</strong> Your identity documents are processed by a third-party KYC provider and are never stored on Pulse servers. Only a verification status flag is retained. Your votes remain anonymous even after verification.
-        </div>
+            <SectionLabel>Capture Method</SectionLabel>
+            <Stack>
+              {CAPTURE_OPTIONS.map(option => (
+                <SelectableCard
+                  key={option.value}
+                  label={option.label}
+                  detail={option.detail}
+                  accent="var(--teal)"
+                  selected={captureMethod === option.value}
+                  onClick={() => setCaptureMethod(option.value)}
+                />
+              ))}
+            </Stack>
 
-        {/* CTA */}
-        <div style={{ display: 'flex', gap: 12 }}>
-          <button
-            onClick={() => navigate('/feed')}
-            style={{
-              flex: 1,
-              padding: '14px 20px',
-              background: 'none',
-              border: '1px solid rgba(201,168,76,0.25)',
-              color: 'var(--text-muted)',
-              borderRadius: 10,
-              fontSize: 14,
-              cursor: 'pointer',
-            }}
-          >
-            Maybe later
-          </button>
-          <button
-            disabled
-            style={{
-              flex: 2,
-              padding: '14px 20px',
-              background: 'linear-gradient(135deg, rgba(76,201,168,0.3), rgba(76,201,168,0.15))',
-              border: '1px solid rgba(76,201,168,0.4)',
-              color: 'var(--teal)',
-              borderRadius: 10,
-              fontSize: 14,
-              fontWeight: 700,
-              cursor: 'not-allowed',
-              letterSpacing: '0.03em',
-            }}
-          >
-            ◈ Begin Verification — Coming Soon
-          </button>
-        </div>
+            <ActionRow>
+              <PrimaryButton disabled={!docType || !captureMethod} onClick={() => setStep(1)}>
+                Continue to Liveness
+              </PrimaryButton>
+              <SecondaryButton onClick={() => navigate('/feed')}>
+                Maybe later
+              </SecondaryButton>
+            </ActionRow>
+          </>
+        )}
 
-        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-dim)', marginTop: 16 }}>
-          KYC integration coming in the next release. Join the waitlist to be notified.
-        </p>
+        {step === 1 && (
+          <>
+            <Panel centered>
+              <Viewfinder started={startedLiveness} confirmed={confirmedLiveness} />
+              <BodyCopy style={{ marginBottom: 0 }}>
+                {confirmedLiveness
+                  ? 'Presence confirmed. Pulse can now move to your address verification.'
+                  : startedLiveness
+                  ? 'Center your face. Blink once. Hold steady for a moment, then confirm.'
+                  : 'This simulates the live presence check while the production camera provider is still pending.'}
+              </BodyCopy>
+            </Panel>
+
+            <Stack>
+              <StatusCard
+                label={startedLiveness ? 'Camera alignment complete' : 'Camera alignment pending'}
+                detail="Use balanced lighting and keep your face inside the ring."
+                accent={startedLiveness ? 'var(--teal)' : 'var(--gold)'}
+              />
+              <StatusCard
+                label={confirmedLiveness ? 'Liveness confirmed' : 'Blink prompt pending'}
+                detail="Confirm once you are comfortable that the capture represents a live human."
+                accent={confirmedLiveness ? 'var(--teal)' : 'var(--gold)'}
+              />
+            </Stack>
+
+            <ActionRow>
+              {!startedLiveness && (
+                <PrimaryButton onClick={() => setStartedLiveness(true)}>
+                  Start liveness check
+                </PrimaryButton>
+              )}
+              {startedLiveness && !confirmedLiveness && (
+                <PrimaryButton onClick={() => setConfirmedLiveness(true)}>
+                  Confirm presence
+                </PrimaryButton>
+              )}
+              {confirmedLiveness && (
+                <PrimaryButton onClick={() => setStep(2)}>
+                  Continue to Address
+                </PrimaryButton>
+              )}
+              <SecondaryButton onClick={() => setStep(0)}>
+                Back
+              </SecondaryButton>
+            </ActionRow>
+          </>
+        )}
+
+        {step === 2 && (
+          <>
+            <Panel>
+              <Field label="Street address">
+                <input value={street} onChange={e => setStreet(e.target.value)} style={inputStyle} />
+              </Field>
+              <Field label="City">
+                <input value={city} onChange={e => setCity(e.target.value)} style={inputStyle} />
+              </Field>
+              <Field label="Region / state">
+                <input value={region} onChange={e => setRegion(e.target.value)} style={inputStyle} />
+              </Field>
+              <Field label="Postal code">
+                <input value={postalCode} onChange={e => setPostalCode(e.target.value)} style={inputStyle} />
+              </Field>
+              <Field label="Country">
+                <input value={country} onChange={e => setCountry(e.target.value)} style={inputStyle} />
+              </Field>
+            </Panel>
+
+            <InsightCard
+              title="Shared Account State"
+              body="Completing this mock flow updates users.tier to verified, which the live Pulse website and the mobile app both read for Truth Layer access."
+              accent="var(--gold)"
+            />
+
+            {error && <ErrorBanner message={error} />}
+
+            <ActionRow>
+              <PrimaryButton disabled={!canFinish || submitting} onClick={handleComplete}>
+                {submitting ? 'Submitting...' : 'Submit for Verification'}
+              </PrimaryButton>
+              <SecondaryButton onClick={() => setStep(1)}>
+                Back
+              </SecondaryButton>
+            </ActionRow>
+          </>
+        )}
       </div>
     </div>
   )
+}
+
+function BackButton({ onClick }) {
+  return (
+    <button onClick={onClick} style={backButtonStyle}>
+      ← Back
+    </button>
+  )
+}
+
+function Progress({ current, total }) {
+  return (
+    <div style={{ display: 'flex', gap: 10, marginBottom: 28 }}>
+      {Array.from({ length: total }).map((_, index) => (
+        <div
+          key={index}
+          style={{
+            flex: 1,
+            height: 6,
+            borderRadius: 999,
+            background: index < current ? 'rgba(76,201,168,0.92)' : 'rgba(76,201,168,0.16)',
+          }}
+        />
+      ))}
+    </div>
+  )
+}
+
+function Panel({ children, centered = false }) {
+  return (
+    <div
+      className="glass"
+      style={{
+        padding: 28,
+        marginBottom: 24,
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 18,
+        textAlign: centered ? 'center' : 'left',
+        alignItems: centered ? 'center' : 'stretch',
+      }}
+    >
+      {children}
+    </div>
+  )
+}
+
+function Eyebrow({ children, color }) {
+  return (
+    <div style={{
+      fontSize: 12,
+      color,
+      fontWeight: 700,
+      letterSpacing: '0.14em',
+      textTransform: 'uppercase',
+      marginBottom: 12,
+    }}>
+      {children}
+    </div>
+  )
+}
+
+function HeroTitle({ children }) {
+  return (
+    <h1 style={{
+      fontFamily: 'var(--font-display)',
+      fontSize: 'clamp(30px, 5vw, 42px)',
+      fontWeight: 600,
+      lineHeight: 1.15,
+      marginBottom: 12,
+    }}>
+      {children}
+    </h1>
+  )
+}
+
+function BodyCopy({ children, style }) {
+  return (
+    <p style={{
+      color: 'var(--text-muted)',
+      fontSize: 15,
+      lineHeight: 1.7,
+      maxWidth: 560,
+      marginBottom: 0,
+      ...style,
+    }}>
+      {children}
+    </p>
+  )
+}
+
+function SectionLabel({ children }) {
+  return (
+    <div style={{
+      fontSize: 12,
+      color: 'var(--text-muted)',
+      letterSpacing: '0.14em',
+      textTransform: 'uppercase',
+      marginBottom: 12,
+      marginTop: 8,
+    }}>
+      {children}
+    </div>
+  )
+}
+
+function Stack({ children }) {
+  return (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 12, marginBottom: 24 }}>
+      {children}
+    </div>
+  )
+}
+
+function SelectableCard({ label, detail, selected, onClick, accent = 'var(--gold)' }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        background: 'rgba(10,12,26,0.82)',
+        border: `1px solid ${selected ? `${accent}88` : 'rgba(201,168,76,0.14)'}`,
+        borderRadius: 12,
+        padding: '18px 20px',
+        textAlign: 'left',
+        cursor: 'pointer',
+        transition: 'border-color var(--transition), background var(--transition)',
+      }}
+    >
+      <div style={{ fontSize: 15, fontWeight: 600, color: selected ? accent : 'var(--text)', marginBottom: detail ? 6 : 0 }}>
+        {label}
+      </div>
+      {detail && (
+        <div style={{ fontSize: 13, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+          {detail}
+        </div>
+      )}
+    </button>
+  )
+}
+
+function DocumentPreview() {
+  return (
+    <div style={{
+      width: '100%',
+      minHeight: 140,
+      borderRadius: 24,
+      border: '1px solid rgba(201,168,76,0.32)',
+      background: 'linear-gradient(135deg, rgba(201,168,76,0.08), rgba(76,201,168,0.05))',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      fontSize: 52,
+      color: 'var(--gold)',
+    }}>
+      ▣
+    </div>
+  )
+}
+
+function Viewfinder({ started, confirmed }) {
+  return (
+    <div style={{
+      width: 220,
+      height: 220,
+      borderRadius: '50%',
+      border: `1px solid ${started ? 'rgba(76,201,168,0.5)' : 'rgba(76,201,168,0.22)'}`,
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 4,
+    }}>
+      <div style={{
+        width: 156,
+        height: 156,
+        borderRadius: '50%',
+        border: `1px solid ${started ? 'rgba(201,168,76,0.55)' : 'rgba(201,168,76,0.2)'}`,
+        background: confirmed ? 'rgba(76,201,168,0.16)' : 'rgba(76,201,168,0.06)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 50,
+        color: confirmed ? 'var(--teal)' : 'var(--gold)',
+      }}>
+        {confirmed ? '✓' : '◌'}
+      </div>
+    </div>
+  )
+}
+
+function StatusCard({ label, detail, accent }) {
+  return (
+    <div style={{
+      background: 'rgba(10,12,26,0.82)',
+      border: `1px solid ${accent === 'var(--teal)' ? 'rgba(76,201,168,0.2)' : 'rgba(201,168,76,0.16)'}`,
+      borderRadius: 12,
+      padding: '18px 20px',
+    }}>
+      <div style={{ color: accent, fontWeight: 600, fontSize: 14, marginBottom: 6 }}>
+        {label}
+      </div>
+      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>
+        {detail}
+      </div>
+    </div>
+  )
+}
+
+function InsightCard({ title, body, accent }) {
+  return (
+    <div style={{
+      background: 'rgba(10,12,26,0.62)',
+      border: `1px solid ${accent === 'var(--teal)' ? 'rgba(76,201,168,0.2)' : 'rgba(201,168,76,0.16)'}`,
+      borderRadius: 12,
+      padding: '18px 20px',
+      marginBottom: 24,
+    }}>
+      <div style={{
+        fontSize: 12,
+        letterSpacing: '0.12em',
+        textTransform: 'uppercase',
+        color: accent,
+        marginBottom: 8,
+        fontWeight: 700,
+      }}>
+        {title}
+      </div>
+      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
+        {body}
+      </div>
+    </div>
+  )
+}
+
+function VerifiedOrb() {
+  return (
+    <div style={{
+      width: 220,
+      height: 220,
+      borderRadius: '50%',
+      border: '1px solid rgba(76,201,168,0.34)',
+      background: 'rgba(76,201,168,0.08)',
+      display: 'flex',
+      alignItems: 'center',
+      justifyContent: 'center',
+      marginBottom: 6,
+    }}>
+      <div style={{
+        width: 148,
+        height: 148,
+        borderRadius: '50%',
+        border: '1px solid rgba(201,168,76,0.36)',
+        background: 'rgba(201,168,76,0.08)',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        fontSize: 58,
+        color: 'var(--teal)',
+      }}>
+        ◈
+      </div>
+    </div>
+  )
+}
+
+function ActionRow({ children }) {
+  return (
+    <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+      {children}
+    </div>
+  )
+}
+
+function PrimaryButton({ children, disabled, onClick }) {
+  return (
+    <button
+      disabled={disabled}
+      onClick={onClick}
+      style={{
+        flex: 2,
+        minWidth: 200,
+        padding: '14px 20px',
+        borderRadius: 10,
+        border: '1px solid rgba(76,201,168,0.4)',
+        background: disabled
+          ? 'linear-gradient(135deg, rgba(76,201,168,0.15), rgba(76,201,168,0.1))'
+          : 'linear-gradient(135deg, rgba(76,201,168,0.34), rgba(76,201,168,0.2))',
+        color: disabled ? 'rgba(76,201,168,0.55)' : 'var(--teal)',
+        fontWeight: 700,
+        fontSize: 14,
+        letterSpacing: '0.03em',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function SecondaryButton({ children, onClick }) {
+  return (
+    <button
+      onClick={onClick}
+      style={{
+        flex: 1,
+        minWidth: 140,
+        padding: '14px 20px',
+        borderRadius: 10,
+        border: '1px solid rgba(201,168,76,0.25)',
+        background: 'none',
+        color: 'var(--text-muted)',
+        fontSize: 14,
+        cursor: 'pointer',
+      }}
+    >
+      {children}
+    </button>
+  )
+}
+
+function Field({ label, children }) {
+  return (
+    <label style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+      <span style={labelStyle}>{label}</span>
+      {children}
+    </label>
+  )
+}
+
+function ErrorBanner({ message }) {
+  return (
+    <div style={{
+      color: '#C94C4C',
+      fontSize: 13,
+      background: 'rgba(201,76,76,0.1)',
+      padding: '8px 12px',
+      borderRadius: 8,
+      marginBottom: 20,
+    }}>
+      {message}
+    </div>
+  )
+}
+
+const shellStyle = {
+  maxWidth: 760,
+  margin: '0 auto',
+  padding: '40px 20px 80px',
+}
+
+const backButtonStyle = {
+  background: 'none',
+  border: 'none',
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
+  fontSize: 13,
+  marginBottom: 24,
+  display: 'flex',
+  alignItems: 'center',
+  gap: 6,
+}
+
+const mutedSmall = {
+  color: 'var(--text-muted)',
+  fontSize: 12,
+  lineHeight: 1.6,
+  textAlign: 'center',
+}
+
+const labelStyle = {
+  fontSize: 12,
+  color: 'var(--text-muted)',
+  letterSpacing: '0.1em',
+  textTransform: 'uppercase',
+}
+
+const inputStyle = {
+  width: '100%',
+  background: 'rgba(255,255,255,0.04)',
+  border: '1px solid rgba(76,201,168,0.18)',
+  borderRadius: 8,
+  padding: '10px 14px',
+  color: 'var(--text)',
+  fontSize: 15,
+  outline: 'none',
 }
