@@ -7,6 +7,208 @@ import ChoiceResults from '../components/question-types/ChoiceResults'
 import RankedResults from '../components/question-types/RankedResults'
 import QuestionMedia from '../components/QuestionMedia'
 
+function parseBrief(raw) {
+  if (!raw) return null
+  let value = raw
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value)
+    } catch {
+      return null
+    }
+  }
+  if (!value || typeof value !== 'object') return null
+
+  const title = typeof value.title === 'string' ? value.title.trim() : ''
+  const background = typeof value.background === 'string' ? value.background.trim() : ''
+  const keyTerms = Array.isArray(value.key_terms)
+    ? value.key_terms
+        .map((item) => {
+          if (typeof item === 'string') {
+            const term = item.trim()
+            return term ? { term, definition: '' } : null
+          }
+          if (!item || typeof item !== 'object') return null
+          const term = typeof item.term === 'string' ? item.term.trim() : ''
+          const definition = typeof item.definition === 'string' ? item.definition.trim() : ''
+          if (!term) return null
+          return { term, definition }
+        })
+        .filter(Boolean)
+    : []
+  const sources = Array.isArray(value.sources)
+    ? value.sources
+        .map((item) => {
+          if (typeof item === 'string') {
+            const label = item.trim()
+            return label ? { label, url: '' } : null
+          }
+          if (!item || typeof item !== 'object') return null
+          const label = typeof item.label === 'string' ? item.label.trim() : ''
+          const url = typeof item.url === 'string' ? item.url.trim() : ''
+          if (!label) return null
+          return { label, url }
+        })
+        .filter(Boolean)
+    : []
+
+  if (!title && !background && keyTerms.length === 0 && sources.length === 0) return null
+  return { title: title || 'More Insights', background, keyTerms, sources }
+}
+
+function deriveWhyThisMatters(question) {
+  const categoryLabel = (question?.category || 'this topic').toLowerCase()
+  const type = question?.type || 'statement'
+  if (type === 'ranked') {
+    return `Ranking questions reveal what people prioritize, not just what they like. A little context helps you read the order with more nuance.`
+  }
+  if (type === 'choice') {
+    return `Choice questions compress a complex subject into a single verdict. This context helps you understand what each option is really standing in for.`
+  }
+  return `Statement questions look simple, but they often sit on top of bigger debates in ${categoryLabel}. This context helps you interpret the result with more confidence.`
+}
+
+function MoreInsightsSummary({ brief, question, navigate }) {
+  const [expanded, setExpanded] = useState(false)
+
+  if (!brief) return null
+
+  return (
+    <div style={{
+      background: 'rgba(12,18,34,0.72)',
+      border: '1px solid rgba(76,201,168,0.18)',
+      borderRadius: 'var(--radius-lg)',
+      marginTop: 18,
+      overflow: 'hidden',
+    }}>
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        style={{
+          width: '100%',
+          background: 'transparent',
+          border: 'none',
+          color: 'inherit',
+          cursor: 'pointer',
+          textAlign: 'left',
+          padding: '18px 20px',
+          display: 'flex',
+          justifyContent: 'space-between',
+          gap: 16,
+        }}
+      >
+        <div>
+          <div style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--teal)', fontWeight: 700, marginBottom: 6 }}>
+            More Insights
+          </div>
+          <div style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>
+            {brief.title}
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+            Context that explains the question behind the result.
+          </div>
+        </div>
+        <span style={{ color: 'var(--gold)', fontSize: 18, lineHeight: 1 }}>
+          {expanded ? '-' : '+'}
+        </span>
+      </button>
+
+      {expanded && (
+        <div style={{ padding: '0 20px 20px', display: 'grid', gap: 18 }}>
+          <div>
+            <div style={briefLabelStyle}>Why this matters</div>
+            <p style={briefBodyStyle}>{deriveWhyThisMatters(question)}</p>
+          </div>
+          {brief.background ? (
+            <div>
+              <div style={briefLabelStyle}>Background</div>
+              <p style={briefBodyStyle}>{brief.background}</p>
+            </div>
+          ) : null}
+          {brief.keyTerms.length > 0 ? (
+            <div>
+              <div style={briefLabelStyle}>Key Terms</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {brief.keyTerms.map((item) => (
+                  <div key={`${item.term}-${item.definition || 'plain'}`} style={briefPanelStyle}>
+                    <div style={{ color: 'var(--gold)', fontWeight: 600, marginBottom: item.definition ? 4 : 0 }}>{item.term}</div>
+                    {item.definition ? (
+                      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{item.definition}</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          ) : null}
+          {brief.sources.length > 0 ? (
+            <div>
+              <div style={briefLabelStyle}>Sources</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {brief.sources.map((item) => (
+                  item.url ? (
+                    <a
+                      key={`${item.label}-${item.url}`}
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{ color: 'var(--teal)', textDecoration: 'none', fontSize: 13 }}
+                    >
+                      {item.label} {'->'}
+                    </a>
+                  ) : (
+                    <div key={`${item.label}-plain`} style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>
+                      {item.label}
+                    </div>
+                  )
+                ))}
+              </div>
+            </div>
+          ) : null}
+          <button
+            onClick={() => navigate(`/vote/${question.id}`)}
+            style={{
+              justifySelf: 'start',
+              background: 'none',
+              border: '1px solid rgba(76,201,168,0.35)',
+              color: 'var(--teal)',
+              padding: '8px 18px',
+              borderRadius: 10,
+              fontSize: 13,
+              fontWeight: 600,
+              cursor: 'pointer',
+            }}
+          >
+            Re-open vote context {'->'}
+          </button>
+        </div>
+      )}
+    </div>
+  )
+}
+
+const briefLabelStyle = {
+  fontSize: 11,
+  letterSpacing: '0.14em',
+  textTransform: 'uppercase',
+  color: 'var(--gold)',
+  fontWeight: 700,
+  marginBottom: 8,
+}
+
+const briefBodyStyle = {
+  color: 'var(--text-muted)',
+  fontSize: 14,
+  lineHeight: 1.65,
+  margin: 0,
+}
+
+const briefPanelStyle = {
+  background: 'rgba(255,255,255,0.02)',
+  border: '1px solid rgba(255,255,255,0.05)',
+  borderRadius: 'var(--radius)',
+  padding: '12px 14px',
+}
+
 function isResultsVisible(question, totalVotes) {
   const mode = question?.reveal_mode || 'instant'
   if (mode === 'instant') return { visible: true }
@@ -130,6 +332,7 @@ export default function Results() {
   const canSeeSplit = tier === 'verified'
   const totalVotes = allResults?.total || 0
   const visibility = isResultsVisible(question, totalVotes)
+  const brief = parseBrief(question?.brief)
 
   return (
     <div className="page">
@@ -192,6 +395,7 @@ export default function Results() {
               />
               <ResultsMetaChip label="Reveal" value={formatRevealLabel(question)} />
             </div>
+            <MoreInsightsSummary brief={brief} question={question} navigate={navigate} />
           </div>
         )}
 
