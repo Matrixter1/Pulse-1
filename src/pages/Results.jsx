@@ -72,6 +72,12 @@ function parseBrief(raw) {
   return { title: title || 'More Insights', plainEnglish, background, answerInsights, keyTerms, sources }
 }
 
+function parseOptions(raw) {
+  if (!raw) return []
+  if (typeof raw === 'string') return JSON.parse(raw)
+  return Array.isArray(raw) ? raw : []
+}
+
 function deriveWhyThisMatters(question) {
   const categoryLabel = (question?.category || 'this topic').toLowerCase()
   const type = question?.type || 'statement'
@@ -84,8 +90,45 @@ function deriveWhyThisMatters(question) {
   return `Statement questions look simple, but they often sit on top of bigger debates in ${categoryLabel}. This context helps you interpret the result with more confidence.`
 }
 
+function derivePlainEnglish(question, brief) {
+  if (brief?.plainEnglish) return brief.plainEnglish
+  const type = question?.type || 'statement'
+  const options = parseOptions(question?.options)
+  if (type === 'choice' && options.length >= 2) {
+    return `This question asks you to choose between ${options.map((option) => `"${option}"`).join(' and ')}.`
+  }
+  if (type === 'ranked' && options.length > 0) {
+    return `This question asks you to sort ${options.length} options from most important to least important.`
+  }
+  if (brief?.background) {
+    return `In simple terms, this statement is asking about ${brief.background.charAt(0).toLowerCase()}${brief.background.slice(1)}`
+  }
+  return 'This is asking how strongly you agree or disagree with the statement above.'
+}
+
+function deriveAnswerInsights(question, brief) {
+  if (brief?.answerInsights?.length) return brief.answerInsights
+  const type = question?.type || 'statement'
+  const options = parseOptions(question?.options)
+  if (type === 'choice') {
+    return options.map((option) => ({
+      answer: option,
+      insight: 'Choosing this means you see this side of the question as the stronger or more truthful path.',
+    }))
+  }
+  if (type === 'ranked') {
+    return options.map((option) => ({
+      answer: option,
+      insight: 'Place this higher if you think it should matter more than the other options in this question.',
+    }))
+  }
+  return []
+}
+
 function MoreInsightsSummary({ brief, question, navigate }) {
   const [expanded, setExpanded] = useState(false)
+  const plainEnglish = derivePlainEnglish(question, brief)
+  const answerInsights = deriveAnswerInsights(question, brief)
 
   if (!brief) return null
 
@@ -135,10 +178,10 @@ function MoreInsightsSummary({ brief, question, navigate }) {
             <div style={briefLabelStyle}>Why this matters</div>
             <p style={briefBodyStyle}>{deriveWhyThisMatters(question)}</p>
           </div>
-          {brief.plainEnglish ? (
+          {plainEnglish ? (
             <div>
               <div style={briefLabelStyle}>In plain English</div>
-              <p style={briefBodyStyle}>{brief.plainEnglish}</p>
+              <p style={briefBodyStyle}>{plainEnglish}</p>
             </div>
           ) : null}
           {brief.background ? (
@@ -147,11 +190,11 @@ function MoreInsightsSummary({ brief, question, navigate }) {
               <p style={briefBodyStyle}>{brief.background}</p>
             </div>
           ) : null}
-          {brief.answerInsights.length > 0 ? (
+          {answerInsights.length > 0 ? (
             <div>
               <div style={briefLabelStyle}>About the answers</div>
               <div style={{ display: 'grid', gap: 10 }}>
-                {brief.answerInsights.map((item) => (
+                {answerInsights.map((item) => (
                   <div key={`${item.answer}-${item.insight || 'plain'}`} style={briefPanelStyle}>
                     <div style={{ color: 'var(--gold)', fontWeight: 600, marginBottom: item.insight ? 4 : 0 }}>{item.answer}</div>
                     {item.insight ? (

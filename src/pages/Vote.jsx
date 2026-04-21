@@ -16,6 +16,41 @@ function parseOptions(raw) {
   return raw
 }
 
+function derivePlainEnglish(question, brief) {
+  if (brief?.plainEnglish) return brief.plainEnglish
+  const type = question.type || 'statement'
+  const options = parseOptions(question.options)
+  if (type === 'choice' && options.length >= 2) {
+    return `This question asks you to choose between ${options.map((option) => `"${option}"`).join(' and ')}.`
+  }
+  if (type === 'ranked' && options.length > 0) {
+    return `This question asks you to put ${options.length} options in order from most important to least important.`
+  }
+  if (brief?.background) {
+    return `In simple terms, this statement is asking about ${brief.background.charAt(0).toLowerCase()}${brief.background.slice(1)}`
+  }
+  return 'This is asking where you stand on the statement above.'
+}
+
+function deriveAnswerInsights(question, brief) {
+  if (brief?.answerInsights?.length) return brief.answerInsights
+  const type = question.type || 'statement'
+  const options = parseOptions(question.options)
+  if (type === 'choice') {
+    return options.map((option) => ({
+      answer: option,
+      insight: 'Choosing this means you see this side of the question as the stronger or more truthful path.',
+    }))
+  }
+  if (type === 'ranked') {
+    return options.map((option) => ({
+      answer: option,
+      insight: 'Place this higher if you think it should carry more weight than the other options in this question.',
+    }))
+  }
+  return []
+}
+
 function parseBrief(raw) {
   if (!raw) return null
   let value = raw
@@ -154,6 +189,8 @@ export default function Vote() {
   const questionType = question.type || 'statement'
   const options = parseOptions(question.options)
   const brief = parseBrief(question.brief)
+  const plainEnglish = derivePlainEnglish(question, brief)
+  const answerInsights = deriveAnswerInsights(question, brief)
 
   return (
     <div className="page">
@@ -343,10 +380,10 @@ function MoreInsightsCard({ brief }) {
 
       {expanded && (
         <div style={{ padding: '0 20px 20px', display: 'grid', gap: 18 }}>
-          {brief.plainEnglish && (
+          {plainEnglish && (
             <div>
               <div style={sectionLabelStyle}>In plain English</div>
-              <p style={sectionBodyStyle}>{brief.plainEnglish}</p>
+              <p style={sectionBodyStyle}>{plainEnglish}</p>
             </div>
           )}
 
@@ -357,11 +394,11 @@ function MoreInsightsCard({ brief }) {
             </div>
           )}
 
-          {brief.answerInsights.length > 0 && (
+          {answerInsights.length > 0 && (
             <div>
               <div style={sectionLabelStyle}>About the answers</div>
               <div style={{ display: 'grid', gap: 10 }}>
-                {brief.answerInsights.map((item) => (
+                {answerInsights.map((item) => (
                   <div key={`${item.answer}-${item.insight || 'plain'}`} style={glossaryRowStyle}>
                     <div style={{ color: 'var(--gold)', fontWeight: 600, marginBottom: item.insight ? 4 : 0 }}>{item.answer}</div>
                     {item.insight ? (
