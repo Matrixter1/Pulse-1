@@ -18,6 +18,7 @@ export default function Profile() {
   const [avatarUrlInput, setAvatarUrlInput] = useState('')
   const [avatarPreview, setAvatarPreview] = useState('')
   const [avatarFile, setAvatarFile] = useState(null)
+  const [avatarFeedback, setAvatarFeedback] = useState('')
   const [bioInput, setBioInput] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
   const [sendingRecovery, setSendingRecovery] = useState(false)
@@ -34,6 +35,7 @@ export default function Profile() {
     setAvatarUrlInput(profile?.avatar_url || '')
     setAvatarPreview('')
     setAvatarFile(null)
+    setAvatarFeedback('')
     setBioInput(profile?.bio || '')
   }, [profile?.display_name, profile?.nickname, profile?.first_name, profile?.last_name, profile?.country, profile?.avatar_url, profile?.bio])
 
@@ -74,6 +76,7 @@ export default function Profile() {
     setAvatarPreview('')
     setAvatarFile(null)
     setAvatarUrlInput('')
+    setAvatarFeedback('')
   }
 
   function validateAvatarFile(file) {
@@ -87,12 +90,14 @@ export default function Profile() {
     const validationError = validateAvatarFile(file)
     if (validationError) {
       setError(validationError)
+      setAvatarFeedback(validationError)
       return
     }
 
     setError('')
     setInfo('')
     setRecoverySent(false)
+    setAvatarFeedback(`Image ready: ${file.name} (${formatFileSize(file.size)}).`)
 
     if (avatarPreview?.startsWith('blob:')) {
       URL.revokeObjectURL(avatarPreview)
@@ -152,6 +157,7 @@ export default function Profile() {
         URL.revokeObjectURL(avatarPreview)
       }
       setAvatarPreview('')
+      setAvatarFeedback('')
       setInfo('Profile updated across Pulse web and mobile.')
     } catch (err) {
       setError(err.message || 'Unable to save your profile right now.')
@@ -316,19 +322,15 @@ export default function Profile() {
                     )}
                   </div>
 
-                  <input
-                    value={avatarUrlInput}
-                    onChange={(e) => {
-                      setAvatarUrlInput(e.target.value)
-                      if (avatarPreview?.startsWith('blob:')) {
-                        URL.revokeObjectURL(avatarPreview)
-                      }
-                      setAvatarPreview('')
-                      setAvatarFile(null)
-                    }}
-                    placeholder="Or paste an existing image URL"
-                    style={inputStyle}
-                  />
+                  <div style={avatarHintStyle}>
+                    Paste directly from your clipboard or choose an image from your device. Large files stay rejected so profiles remain fast.
+                  </div>
+
+                  {avatarFeedback && (
+                    <div style={avatarFeedbackStyle}>
+                      {avatarFeedback}
+                    </div>
+                  )}
                 </div>
               </Field>
               <Field label="Bio">
@@ -683,6 +685,12 @@ function InfoBanner({ children }) {
   )
 }
 
+function formatFileSize(bytes) {
+  if (!bytes) return '0 KB'
+  if (bytes >= 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
+  return `${Math.max(1, Math.round(bytes / 1024))} KB`
+}
+
 const shellStyle = {
   maxWidth: 1180,
   margin: '0 auto',
@@ -737,6 +745,22 @@ const inputStyle = {
 const avatarFieldStyle = {
   display: 'grid',
   gap: 12,
+}
+
+const avatarHintStyle = {
+  color: 'var(--text-muted)',
+  fontSize: 12,
+  lineHeight: 1.6,
+}
+
+const avatarFeedbackStyle = {
+  color: 'var(--gold)',
+  background: 'rgba(201,168,76,0.08)',
+  border: '1px solid rgba(201,168,76,0.18)',
+  borderRadius: 12,
+  padding: '12px 14px',
+  fontSize: 13,
+  lineHeight: 1.6,
 }
 
 const avatarDropZoneStyle = {
