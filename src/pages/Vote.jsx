@@ -189,8 +189,6 @@ export default function Vote() {
   const questionType = question.type || 'statement'
   const options = parseOptions(question.options)
   const brief = parseBrief(question.brief)
-  const plainEnglish = derivePlainEnglish(question, brief)
-  const answerInsights = deriveAnswerInsights(question, brief)
 
   return (
     <div className="page">
@@ -243,7 +241,7 @@ export default function Vote() {
         </div>
 
         {brief && (
-          <MoreInsightsCard brief={brief} />
+          <MoreInsightsCard brief={brief} question={question} />
         )}
 
         {/* Already voted state */}
@@ -325,8 +323,10 @@ export default function Vote() {
   )
 }
 
-function MoreInsightsCard({ brief }) {
+function MoreInsightsCard({ brief, question }) {
   const [expanded, setExpanded] = useState(false)
+  const plainEnglish = derivePlainEnglish(question, brief)
+  const answerInsights = deriveAnswerInsights(question, brief)
 
   return (
     <div
