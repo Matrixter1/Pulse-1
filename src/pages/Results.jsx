@@ -78,6 +78,41 @@ function parseOptions(raw) {
   return Array.isArray(raw) ? raw : []
 }
 
+const OPTION_INSIGHT_LIBRARY = [
+  ['artificial general intelligence', 'AI that could reason and act across many tasks at or beyond human level, rather than being limited to one narrow job.'],
+  ['genetic engineering', 'Directly changing genes in humans, animals, or crops to alter traits, capabilities, or biology.'],
+  ['neural interfaces', 'Technology that connects the brain or nervous system directly to computers, devices, or networks.'],
+  ['brain-computer interface', 'Technology that connects the brain or nervous system directly to computers, devices, or networks.'],
+  ['global surveillance grids', 'Large-scale systems that track populations through cameras, sensors, biometrics, data collection, or network monitoring.'],
+  ['surveillance', 'Systems that track people through cameras, sensors, biometrics, data collection, or network monitoring.'],
+  ['quantum computing', 'A new kind of computing that uses quantum physics and could solve some problems far faster than today\'s machines.'],
+  ['synthetic biology', 'Designing or building new biological systems, rather than only editing the ones that already exist.'],
+  ['nanotechnology', 'Engineering matter at an extremely small scale so materials or machines behave in new ways.'],
+  ['autonomous weapons', 'Weapons that can identify, track, or strike targets with little or no direct human control.'],
+  ['digital minds', 'Software-based minds or mind copies that could think, remember, or act like a person.'],
+  ['longevity', 'Technologies aimed at slowing aging, extending lifespan, or keeping people healthy for much longer.'],
+]
+
+function humanizeOptionLabel(option) {
+  return option
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function deriveOptionInsight(option, type) {
+  const normalized = option.toLowerCase().trim()
+  const matched = OPTION_INSIGHT_LIBRARY.find(([term]) => normalized.includes(term))
+  if (matched) return matched[1]
+  if (type === 'choice') {
+    return `This option represents the case for ${humanizeOptionLabel(option).toLowerCase()}.`
+  }
+  if (type === 'ranked') {
+    return `This refers to ${humanizeOptionLabel(option).toLowerCase()}. Think about how disruptive or important it could be compared with the other options here.`
+  }
+  return ''
+}
+
 function deriveWhyThisMatters(question) {
   const categoryLabel = (question?.category || 'this topic').toLowerCase()
   const type = question?.type || 'statement'
@@ -113,13 +148,13 @@ function deriveAnswerInsights(question, brief) {
   if (type === 'choice') {
     return options.map((option) => ({
       answer: option,
-      insight: 'Choosing this means you see this side of the question as the stronger or more truthful path.',
+      insight: deriveOptionInsight(option, type),
     }))
   }
   if (type === 'ranked') {
     return options.map((option) => ({
       answer: option,
-      insight: 'Place this higher if you think it should matter more than the other options in this question.',
+      insight: deriveOptionInsight(option, type),
     }))
   }
   return []
