@@ -1,25 +1,37 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useAuth } from '../lib/auth'
 import { isAdminUser } from '../lib/adminAccess'
 import SacredMark from './SacredMark'
 
 export default function NavBar() {
-  const { tier, signOut, user, profile, updateNickname } = useAuth()
+  const { tier, signOut, user, profile, updateProfile } = useAuth()
   const navigate = useNavigate()
   const isAdmin = isAdminUser(user)
 
   const [dropdownOpen, setDropdownOpen] = useState(false)
-  const [nicknameInput, setNicknameInput] = useState('')
-  const [nicknameSaving, setNicknameSaving] = useState(false)
+  const [savingProfile, setSavingProfile] = useState(false)
+  const [displayNameInput, setDisplayNameInput] = useState('')
+  const [firstNameInput, setFirstNameInput] = useState('')
+  const [lastNameInput, setLastNameInput] = useState('')
+  const [countryInput, setCountryInput] = useState('')
+  const [avatarUrlInput, setAvatarUrlInput] = useState('')
+  const [bioInput, setBioInput] = useState('')
   const dropdownRef = useRef(null)
 
   const tierLabel = { guest: 'Guest', registered: 'Member', verified: 'Verified' }[tier] || 'Guest'
   const tierColor = { guest: 'var(--text-muted)', registered: 'var(--gold)', verified: 'var(--teal)' }[tier] || 'var(--text-muted)'
+  const publicDisplayName = profile?.display_name || profile?.nickname
+  const hasDisplayName = !!publicDisplayName
 
   useEffect(() => {
-    setNicknameInput(profile?.nickname || '')
-  }, [profile?.nickname])
+    setDisplayNameInput(profile?.display_name || profile?.nickname || '')
+    setFirstNameInput(profile?.first_name || '')
+    setLastNameInput(profile?.last_name || '')
+    setCountryInput(profile?.country || '')
+    setAvatarUrlInput(profile?.avatar_url || '')
+    setBioInput(profile?.bio || '')
+  }, [profile?.display_name, profile?.nickname, profile?.first_name, profile?.last_name, profile?.country, profile?.avatar_url, profile?.bio])
 
   useEffect(() => {
     if (!dropdownOpen) return
@@ -40,17 +52,22 @@ export default function NavBar() {
     navigate('/splash')
   }
 
-  async function handleNicknameSave() {
-    if (!nicknameInput.trim()) return
-    setNicknameSaving(true)
+  async function handleProfileSave() {
+    if (!firstNameInput.trim() || !lastNameInput.trim() || !countryInput.trim()) return
+    setSavingProfile(true)
     try {
-      await updateNickname(nicknameInput.trim())
+      await updateProfile({
+        displayName: displayNameInput,
+        firstName: firstNameInput,
+        lastName: lastNameInput,
+        country: countryInput,
+        avatarUrl: avatarUrlInput,
+        bio: bioInput,
+      })
     } finally {
-      setNicknameSaving(false)
+      setSavingProfile(false)
     }
   }
-
-  const hasNickname = !!profile?.nickname
 
   return (
     <nav style={{
@@ -118,7 +135,7 @@ export default function NavBar() {
             }}
           >
             {tier === 'verified' && '✓ '}{tierLabel}
-            {user && !hasNickname && (
+            {user && !hasDisplayName && (
               <span style={{
                 position: 'absolute', top: -3, right: -3,
                 width: 8, height: 8, borderRadius: '50%',
@@ -135,16 +152,16 @@ export default function NavBar() {
               background: 'var(--surface2)',
               border: '1px solid var(--gold-border)',
               borderRadius: 'var(--radius-lg)', padding: '18px 18px 14px',
-              minWidth: 232, zIndex: 'var(--z-modal)',
+              minWidth: 300, zIndex: 'var(--z-modal)',
               boxShadow: '0 12px 40px rgba(0,0,0,0.5)',
               backdropFilter: 'blur(20px)',
             }}>
               <div style={{ marginBottom: 14, paddingBottom: 14, borderBottom: '1px solid rgba(255,255,255,0.06)' }}>
-                <div style={{
-                  fontSize: 12, color: 'var(--text-muted)',
-                  wordBreak: 'break-all', marginBottom: 5,
-                }}>
+                <div style={{ fontSize: 12, color: 'var(--text-muted)', wordBreak: 'break-all', marginBottom: 5 }}>
                   {user.email}
+                </div>
+                <div style={{ fontSize: 12, color: 'var(--text)', marginBottom: 5 }}>
+                  {[profile?.first_name, profile?.last_name].filter(Boolean).join(' ') || 'Complete your profile'}
                 </div>
                 <div style={{
                   fontSize: 11, color: tierColor, fontWeight: 700,
@@ -155,57 +172,52 @@ export default function NavBar() {
               </div>
 
               <div style={{ marginBottom: 14 }}>
-                <label style={{
-                  fontSize: 11, color: hasNickname ? 'var(--text-muted)' : 'var(--gold)',
-                  letterSpacing: '0.08em', textTransform: 'uppercase',
-                  display: 'block', marginBottom: 7, fontWeight: 600,
-                }}>
-                  {hasNickname ? 'Display name' : 'Set display name'}
-                </label>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  <input
-                    value={nicknameInput}
-                    onChange={(e) => setNicknameInput(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') {
-                        e.preventDefault()
-                        handleNicknameSave()
-                      }
-                    }}
-                    placeholder="your name..."
-                    maxLength={30}
-                    style={{
-                      flex: 1, background: 'rgba(5,6,15,0.8)',
-                      border: '1px solid var(--gold-border)',
-                      borderRadius: 8, padding: '5px 9px',
-                      color: 'var(--text)', fontSize: 12,
-                      fontFamily: 'var(--font-ui)', outline: 'none',
-                    }}
-                  />
-                  <button
-                    onClick={handleNicknameSave}
-                    disabled={nicknameSaving || !nicknameInput.trim()}
-                    style={{
-                      background: 'var(--gold-dim)', border: '1px solid var(--gold-border)',
-                      borderRadius: 8, padding: '5px 11px',
-                      color: 'var(--gold)', fontSize: 11, cursor: 'pointer', fontWeight: 700,
-                      opacity: (nicknameSaving || !nicknameInput.trim()) ? 0.45 : 1,
-                      transition: 'opacity var(--transition)',
-                    }}
-                  >
-                    {nicknameSaving ? '...' : 'Save'}
-                  </button>
+                <label style={dropdownLabelStyle}>Display name</label>
+                <input value={displayNameInput} onChange={(e) => setDisplayNameInput(e.target.value)} placeholder="Optional public name" maxLength={30} style={dropdownInputStyle} />
+              </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={dropdownLabelStyle}>Required identity fields</label>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <input value={firstNameInput} onChange={(e) => setFirstNameInput(e.target.value)} placeholder="First name" style={dropdownInputStyle} />
+                  <input value={lastNameInput} onChange={(e) => setLastNameInput(e.target.value)} placeholder="Last name" style={dropdownInputStyle} />
+                  <input value={countryInput} onChange={(e) => setCountryInput(e.target.value)} placeholder="Country" style={dropdownInputStyle} />
                 </div>
               </div>
+
+              <div style={{ marginBottom: 14 }}>
+                <label style={dropdownLabelStyle}>Optional details</label>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <input value={avatarUrlInput} onChange={(e) => setAvatarUrlInput(e.target.value)} placeholder="Avatar URL" style={dropdownInputStyle} />
+                  <textarea value={bioInput} onChange={(e) => setBioInput(e.target.value)} placeholder="Bio" rows={3} style={{ ...dropdownInputStyle, resize: 'vertical', minHeight: 68 }} />
+                </div>
+              </div>
+
+              <button
+                onClick={handleProfileSave}
+                disabled={savingProfile || !firstNameInput.trim() || !lastNameInput.trim() || !countryInput.trim()}
+                style={{
+                  width: '100%',
+                  background: 'var(--gold-dim)',
+                  border: '1px solid var(--gold-border)',
+                  borderRadius: 10,
+                  padding: '8px 12px',
+                  color: 'var(--gold)',
+                  fontSize: 12,
+                  cursor: 'pointer',
+                  fontWeight: 700,
+                  opacity: (savingProfile || !firstNameInput.trim() || !lastNameInput.trim() || !countryInput.trim()) ? 0.45 : 1,
+                  marginBottom: 12,
+                }}
+              >
+                {savingProfile ? 'Saving…' : 'Save profile'}
+              </button>
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                 <Link
                   to="/suggestions"
                   onClick={() => setDropdownOpen(false)}
-                  style={{
-                    fontSize: 12, color: 'var(--teal)',
-                    padding: '3px 0', letterSpacing: '0.03em',
-                  }}
+                  style={{ fontSize: 12, color: 'var(--teal)', padding: '3px 0', letterSpacing: '0.03em' }}
                 >
                   Suggestions
                 </Link>
@@ -248,4 +260,27 @@ export default function NavBar() {
       </div>
     </nav>
   )
+}
+
+const dropdownLabelStyle = {
+  fontSize: 11,
+  color: 'var(--text-muted)',
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  display: 'block',
+  marginBottom: 7,
+  fontWeight: 600,
+}
+
+const dropdownInputStyle = {
+  width: '100%',
+  boxSizing: 'border-box',
+  background: 'rgba(5,6,15,0.8)',
+  border: '1px solid var(--gold-border)',
+  borderRadius: 8,
+  padding: '7px 10px',
+  color: 'var(--text)',
+  fontSize: 12,
+  fontFamily: 'var(--font-ui)',
+  outline: 'none',
 }

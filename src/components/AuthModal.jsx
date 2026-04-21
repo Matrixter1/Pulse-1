@@ -7,6 +7,10 @@ export default function AuthModal({ onClose, onSuccess }) {
   const { signIn, signUp } = useAuth()
   const [mode, setMode] = useState('signin')
   const [email, setEmail] = useState('')
+  const [firstName, setFirstName] = useState('')
+  const [lastName, setLastName] = useState('')
+  const [country, setCountry] = useState('')
+  const [displayName, setDisplayName] = useState('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [info, setInfo] = useState('')
@@ -26,7 +30,12 @@ export default function AuthModal({ onClose, onSuccess }) {
     setLoading(true)
     try {
       if (mode === 'signup') {
-        await signUp(email, password)
+        await signUp(email, password, {
+          firstName,
+          lastName,
+          country,
+          displayName,
+        })
       } else {
         await signIn(email, password)
       }
@@ -157,6 +166,28 @@ export default function AuthModal({ onClose, onSuccess }) {
             <Field label="Email">
               <input type="email" value={email} onChange={e => setEmail(e.target.value)} required style={inputStyle} />
             </Field>
+
+            {mode === 'signup' && (
+              <>
+                <Field label="First name">
+                  <input value={firstName} onChange={e => setFirstName(e.target.value)} required style={inputStyle} />
+                </Field>
+                <Field label="Last name">
+                  <input value={lastName} onChange={e => setLastName(e.target.value)} required style={inputStyle} />
+                </Field>
+                <Field label="Country">
+                  <input value={country} onChange={e => setCountry(e.target.value)} required style={inputStyle} />
+                </Field>
+                <Field label="Display name">
+                  <input
+                    value={displayName}
+                    onChange={e => setDisplayName(e.target.value)}
+                    placeholder="Optional public name"
+                    style={inputStyle}
+                  />
+                </Field>
+              </>
+            )}
 
             <Field label="Password">
               <input

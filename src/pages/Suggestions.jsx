@@ -89,7 +89,7 @@ function SuggestionCard({ suggestion, isOwn, isUpvoted, onUpvote, onDelete, canU
         </p>
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
           <span style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            {suggestion.users?.nickname || 'Anonymous'}
+            {suggestion.users?.display_name || suggestion.users?.nickname || 'Anonymous'}
           </span>
           {suggestion.users?.tier && <TierBadge tier={suggestion.users.tier} />}
           <span style={{ fontSize: 11, color: 'var(--text-dim)' }}>
@@ -145,7 +145,7 @@ function SuggestionCard({ suggestion, isOwn, isUpvoted, onUpvote, onDelete, canU
 }
 
 export default function Suggestions() {
-  const { user, tier, profile, updateNickname } = useAuth()
+  const { user, tier, profile, updateProfile } = useAuth()
   const canSuggest = tier === 'registered' || tier === 'verified'
   const canUpvote = tier === 'registered' || tier === 'verified'
 
@@ -166,14 +166,15 @@ export default function Suggestions() {
   const [nicknameInput, setNicknameInput] = useState('')
   const [nicknameSaving, setNicknameSaving] = useState(false)
   const [nicknameError, setNicknameError] = useState('')
-  const hasNickname = !!(profile?.nickname)
+  const publicDisplayName = profile?.display_name || profile?.nickname
+  const hasNickname = !!publicDisplayName
 
   // Guest upvote nudge
   const [showUpvoteNudge, setShowUpvoteNudge] = useState(false)
 
   useEffect(() => {
-    setNicknameInput(profile?.nickname || '')
-  }, [profile?.nickname])
+    setNicknameInput(profile?.display_name || profile?.nickname || '')
+  }, [profile?.display_name, profile?.nickname])
 
   useEffect(() => {
     async function init() {
@@ -219,7 +220,7 @@ export default function Suggestions() {
     setNicknameError('')
     setNicknameSaving(true)
     try {
-      await updateNickname(nicknameInput.trim())
+      await updateProfile({ displayName: nicknameInput.trim() })
     } catch (err) {
       setNicknameError('Failed to save. Try again.')
     } finally {
@@ -239,7 +240,7 @@ export default function Suggestions() {
       // Prepend with user info for immediate display
       const withUser = {
         ...newSuggestion,
-        users: { nickname: profile?.nickname || 'Anonymous', tier },
+        users: { display_name: publicDisplayName || 'Anonymous', tier },
       }
       setSuggestions(prev => [withUser, ...prev])
       setTimeout(() => setSubmitDone(false), 4000)
@@ -379,7 +380,7 @@ export default function Suggestions() {
               /* Suggestion form */
               <form onSubmit={handleSubmit}>
                 <div style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10 }}>
-                  Posting as <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{profile.nickname}</span>
+                  Posting as <span style={{ color: 'var(--gold)', fontWeight: 600 }}>{publicDisplayName}</span>
                 </div>
                 <textarea
                   value={submitText}

@@ -170,7 +170,7 @@ export async function fetchFirstQuestionByType(type) {
 export async function fetchSuggestions({ limit = 20, offset = 0 } = {}) {
   const { data, error } = await supabase
     .from('suggestions')
-    .select('*, users(nickname, tier)')
+    .select('*, users(display_name, nickname, tier)')
     .order('upvotes', { ascending: false })
     .order('created_at', { ascending: false })
     .range(offset, offset + limit - 1)

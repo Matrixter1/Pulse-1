@@ -15,10 +15,15 @@ SECURITY DEFINER
 SET search_path = public
 AS $$
 BEGIN
-  INSERT INTO public.users (id, email, tier)
+  INSERT INTO public.users (id, email, display_name, nickname, first_name, last_name, country, tier)
   VALUES (
     NEW.id,
     NEW.email,
+    NULLIF(TRIM(COALESCE(NEW.raw_user_meta_data ->> 'display_name', NEW.raw_user_meta_data ->> 'nickname')), ''),
+    NULLIF(TRIM(COALESCE(NEW.raw_user_meta_data ->> 'display_name', NEW.raw_user_meta_data ->> 'nickname')), ''),
+    NULLIF(TRIM(NEW.raw_user_meta_data ->> 'first_name'), ''),
+    NULLIF(TRIM(NEW.raw_user_meta_data ->> 'last_name'), ''),
+    NULLIF(TRIM(NEW.raw_user_meta_data ->> 'country'), ''),
     'registered'
   )
   ON CONFLICT (id) DO NOTHING;  -- idempotent: safe to re-run
@@ -41,10 +46,15 @@ CREATE TRIGGER on_auth_user_created
 -- already exist but have no public.users row yet
 -- (safe to run multiple times — ON CONFLICT DO NOTHING)
 -- ============================================================
-INSERT INTO public.users (id, email, tier)
+INSERT INTO public.users (id, email, display_name, nickname, first_name, last_name, country, tier)
 SELECT
   au.id,
   au.email,
+  NULLIF(TRIM(COALESCE(au.raw_user_meta_data ->> 'display_name', au.raw_user_meta_data ->> 'nickname')), ''),
+  NULLIF(TRIM(COALESCE(au.raw_user_meta_data ->> 'display_name', au.raw_user_meta_data ->> 'nickname')), ''),
+  NULLIF(TRIM(au.raw_user_meta_data ->> 'first_name'), ''),
+  NULLIF(TRIM(au.raw_user_meta_data ->> 'last_name'), ''),
+  NULLIF(TRIM(au.raw_user_meta_data ->> 'country'), ''),
   'registered'
 FROM auth.users au
 LEFT JOIN public.users pu ON pu.id = au.id

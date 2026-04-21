@@ -7,7 +7,14 @@
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   email TEXT,
-  tier TEXT NOT NULL DEFAULT 'registered' CHECK (tier IN ('guest', 'registered', 'verified')),
+  display_name TEXT,
+  nickname TEXT,
+  first_name TEXT,
+  last_name TEXT,
+  country TEXT,
+  avatar_url TEXT,
+  bio TEXT,
+  tier TEXT NOT NULL DEFAULT 'registered' CHECK (tier IN ('guest', 'registered', 'verified', 'admin')),
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 

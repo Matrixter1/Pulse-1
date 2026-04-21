@@ -37,7 +37,19 @@ export function AuthProvider({ children }) {
       const { data: { user } } = await supabase.auth.getUser()
       const { data: upserted } = await supabase
         .from('users')
-        .upsert({ id: userId, email: user?.email ?? '', tier: 'registered' }, { onConflict: 'id' })
+        .upsert(
+          {
+            id: userId,
+            email: user?.email ?? '',
+            display_name: readAuthMeta(user, 'display_name') ?? readAuthMeta(user, 'nickname'),
+            nickname: readAuthMeta(user, 'display_name') ?? readAuthMeta(user, 'nickname'),
+            first_name: readAuthMeta(user, 'first_name'),
+            last_name: readAuthMeta(user, 'last_name'),
+            country: readAuthMeta(user, 'country'),
+            tier: 'registered',
+          },
+          { onConflict: 'id' },
+        )
         .select()
         .single()
       data = upserted
@@ -56,8 +68,21 @@ export function AuthProvider({ children }) {
     setProfile({ tier: 'guest' })
   }
 
-  async function signUp(email, password) {
-    const { data, error } = await supabase.auth.signUp({ email, password })
+  async function signUp(email, password, profileInput = {}) {
+    const payload = normalizeProfileInput(profileInput)
+    const { data, error } = await supabase.auth.signUp({
+      email,
+      password,
+      options: {
+        data: {
+          display_name: payload.display_name,
+          nickname: payload.nickname,
+          first_name: payload.first_name,
+          last_name: payload.last_name,
+          country: payload.country,
+        },
+      },
+    })
     if (error) throw error
 
     // Optimistic client-side insert so the row exists immediately,
@@ -69,7 +94,12 @@ export function AuthProvider({ children }) {
       const { error: insertError } = await supabase
         .from('users')
         .upsert(
-          { id: data.user.id, email, tier: 'registered' },
+          {
+            id: data.user.id,
+            email,
+            tier: 'registered',
+            ...payload,
+          },
           { onConflict: 'id', ignoreDuplicates: true }
         )
       // Log but don't throw — the DB trigger is the source of truth.
@@ -94,14 +124,31 @@ export function AuthProvider({ children }) {
   }
 
   async function updateNickname(nickname) {
-    const trimmed = nickname.trim() || null
+    return updateProfile({ displayName: nickname })
+  }
+
+  async function updateProfile(profileInput) {
+    if (!user) throw new Error('Sign in before updating your profile.')
+
+    const payload = normalizeProfileInput(profileInput)
     const { data, error } = await supabase
       .from('users')
-      .update({ nickname: trimmed })
+      .update(payload)
       .eq('id', user.id)
       .select()
       .single()
     if (error) throw error
+
+    await supabase.auth.updateUser({
+      data: {
+        display_name: payload.display_name,
+        nickname: payload.nickname,
+        first_name: payload.first_name,
+        last_name: payload.last_name,
+        country: payload.country,
+      },
+    })
+
     setProfile(data)
     return data
   }
@@ -131,7 +178,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, profile, tier, loading, signUp, signIn, signOut, signInAnonymously, updateNickname, completeVerification }}>
+    <AuthContext.Provider value={{ user, profile, tier, loading, signUp, signIn, signOut, signInAnonymously, updateNickname, updateProfile, completeVerification }}>
       {children}
     </AuthContext.Provider>
   )
@@ -139,4 +186,27 @@ export function AuthProvider({ children }) {
 
 export function useAuth() {
   return useContext(AuthContext)
+}
+
+function normalizeProfileInput(profileInput = {}) {
+  const displayName = normalizeOptional(profileInput.displayName ?? profileInput.display_name ?? profileInput.nickname)
+
+  return {
+    display_name: displayName,
+    nickname: displayName,
+    first_name: normalizeOptional(profileInput.firstName ?? profileInput.first_name),
+    last_name: normalizeOptional(profileInput.lastName ?? profileInput.last_name),
+    country: normalizeOptional(profileInput.country),
+    avatar_url: normalizeOptional(profileInput.avatarUrl ?? profileInput.avatar_url),
+    bio: normalizeOptional(profileInput.bio),
+  }
+}
+
+function normalizeOptional(value) {
+  return typeof value === 'string' && value.trim() ? value.trim() : null
+}
+
+function readAuthMeta(user, key) {
+  const value = user?.user_metadata?.[key]
+  return typeof value === 'string' && value.trim() ? value.trim() : null
 }

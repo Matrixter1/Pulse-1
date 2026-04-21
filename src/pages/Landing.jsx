@@ -677,7 +677,7 @@ function SuggestionsTeaser({ suggestions, user, tier, suggestionText, setSuggest
                   <p style={{ fontSize: 14, color: 'var(--text)', marginBottom: 6, lineHeight: 1.5 }}>{s.text}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-                      {s.users?.nickname || 'Anonymous'}
+                      {s.users?.display_name || s.users?.nickname || 'Anonymous'}
                     </span>
                     {s.users?.tier && <TierBadge tier={s.users.tier} />}
                   </div>
