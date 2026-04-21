@@ -30,6 +30,8 @@ export default function Feed() {
   const navigate = useNavigate()
   const contentRef = useRef(null)
   const featuredCardRef = useRef(null)
+  const totalQuestions = questions.length + (featuredQuestion && !questions.find(q => q.id === featuredQuestion.id) ? 1 : 0)
+  const categoryCount = Math.max(categories.filter(cat => cat !== 'All').length, 0)
 
   // Fetch distinct categories from DB; fall back to the hardcoded constant on error
   useEffect(() => {
@@ -137,12 +139,21 @@ export default function Feed() {
       <NavBar />
       <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 20px' }}>
         <div style={{ marginBottom: 24 }}>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(18px, 2.5vw, 22px)', fontWeight: 400, color: 'var(--text-muted)', marginBottom: 4, letterSpacing: '0.02em' }}>
-            Signals
+          <div style={{ fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>
+            Live Feed
+          </div>
+          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
+            Today&apos;s active questions
           </h1>
-          <p style={{ color: 'var(--text-dim)', fontSize: 12, letterSpacing: '0.02em' }}>
-            Signal. Decide. Rank. See where verified truth diverges.
+          <p style={{ color: 'var(--text-dim)', fontSize: 13, letterSpacing: '0.01em', lineHeight: 1.6, maxWidth: 520 }}>
+            Browse the current signal stream, cast anonymously, and watch the Truth Gap form in real time.
           </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
+          <FeedMetricChip label="Questions" value={String(totalQuestions)} />
+          <FeedMetricChip label="Categories" value={String(categoryCount)} />
+          <FeedMetricChip label="Source" value="Live backend aligned" accent="var(--teal)" />
         </div>
 
         {/* Featured / Pulse of the Day */}
@@ -511,6 +522,27 @@ export default function Feed() {
                   ))
               })()
         }
+      </div>
+    </div>
+  )
+}
+
+function FeedMetricChip({ label, value, accent = 'var(--gold)' }) {
+  return (
+    <div style={{
+      padding: '10px 14px',
+      borderRadius: 999,
+      background: 'rgba(10,12,26,0.74)',
+      border: `1px solid ${accent === 'var(--teal)' ? 'rgba(76,201,168,0.22)' : 'rgba(201,168,76,0.22)'}`,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 2,
+    }}>
+      <div style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: accent, fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--text)' }}>
+        {value}
       </div>
     </div>
   )

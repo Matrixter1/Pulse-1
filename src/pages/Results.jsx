@@ -157,6 +157,9 @@ export default function Results() {
         {/* Question */}
         {question && (
           <div style={{ marginBottom: 32 }}>
+            <div style={{ fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>
+              Live Results
+            </div>
             <div style={{ fontSize: 11, letterSpacing: '0.2em', textTransform: 'uppercase', color: 'var(--gold)', marginBottom: 10, fontWeight: 600 }}>
               {question.category} · Results
             </div>
@@ -180,6 +183,15 @@ export default function Results() {
                 <QuestionMedia src={question.image_url} alt="" variant="detail" />
               </div>
             )}
+            <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginTop: 16 }}>
+              <ResultsMetaChip label="Total" value={`${totalVotes} votes`} />
+              <ResultsMetaChip
+                label="Verified"
+                value={`${verifiedResults?.total || 0} · ${totalVotes > 0 ? Math.round(((verifiedResults?.total || 0) / totalVotes) * 100) : 0}%`}
+                accent="var(--teal)"
+              />
+              <ResultsMetaChip label="Reveal" value={formatRevealLabel(question)} />
+            </div>
           </div>
         )}
 
@@ -649,4 +661,32 @@ function LoadingScreen() {
       </div>
     </div>
   )
+}
+
+function ResultsMetaChip({ label, value, accent = 'var(--gold)' }) {
+  return (
+    <div style={{
+      padding: '10px 14px',
+      borderRadius: 999,
+      background: 'rgba(10,12,26,0.72)',
+      border: `1px solid ${accent === 'var(--teal)' ? 'rgba(76,201,168,0.22)' : 'rgba(201,168,76,0.22)'}`,
+      display: 'flex',
+      flexDirection: 'column',
+      gap: 2,
+    }}>
+      <div style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: accent, fontWeight: 700 }}>
+        {label}
+      </div>
+      <div style={{ fontSize: 13, color: 'var(--text)' }}>
+        {value}
+      </div>
+    </div>
+  )
+}
+
+function formatRevealLabel(question) {
+  const mode = question?.reveal_mode || 'instant'
+  if (mode === 'threshold') return 'Threshold lock'
+  if (mode === 'date') return 'Timed release'
+  return 'Instant'
 }
