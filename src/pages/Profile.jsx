@@ -6,6 +6,8 @@ import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
 import { isAdminUser } from '../lib/adminAccess'
 
+const MAX_AVATAR_FILE_SIZE = 2 * 1024 * 1024
+
 export default function Profile() {
   const navigate = useNavigate()
   const { user, tier, profile, updateProfile, signOut } = useAuth()
@@ -14,6 +16,8 @@ export default function Profile() {
   const [lastNameInput, setLastNameInput] = useState('')
   const [countryInput, setCountryInput] = useState('')
   const [avatarUrlInput, setAvatarUrlInput] = useState('')
+  const [avatarPreview, setAvatarPreview] = useState('')
+  const [avatarFile, setAvatarFile] = useState(null)
   const [bioInput, setBioInput] = useState('')
   const [savingProfile, setSavingProfile] = useState(false)
   const [sendingRecovery, setSendingRecovery] = useState(false)
@@ -28,8 +32,18 @@ export default function Profile() {
     setLastNameInput(profile?.last_name || '')
     setCountryInput(profile?.country || '')
     setAvatarUrlInput(profile?.avatar_url || '')
+    setAvatarPreview('')
+    setAvatarFile(null)
     setBioInput(profile?.bio || '')
   }, [profile?.display_name, profile?.nickname, profile?.first_name, profile?.last_name, profile?.country, profile?.avatar_url, profile?.bio])
+
+  useEffect(() => {
+    return () => {
+      if (avatarPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview)
+      }
+    }
+  }, [avatarPreview])
 
   const tierLabel = useMemo(() => {
     if (isAdminUser(user)) return 'Admin'
@@ -42,6 +56,7 @@ export default function Profile() {
   const truthLayer = tier === 'verified' || isAdminUser(user)
   const canSave = firstNameInput.trim() && lastNameInput.trim() && countryInput.trim() && !savingProfile
   const publicDisplayName = profile?.display_name || profile?.nickname || user?.email?.split('@')[0] || 'Guest'
+  const avatarDisplay = avatarPreview || avatarUrlInput
   const joinedLabel = profile?.created_at
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })
     : 'Today'
@@ -52,6 +67,54 @@ export default function Profile() {
     }
   }, [user, tier, navigate])
 
+  function clearAvatarDraft() {
+    if (avatarPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview)
+    }
+    setAvatarPreview('')
+    setAvatarFile(null)
+    setAvatarUrlInput('')
+  }
+
+  function validateAvatarFile(file) {
+    if (!file) return 'Choose or paste an image first.'
+    if (!file.type?.startsWith('image/')) return 'Use an image file such as JPG, PNG, GIF, or WEBP.'
+    if (file.size > MAX_AVATAR_FILE_SIZE) return 'Keep profile images under 2 MB.'
+    return ''
+  }
+
+  function applyAvatarFile(file) {
+    const validationError = validateAvatarFile(file)
+    if (validationError) {
+      setError(validationError)
+      return
+    }
+
+    setError('')
+    setInfo('')
+    setRecoverySent(false)
+
+    if (avatarPreview?.startsWith('blob:')) {
+      URL.revokeObjectURL(avatarPreview)
+    }
+
+    setAvatarFile(file)
+    setAvatarPreview(URL.createObjectURL(file))
+  }
+
+  function handleAvatarPicker(event) {
+    const file = event.target.files?.[0]
+    if (file) applyAvatarFile(file)
+    event.target.value = ''
+  }
+
+  function handleAvatarPaste(event) {
+    const file = Array.from(event.clipboardData?.files || []).find((item) => item.type?.startsWith('image/'))
+    if (!file) return
+    event.preventDefault()
+    applyAvatarFile(file)
+  }
+
   async function handleSaveProfile() {
     if (!canSave) return
     setSavingProfile(true)
@@ -60,14 +123,35 @@ export default function Profile() {
     setRecoverySent(false)
 
     try {
+      let nextAvatarUrl = avatarUrlInput.trim()
+      if (avatarFile) {
+        const extension = avatarFile.name?.split('.').pop()?.toLowerCase() || avatarFile.type?.split('/')[1] || 'jpg'
+        const safeExtension = extension.replace(/[^a-z0-9]/gi, '') || 'jpg'
+        const uploadPath = `profile-images/${user.id}/${Date.now()}-avatar.${safeExtension}`
+        const { error: uploadError } = await supabase.storage
+          .from('question-images')
+          .upload(uploadPath, avatarFile, { contentType: avatarFile.type, upsert: true })
+
+        if (uploadError) throw uploadError
+
+        const { data } = supabase.storage.from('question-images').getPublicUrl(uploadPath)
+        nextAvatarUrl = data?.publicUrl || ''
+      }
+
       await updateProfile({
         displayName: displayNameInput,
         firstName: firstNameInput,
         lastName: lastNameInput,
         country: countryInput,
-        avatarUrl: avatarUrlInput,
+        avatarUrl: nextAvatarUrl,
         bio: bioInput,
       })
+      setAvatarUrlInput(nextAvatarUrl)
+      setAvatarFile(null)
+      if (avatarPreview?.startsWith('blob:')) {
+        URL.revokeObjectURL(avatarPreview)
+      }
+      setAvatarPreview('')
       setInfo('Profile updated across Pulse web and mobile.')
     } catch (err) {
       setError(err.message || 'Unable to save your profile right now.')
@@ -143,12 +227,17 @@ export default function Profile() {
                 width: 64,
                 height: 64,
                 borderRadius: 22,
+                overflow: 'hidden',
                 display: 'grid',
                 placeItems: 'center',
-                background: truthLayer ? 'rgba(76,201,168,0.14)' : 'rgba(201,168,76,0.14)',
+                background: avatarDisplay ? 'rgba(15,18,40,0.8)' : truthLayer ? 'rgba(76,201,168,0.14)' : 'rgba(201,168,76,0.14)',
                 border: `1px solid ${truthLayer ? 'var(--teal-border)' : 'var(--gold-border)'}`,
               }}>
-                <SacredMark size={40} showRings={false} />
+                {avatarDisplay ? (
+                  <img src={avatarDisplay} alt={`${publicDisplayName} avatar`} style={avatarImageStyle} />
+                ) : (
+                  <SacredMark size={40} showRings={false} />
+                )}
               </div>
 
               <div style={{ flex: 1 }}>
@@ -192,8 +281,55 @@ export default function Profile() {
               <Field label="Country">
                 <input value={countryInput} onChange={(e) => setCountryInput(e.target.value)} placeholder="Where you are based" style={inputStyle} />
               </Field>
-              <Field label="Avatar URL">
-                <input value={avatarUrlInput} onChange={(e) => setAvatarUrlInput(e.target.value)} placeholder="Optional image URL" style={inputStyle} />
+              <Field label="Profile image">
+                <div style={avatarFieldStyle}>
+                  <div
+                    onPaste={handleAvatarPaste}
+                    style={avatarDropZoneStyle}
+                    title="Paste an image or choose a file"
+                  >
+                    <div style={avatarPreviewShellStyle}>
+                      {avatarDisplay ? (
+                        <img src={avatarDisplay} alt={`${publicDisplayName} avatar preview`} style={avatarImageStyle} />
+                      ) : (
+                        <SacredMark size={48} showRings={false} />
+                      )}
+                    </div>
+
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      <div style={{ color: 'var(--text)', fontSize: 15, fontWeight: 600 }}>
+                        Paste or upload a profile image
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
+                        JPG, PNG, GIF, or WEBP. Keep it under 2 MB so the profile stays fast across web and mobile.
+                      </div>
+                    </div>
+                  </div>
+
+                  <div style={buttonStackStyle}>
+                    <label style={{ display: 'inline-flex' }}>
+                      <input type="file" accept="image/*" onChange={handleAvatarPicker} style={{ display: 'none' }} />
+                      <span style={uploadButtonStyle}>Choose image</span>
+                    </label>
+                    {!!avatarDisplay && (
+                      <SecondaryButton onClick={clearAvatarDraft}>Remove image</SecondaryButton>
+                    )}
+                  </div>
+
+                  <input
+                    value={avatarUrlInput}
+                    onChange={(e) => {
+                      setAvatarUrlInput(e.target.value)
+                      if (avatarPreview?.startsWith('blob:')) {
+                        URL.revokeObjectURL(avatarPreview)
+                      }
+                      setAvatarPreview('')
+                      setAvatarFile(null)
+                    }}
+                    placeholder="Or paste an existing image URL"
+                    style={inputStyle}
+                  />
+                </div>
               </Field>
               <Field label="Bio">
                 <textarea value={bioInput} onChange={(e) => setBioInput(e.target.value)} placeholder="Optional short bio" rows={4} style={{ ...inputStyle, minHeight: 108, resize: 'vertical' }} />
@@ -596,6 +732,52 @@ const inputStyle = {
   color: 'var(--text)',
   fontSize: 14,
   outline: 'none',
+}
+
+const avatarFieldStyle = {
+  display: 'grid',
+  gap: 12,
+}
+
+const avatarDropZoneStyle = {
+  display: 'grid',
+  gap: 16,
+  alignItems: 'center',
+  gridTemplateColumns: '96px minmax(0, 1fr)',
+  padding: '16px',
+  borderRadius: 16,
+  border: '1px dashed rgba(201,168,76,0.28)',
+  background: 'rgba(255,255,255,0.02)',
+}
+
+const avatarPreviewShellStyle = {
+  width: 96,
+  height: 96,
+  borderRadius: 28,
+  overflow: 'hidden',
+  border: '1px solid rgba(201,168,76,0.22)',
+  display: 'grid',
+  placeItems: 'center',
+  background: 'rgba(15,18,40,0.72)',
+}
+
+const avatarImageStyle = {
+  width: '100%',
+  height: '100%',
+  objectFit: 'cover',
+}
+
+const uploadButtonStyle = {
+  background: 'linear-gradient(135deg, #C9A84C, #a8882e)',
+  border: 'none',
+  color: '#05060F',
+  padding: '12px 22px',
+  borderRadius: 12,
+  fontWeight: 700,
+  fontSize: 13,
+  letterSpacing: '0.08em',
+  textTransform: 'uppercase',
+  cursor: 'pointer',
 }
 
 const ActionRow = ({ children }) => (
