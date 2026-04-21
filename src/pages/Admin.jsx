@@ -83,8 +83,7 @@ function parseQuestionBrief(raw) {
 function serializeQuestionBrief({ title, background, keyTerms, sources }) {
   const safeTitle = title.trim()
   const safeBackground = background.trim()
-  const safeKeyTerms = keyTerms
-    .split(/\r?\n/)
+  const safeKeyTerms = splitStructuredEntries(keyTerms, /(?:\r?\n|;\s*(?=[^;:\n]+:\s*[^;\n]+)|,(?=\s*[^,:\n]+:\s*[^,\n]+))/)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
@@ -95,8 +94,7 @@ function serializeQuestionBrief({ title, background, keyTerms, sources }) {
       return term && definition ? { term, definition } : null
     })
     .filter(Boolean)
-  const safeSources = sources
-    .split(/\r?\n/)
+  const safeSources = splitStructuredEntries(sources, /(?:\r?\n|;\s*(?=[^|\n]+\|\s*https?:\/\/)|,(?=\s*[^|\n]+\|\s*https?:\/\/))/)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => {
@@ -126,6 +124,18 @@ function formatBriefKeyTerms(value) {
 
 function formatBriefSources(value) {
   return parseQuestionBrief(value).sources
+}
+
+function splitStructuredEntries(value, delimiterRegex) {
+  const normalized = String(value || '')
+    .replace(/\u2028|\u2029/g, '\n')
+    .trim()
+
+  if (!normalized) return []
+  return normalized
+    .split(delimiterRegex)
+    .map((entry) => entry.trim())
+    .filter(Boolean)
 }
 
 function isUuid(value) {
