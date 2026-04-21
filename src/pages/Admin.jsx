@@ -15,6 +15,119 @@ const TYPE_OPTIONS = [
   { value: 'ranked',    label: 'Rank',   icon: '◆' },
 ]
 
+function emptyBriefDraft() {
+  return {
+    title: '',
+    background: '',
+    keyTerms: '',
+    sources: '',
+  }
+}
+
+function parseQuestionOptions(raw) {
+  if (!raw) return []
+  try {
+    const value = typeof raw === 'string' ? JSON.parse(raw) : raw
+    return Array.isArray(value) ? value.map(String) : []
+  } catch {
+    return []
+  }
+}
+
+function parseQuestionBrief(raw) {
+  const draft = emptyBriefDraft()
+  if (!raw) return draft
+
+  let value = raw
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value)
+    } catch {
+      return draft
+    }
+  }
+  if (!value || typeof value !== 'object') return draft
+
+  const keyTerms = Array.isArray(value.key_terms)
+    ? value.key_terms
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null
+          const term = typeof item.term === 'string' ? item.term.trim() : ''
+          const definition = typeof item.definition === 'string' ? item.definition.trim() : ''
+          return term && definition ? `${term}: ${definition}` : null
+        })
+        .filter(Boolean)
+        .join('\n')
+    : ''
+
+  const sources = Array.isArray(value.sources)
+    ? value.sources
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null
+          const label = typeof item.label === 'string' ? item.label.trim() : ''
+          const url = typeof item.url === 'string' ? item.url.trim() : ''
+          return label && url ? `${label} | ${url}` : null
+        })
+        .filter(Boolean)
+        .join('\n')
+    : ''
+
+  return {
+    title: typeof value.title === 'string' ? value.title : '',
+    background: typeof value.background === 'string' ? value.background : '',
+    keyTerms,
+    sources,
+  }
+}
+
+function serializeQuestionBrief({ title, background, keyTerms, sources }) {
+  const safeTitle = title.trim()
+  const safeBackground = background.trim()
+  const safeKeyTerms = keyTerms
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const separator = line.indexOf(':')
+      if (separator === -1) return null
+      const term = line.slice(0, separator).trim()
+      const definition = line.slice(separator + 1).trim()
+      return term && definition ? { term, definition } : null
+    })
+    .filter(Boolean)
+  const safeSources = sources
+    .split(/\r?\n/)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const parts = line.split('|')
+      if (parts.length < 2) return null
+      const label = parts[0].trim()
+      const url = parts.slice(1).join('|').trim()
+      return label && url ? { label, url } : null
+    })
+    .filter(Boolean)
+
+  if (!safeTitle && !safeBackground && safeKeyTerms.length === 0 && safeSources.length === 0) {
+    return null
+  }
+
+  return {
+    title: safeTitle || null,
+    background: safeBackground || null,
+    key_terms: safeKeyTerms,
+    sources: safeSources,
+  }
+}
+
+function formatBriefKeyTerms(value) {
+  return parseQuestionBrief(value).keyTerms
+}
+
+function formatBriefSources(value) {
+  return parseQuestionBrief(value).sources
+}
+
 export default function Admin() {
   const { user, loading } = useAuth()
   const navigate = useNavigate()
@@ -81,6 +194,10 @@ function AddQuestionForm() {
   const [submitting, setSubmitting] = useState(false)
   const [success, setSuccess]   = useState('')
   const [error, setError]       = useState('')
+  const [briefTitle, setBriefTitle] = useState('')
+  const [briefBackground, setBriefBackground] = useState('')
+  const [briefKeyTerms, setBriefKeyTerms] = useState('')
+  const [briefSources, setBriefSources] = useState('')
 
   // Reveal visibility state
   const [revealMode, setRevealMode]           = useState('instant')
@@ -155,6 +272,7 @@ function AddQuestionForm() {
     setType('statement'); setCategory('Consumer'); setText(''); setOptions([])
     setImageMode('upload'); setImageFile(null); setImagePreview(''); setImageUrlInput('')
     setRevealMode('instant'); setRevealThreshold(''); setRevealDate('')
+    setBriefTitle(''); setBriefBackground(''); setBriefKeyTerms(''); setBriefSources('')
   }
 
   async function handleSubmit(e) {
@@ -196,6 +314,12 @@ function AddQuestionForm() {
         category,
         type,
         options: filledOptions.length > 0 ? filledOptions : null,
+        brief: serializeQuestionBrief({
+          title: briefTitle,
+          background: briefBackground,
+          keyTerms: briefKeyTerms,
+          sources: briefSources,
+        }),
         ...(resolvedImageUrl ? { image_url: resolvedImageUrl } : {}),
         reveal_mode: revealMode,
         reveal_threshold: revealMode === 'threshold' && revealThreshold ? parseInt(revealThreshold) : null,
@@ -358,6 +482,17 @@ function AddQuestionForm() {
             </div>
           </div>
         )}
+
+        <QuestionBriefFields
+          title={briefTitle}
+          background={briefBackground}
+          keyTerms={briefKeyTerms}
+          sources={briefSources}
+          onTitleChange={setBriefTitle}
+          onBackgroundChange={setBriefBackground}
+          onKeyTermsChange={setBriefKeyTerms}
+          onSourcesChange={setBriefSources}
+        />
 
         {/* Image picker */}
         <ImagePicker
@@ -553,6 +688,102 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
 
 // ─── Section 2: Manage Questions ──────────────────────────────────────────
 
+function QuestionBriefFields({
+  title,
+  background,
+  keyTerms,
+  sources,
+  onTitleChange,
+  onBackgroundChange,
+  onKeyTermsChange,
+  onSourcesChange,
+}) {
+  return (
+    <div style={{
+      border: '1px solid rgba(76,201,168,0.16)',
+      background: 'rgba(12,18,34,0.52)',
+      borderRadius: 'var(--radius)',
+      padding: '18px 18px 16px',
+      display: 'grid',
+      gap: 14,
+    }}>
+      <div>
+        <div style={{
+          fontSize: 11,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+          color: 'var(--teal)',
+          fontWeight: 700,
+          marginBottom: 6,
+        }}>
+          More Insights
+        </div>
+        <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.6 }}>
+          Add optional high-level context for users who need help understanding the topic before they vote.
+        </div>
+      </div>
+
+      <div>
+        <FieldLabel>Insight Title</FieldLabel>
+        <input
+          type="text"
+          value={title}
+          onChange={(event) => onTitleChange(event.target.value)}
+          placeholder="e.g. Quantum computing in plain English"
+          style={inputStyle}
+        />
+      </div>
+
+      <div>
+        <FieldLabel>Background</FieldLabel>
+        <textarea
+          value={background}
+          onChange={(event) => onBackgroundChange(event.target.value)}
+          rows={4}
+          placeholder="Share a concise, high-level explanation for this question."
+          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+        />
+      </div>
+
+      <div style={{ display: 'grid', gap: 14, gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))' }}>
+        <div>
+          <FieldLabel>Key Terms</FieldLabel>
+          <textarea
+            value={keyTerms}
+            onChange={(event) => onKeyTermsChange(event.target.value)}
+            rows={5}
+            placeholder={'One per line\nTerm: short explanation'}
+            style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+          />
+        </div>
+
+        <div>
+          <FieldLabel>Sources</FieldLabel>
+          <textarea
+            value={sources}
+            onChange={(event) => onSourcesChange(event.target.value)}
+            rows={5}
+            placeholder={'One per line\nSource label | https://example.com'}
+            style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+          />
+        </div>
+      </div>
+
+      <div style={{
+        color: 'var(--text-dim)',
+        fontSize: 11,
+        lineHeight: 1.6,
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.04)',
+        borderRadius: 'var(--radius-sm)',
+        padding: '10px 12px',
+      }}>
+        Key terms format: <strong>term: definition</strong> per line. Sources format: <strong>label | url</strong> per line.
+      </div>
+    </div>
+  )
+}
+
 function ManageQuestions() {
   const [questions, setQuestions]         = useState([])
   const [voteCounts, setVoteCounts]       = useState({})
@@ -585,6 +816,10 @@ function ManageQuestions() {
   const [editRevealMode, setEditRevealMode]           = useState('instant')
   const [editRevealThreshold, setEditRevealThreshold] = useState('')
   const [editRevealDate, setEditRevealDate]           = useState('')
+  const [editBriefTitle, setEditBriefTitle]           = useState('')
+  const [editBriefBackground, setEditBriefBackground] = useState('')
+  const [editBriefKeyTerms, setEditBriefKeyTerms]     = useState('')
+  const [editBriefSources, setEditBriefSources]       = useState('')
 
   useEffect(() => {
     function handleGlobalPaste(e) {
@@ -637,15 +872,7 @@ function ManageQuestions() {
     setEditingId(question.id)
     setEditText(question.text)
     // Pre-fill options / reason chips for all question types
-    let parsed = []
-    try {
-      if (question.options) {
-        const raw = question.options
-        const arr = typeof raw === 'string' ? JSON.parse(raw) : raw
-        parsed = Array.isArray(arr) ? arr.map(String) : []
-      }
-    } catch { parsed = [] }
-    setEditOptions(parsed)
+    setEditOptions(parseQuestionOptions(question.options))
     setEditImageUrl(question.image_url || '')
     setEditImagePreview(question.image_url || '')
     setEditImageFile(null)
@@ -653,6 +880,11 @@ function ManageQuestions() {
     setEditRevealMode(question.reveal_mode || 'instant')
     setEditRevealThreshold(question.reveal_threshold != null ? String(question.reveal_threshold) : '')
     setEditRevealDate(question.reveal_date ? new Date(question.reveal_date).toISOString().slice(0, 16) : '')
+    const brief = parseQuestionBrief(question.brief)
+    setEditBriefTitle(brief.title)
+    setEditBriefBackground(brief.background)
+    setEditBriefKeyTerms(brief.keyTerms)
+    setEditBriefSources(brief.sources)
     setConfirmDelete(null)
   }
 
@@ -666,6 +898,10 @@ function ManageQuestions() {
     setEditRevealMode('instant')
     setEditRevealThreshold('')
     setEditRevealDate('')
+    setEditBriefTitle('')
+    setEditBriefBackground('')
+    setEditBriefKeyTerms('')
+    setEditBriefSources('')
   }
 
   async function handleSaveEdit(question) {
@@ -692,6 +928,12 @@ function ManageQuestions() {
           text: editText.trim(),
           options: cleanedOptions.length > 0 ? cleanedOptions : null,
           image_url: resolvedImageUrl,
+          brief: serializeQuestionBrief({
+            title: editBriefTitle,
+            background: editBriefBackground,
+            keyTerms: editBriefKeyTerms,
+            sources: editBriefSources,
+          }),
           reveal_mode: editRevealMode,
           reveal_threshold: editRevealMode === 'threshold' && editRevealThreshold ? parseInt(editRevealThreshold) : null,
           reveal_date: editRevealMode === 'date' && editRevealDate ? new Date(editRevealDate).toISOString() : null,
@@ -759,9 +1001,14 @@ function ManageQuestions() {
         'Question Text': q.text || '',
         'Options': options,
         'Image URL': q.image_url || '',
+        'Brief Title': q.brief?.title || '',
+        'Brief Background': q.brief?.background || '',
+        'Brief Key Terms': formatBriefKeyTerms(q.brief),
+        'Brief Sources': formatBriefSources(q.brief),
         'Votes': voteCounts[q.id] || 0,
         'Created Date': new Date(q.created_at).toLocaleDateString('en-GB'),
         'Is Featured': q.featured ? 'true' : 'false',
+        'Is Archived': q.archived ? 'true' : 'false',
       }
     })
     const ws = XLSX.utils.json_to_sheet(rows)
@@ -803,6 +1050,13 @@ function ManageQuestions() {
           type,
           options:     needsOptions && parsedOptions && parsedOptions.length >= 2 ? parsedOptions : null,
           image_url:   row['Image URL'] ? String(row['Image URL']).trim() || null : null,
+          brief: serializeQuestionBrief({
+            title: String(row['Brief Title'] || ''),
+            background: String(row['Brief Background'] || ''),
+            keyTerms: String(row['Brief Key Terms'] || ''),
+            sources: String(row['Brief Sources'] || ''),
+          }),
+          archived: String(row['Is Archived'] || '').trim().toLowerCase() === 'true',
           reveal_mode: 'instant',
         }
       }).filter(q => q.text && q.type)
@@ -822,6 +1076,11 @@ function ManageQuestions() {
       setImporting(false)
     }
   }
+
+  const filteredQuestions = questions.filter((q) => (
+    archiveFilter === 'active' ? !q.archived : archiveFilter === 'archived' ? !!q.archived : true
+  ))
+  const archivedCount = questions.filter((q) => !!q.archived).length
 
   return (
     <div style={{
@@ -850,8 +1109,25 @@ function ManageQuestions() {
         </div>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
           <span style={{ fontSize: 12, color: 'var(--text-muted)', marginRight: 4 }}>
-            {questions.filter(q => archiveFilter === 'active' ? !q.archived : archiveFilter === 'archived' ? !!q.archived : true).length} shown
+            {filteredQuestions.length} shown
           </span>
+          <button
+            onClick={() => setArchiveFilter('archived')}
+            style={{
+              background: archiveFilter === 'archived' ? 'rgba(255,255,255,0.08)' : 'none',
+              border: '1px solid rgba(255,255,255,0.08)',
+              color: archiveFilter === 'archived' ? 'var(--text)' : 'var(--text-muted)',
+              padding: '5px 14px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'var(--transition)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            Archived Library
+          </button>
           <button
             onClick={handleExport}
             disabled={questions.length === 0}
@@ -934,6 +1210,14 @@ function ManageQuestions() {
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14 }}>Loading…</div>
       ) : questions.length === 0 ? (
         <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14, fontStyle: 'italic' }}>No questions yet.</div>
+      ) : filteredQuestions.length === 0 ? (
+        <div style={{ textAlign: 'center', padding: '40px 0', color: 'var(--text-muted)', fontSize: 14, fontStyle: 'italic' }}>
+          {archiveFilter === 'archived'
+            ? 'No archived questions yet. Archive questions from the main list and restore them here anytime.'
+            : archiveFilter === 'active'
+              ? `All ${archivedCount} question${archivedCount === 1 ? '' : 's'} are currently archived.`
+              : 'No questions match this view.'}
+        </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
           <div style={{
@@ -945,9 +1229,7 @@ function ManageQuestions() {
             <span>Question</span><span>Category</span><span>Type</span>
             <span style={{ textAlign: 'right' }}>Votes</span><span>Created</span><span></span>
           </div>
-          {questions
-            .filter(q => archiveFilter === 'active' ? !q.archived : archiveFilter === 'archived' ? !!q.archived : true)
-            .map(q => (
+          {filteredQuestions.map(q => (
             <QuestionRow
               key={q.id} question={q} voteCount={voteCounts[q.id] || 0}
               confirming={confirmDelete === q.id} deleting={deleting === q.id}
@@ -964,6 +1246,10 @@ function ManageQuestions() {
               editRevealMode={editRevealMode}
               editRevealThreshold={editRevealThreshold}
               editRevealDate={editRevealDate}
+              editBriefTitle={editBriefTitle}
+              editBriefBackground={editBriefBackground}
+              editBriefKeyTerms={editBriefKeyTerms}
+              editBriefSources={editBriefSources}
               onDeleteClick={() => { closeEdit(); setConfirmDelete(q.id) }}
               onConfirm={() => handleDelete(q.id)}
               onCancel={() => setConfirmDelete(null)}
@@ -988,6 +1274,10 @@ function ManageQuestions() {
               onEditRevealModeChange={setEditRevealMode}
               onEditRevealThresholdChange={setEditRevealThreshold}
               onEditRevealDateChange={setEditRevealDate}
+              onEditBriefTitleChange={setEditBriefTitle}
+              onEditBriefBackgroundChange={setEditBriefBackground}
+              onEditBriefKeyTermsChange={setEditBriefKeyTerms}
+              onEditBriefSourcesChange={setEditBriefSources}
               onSave={() => handleSaveEdit(q)}
               onCancelEdit={closeEdit}
             />
@@ -1001,10 +1291,11 @@ function ManageQuestions() {
 function QuestionRow({
   question, voteCount, confirming, deleting, featuring, archiving,
   editing, editText, editOptions, editImageMode, editImageFile, editImagePreview, editImageUrl, editSaving,
-  editRevealMode, editRevealThreshold, editRevealDate,
+  editRevealMode, editRevealThreshold, editRevealDate, editBriefTitle, editBriefBackground, editBriefKeyTerms, editBriefSources,
   onDeleteClick, onConfirm, onCancel, onFeature, onArchive,
   onEditClick, onEditTextChange, onEditOptionsChange, onEditImageModeSwitch, onEditFileChange, onEditUrlChange, onEditClear,
   onEditRevealModeChange, onEditRevealThresholdChange, onEditRevealDateChange,
+  onEditBriefTitleChange, onEditBriefBackgroundChange, onEditBriefKeyTermsChange, onEditBriefSourcesChange,
   onSave, onCancelEdit,
 }) {
   const editFileRef = useRef(null)
@@ -1113,6 +1404,19 @@ function QuestionRow({
             options={editOptions}
             onChange={onEditOptionsChange}
           />
+
+          <div style={{ marginBottom: 18 }}>
+            <QuestionBriefFields
+              title={editBriefTitle}
+              background={editBriefBackground}
+              keyTerms={editBriefKeyTerms}
+              sources={editBriefSources}
+              onTitleChange={onEditBriefTitleChange}
+              onBackgroundChange={onEditBriefBackgroundChange}
+              onKeyTermsChange={onEditBriefKeyTermsChange}
+              onSourcesChange={onEditBriefSourcesChange}
+            />
+          </div>
 
           {/* Image */}
           <div style={{ marginBottom: 18 }}>

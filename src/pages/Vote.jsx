@@ -16,6 +16,53 @@ function parseOptions(raw) {
   return raw
 }
 
+function parseBrief(raw) {
+  if (!raw) return null
+  let value = raw
+  if (typeof value === 'string') {
+    try {
+      value = JSON.parse(value)
+    } catch {
+      return null
+    }
+  }
+  if (!value || typeof value !== 'object') return null
+
+  const title = typeof value.title === 'string' ? value.title.trim() : ''
+  const background = typeof value.background === 'string' ? value.background.trim() : ''
+  const keyTerms = Array.isArray(value.key_terms)
+    ? value.key_terms
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null
+          const term = typeof item.term === 'string' ? item.term.trim() : ''
+          const definition = typeof item.definition === 'string' ? item.definition.trim() : ''
+          if (!term || !definition) return null
+          return { term, definition }
+        })
+        .filter(Boolean)
+    : []
+  const sources = Array.isArray(value.sources)
+    ? value.sources
+        .map((item) => {
+          if (!item || typeof item !== 'object') return null
+          const label = typeof item.label === 'string' ? item.label.trim() : ''
+          const url = typeof item.url === 'string' ? item.url.trim() : ''
+          if (!label || !url) return null
+          return { label, url }
+        })
+        .filter(Boolean)
+    : []
+
+  if (!title && !background && keyTerms.length === 0 && sources.length === 0) return null
+
+  return {
+    title: title || 'More Insights',
+    background,
+    keyTerms,
+    sources,
+  }
+}
+
 export default function Vote() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -80,6 +127,7 @@ export default function Vote() {
   const canVote = tier !== 'guest' && !!user
   const questionType = question.type || 'statement'
   const options = parseOptions(question.options)
+  const brief = parseBrief(question.brief)
 
   return (
     <div className="page">
@@ -130,6 +178,10 @@ export default function Vote() {
             onAction={() => tier === 'guest' ? setShowAuth(true) : navigate('/verify')}
           />
         </div>
+
+        {brief && (
+          <MoreInsightsCard brief={brief} />
+        )}
 
         {/* Already voted state */}
         {alreadyVoted && (
@@ -208,4 +260,131 @@ export default function Vote() {
       )}
     </div>
   )
+}
+
+function MoreInsightsCard({ brief }) {
+  const [expanded, setExpanded] = useState(false)
+
+  return (
+    <div
+      style={{
+        marginBottom: 24,
+        background: 'rgba(12, 18, 34, 0.72)',
+        border: '1px solid rgba(76,201,168,0.18)',
+        borderRadius: 'var(--radius-lg)',
+        overflow: 'hidden',
+      }}
+    >
+      <button
+        type="button"
+        onClick={() => setExpanded((value) => !value)}
+        style={{
+          width: '100%',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: 16,
+          background: 'transparent',
+          border: 'none',
+          color: 'inherit',
+          cursor: 'pointer',
+          textAlign: 'left',
+          padding: '18px 20px',
+        }}
+      >
+        <div>
+          <div style={{
+            fontSize: 11,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            color: 'var(--teal)',
+            fontWeight: 700,
+            marginBottom: 6,
+          }}>
+            More Insights
+          </div>
+          <div style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>
+            {brief.title || 'High-level context for this question'}
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+            Click for more context before you vote.
+          </div>
+        </div>
+        <span style={{ color: 'var(--gold)', fontSize: 18, lineHeight: 1 }}>
+          {expanded ? '-' : '+'}
+        </span>
+      </button>
+
+      {expanded && (
+        <div style={{ padding: '0 20px 20px', display: 'grid', gap: 18 }}>
+          {brief.background && (
+            <div>
+              <div style={sectionLabelStyle}>Background</div>
+              <p style={sectionBodyStyle}>{brief.background}</p>
+            </div>
+          )}
+
+          {brief.keyTerms.length > 0 && (
+            <div>
+              <div style={sectionLabelStyle}>Key Terms</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {brief.keyTerms.map((item) => (
+                  <div key={`${item.term}-${item.definition}`} style={glossaryRowStyle}>
+                    <div style={{ color: 'var(--gold)', fontWeight: 600, marginBottom: 4 }}>{item.term}</div>
+                    <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{item.definition}</div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {brief.sources.length > 0 && (
+            <div>
+              <div style={sectionLabelStyle}>Sources</div>
+              <div style={{ display: 'grid', gap: 8 }}>
+                {brief.sources.map((item) => (
+                  <a
+                    key={`${item.label}-${item.url}`}
+                    href={item.url}
+                    target="_blank"
+                    rel="noreferrer"
+                    style={{
+                      color: 'var(--teal)',
+                      textDecoration: 'none',
+                      fontSize: 13,
+                    }}
+                  >
+                    {item.label} {'->'}
+                  </a>
+                ))}
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </div>
+  )
+}
+
+const sectionLabelStyle = {
+  fontSize: 11,
+  letterSpacing: '0.14em',
+  textTransform: 'uppercase',
+  color: 'var(--gold)',
+  fontWeight: 700,
+  marginBottom: 8,
+}
+
+const sectionBodyStyle = {
+  color: 'var(--text-muted)',
+  fontSize: 14,
+  lineHeight: 1.65,
+  margin: 0,
+}
+
+const glossaryRowStyle = {
+  background: 'rgba(255,255,255,0.02)',
+  border: '1px solid rgba(255,255,255,0.05)',
+  borderRadius: 'var(--radius)',
+  padding: '12px 14px',
 }
