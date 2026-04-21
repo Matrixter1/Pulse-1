@@ -128,6 +128,10 @@ function formatBriefSources(value) {
   return parseQuestionBrief(value).sources
 }
 
+function isUuid(value) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
+}
+
 export default function Admin() {
   const { user, loading } = useAuth()
   const navigate = useNavigate()
@@ -1031,7 +1035,7 @@ function ManageQuestions() {
       const ws = wb.Sheets[wb.SheetNames[0]]
       const rows = XLSX.utils.sheet_to_json(ws)
 
-      const toInsert = rows.map(row => {
+      const importedRows = rows.map(row => {
         const typeRaw = String(row['Type'] || '').toLowerCase().trim()
         const type = typeRaw === 'signal' ? 'statement'
           : typeRaw === 'decide' ? 'choice'
@@ -1044,7 +1048,9 @@ function ManageQuestions() {
           : null
 
         const needsOptions = type === 'choice' || type === 'ranked'
+        const id = String(row['ID'] || '').trim()
         return {
+          id: isUuid(id) ? id : null,
           text:        String(row['Question Text'] || '').trim(),
           category:    String(row['Category']      || 'Consumer').trim(),
           type,
@@ -1057,14 +1063,30 @@ function ManageQuestions() {
             sources: String(row['Brief Sources'] || ''),
           }),
           archived: String(row['Is Archived'] || '').trim().toLowerCase() === 'true',
+          featured: String(row['Is Featured'] || '').trim().toLowerCase() === 'true',
           reveal_mode: 'instant',
         }
       }).filter(q => q.text && q.type)
+      const toInsert = importedRows
 
-      if (toInsert.length === 0) throw new Error('No valid rows found in the spreadsheet.')
+      if (importedRows.length === 0) throw new Error('No valid rows found in the spreadsheet.')
 
-      const { error } = await supabase.from('questions').insert(toInsert)
-      if (error) throw error
+      const rowsToUpsert = importedRows.filter((row) => !!row.id)
+      const rowsToInsert = importedRows
+        .filter((row) => !row.id)
+        .map(({ id, ...rest }) => rest)
+
+      if (rowsToUpsert.length > 0) {
+        const { error } = await supabase
+          .from('questions')
+          .upsert(rowsToUpsert, { onConflict: 'id' })
+        if (error) throw error
+      }
+
+      if (rowsToInsert.length > 0) {
+        const { error } = await supabase.from('questions').insert(rowsToInsert)
+        if (error) throw error
+      }
 
       await load()
       setImportSuccess(`✓ Imported ${toInsert.length} question${toInsert.length !== 1 ? 's' : ''}`)
