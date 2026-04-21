@@ -10,6 +10,7 @@ import ResetPassword from './pages/ResetPassword'
 import Admin from './pages/Admin'
 import Upcoming from './pages/Upcoming'
 import Suggestions from './pages/Suggestions'
+import Profile from './pages/Profile'
 
 export default function App() {
   return (
@@ -26,6 +27,7 @@ export default function App() {
           <Route path="/admin" element={<Admin />} />
           <Route path="/upcoming" element={<Upcoming />} />
           <Route path="/suggestions" element={<Suggestions />} />
+          <Route path="/profile" element={<Profile />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>

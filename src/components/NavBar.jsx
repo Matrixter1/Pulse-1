@@ -215,6 +215,14 @@ export default function NavBar() {
 
               <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 12 }}>
                 <Link
+                  to="/profile"
+                  onClick={() => setDropdownOpen(false)}
+                  style={{ fontSize: 12, color: 'var(--gold)', padding: '3px 0', letterSpacing: '0.03em' }}
+                >
+                  Profile
+                </Link>
+                <span style={{ color: 'var(--text-dim)', fontSize: 12 }}>Â·</span>
+                <Link
                   to="/suggestions"
                   onClick={() => setDropdownOpen(false)}
                   style={{ fontSize: 12, color: 'var(--teal)', padding: '3px 0', letterSpacing: '0.03em' }}
