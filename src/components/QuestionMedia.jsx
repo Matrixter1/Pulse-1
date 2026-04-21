@@ -45,17 +45,27 @@ export default function QuestionMedia({
 
   if (kind === 'video') {
     const isDetail = variant === 'detail'
+    const enforceMute = (event) => {
+      if (!isDetail) {
+        event.currentTarget.muted = true
+        event.currentTarget.defaultMuted = true
+        event.currentTarget.volume = 0
+      }
+    }
 
     return (
       <video
         src={src}
         style={mediaStyle}
         muted={!isDetail}
+        defaultMuted={!isDetail}
         loop={!isDetail}
         autoPlay={!isDetail}
         playsInline
         controls={controls || isDetail}
         preload="metadata"
+        onLoadedMetadata={enforceMute}
+        onPlay={enforceMute}
       />
     )
   }
