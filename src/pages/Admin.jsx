@@ -18,7 +18,9 @@ const TYPE_OPTIONS = [
 function emptyBriefDraft() {
   return {
     title: '',
+    plainEnglish: '',
     background: '',
+    answerInsights: '',
     keyTerms: '',
     sources: '',
   }
@@ -84,15 +86,47 @@ function parseQuestionBrief(raw) {
 
   return {
     title: typeof value.title === 'string' ? value.title : '',
+    plainEnglish: typeof value.plain_english === 'string' ? value.plain_english : '',
     background: typeof value.background === 'string' ? value.background : '',
+    answerInsights: Array.isArray(value.answer_insights)
+      ? value.answer_insights
+          .map((item) => {
+            if (typeof item === 'string') {
+              const text = item.trim()
+              return text || null
+            }
+            if (!item || typeof item !== 'object') return null
+            const answer = typeof item.answer === 'string' ? item.answer.trim() : ''
+            const insight = typeof item.insight === 'string' ? item.insight.trim() : ''
+            if (!answer) return null
+            return insight ? `${answer} | ${insight}` : answer
+          })
+          .filter(Boolean)
+          .join('\n')
+      : '',
     keyTerms,
     sources,
   }
 }
 
-function serializeQuestionBrief({ title, background, keyTerms, sources }) {
+function serializeQuestionBrief({ title, plainEnglish, background, answerInsights, keyTerms, sources }) {
   const safeTitle = title.trim()
+  const safePlainEnglish = plainEnglish.trim()
   const safeBackground = background.trim()
+  const safeAnswerInsights = splitStructuredEntries(answerInsights, /\r?\n|;\s*(?=[^|\n]+\|\s*[^;\n]+$)/m)
+    .map((line) => line.trim())
+    .filter(Boolean)
+    .map((line) => {
+      const parts = line.split('|')
+      if (parts.length < 2) {
+        const answer = line.trim()
+        return answer ? { answer, insight: '' } : null
+      }
+      const answer = parts[0].trim()
+      const insight = parts.slice(1).join('|').trim()
+      return answer ? { answer, insight } : null
+    })
+    .filter(Boolean)
   const safeKeyTerms = splitStructuredEntries(keyTerms, /(?:\r?\n|;\s*(?=[^;:\n]+:\s*[^;\n]+)|,(?=\s*[^,:\n]+:\s*[^,\n]+))/)
     .map((line) => line.trim())
     .filter(Boolean)
@@ -122,13 +156,15 @@ function serializeQuestionBrief({ title, background, keyTerms, sources }) {
     })
     .filter(Boolean)
 
-  if (!safeTitle && !safeBackground && safeKeyTerms.length === 0 && safeSources.length === 0) {
+  if (!safeTitle && !safePlainEnglish && !safeBackground && safeAnswerInsights.length === 0 && safeKeyTerms.length === 0 && safeSources.length === 0) {
     return null
   }
 
   return {
     title: safeTitle || null,
+    plain_english: safePlainEnglish || null,
     background: safeBackground || null,
+    answer_insights: safeAnswerInsights,
     key_terms: safeKeyTerms,
     sources: safeSources,
   }
@@ -140,6 +176,10 @@ function formatBriefKeyTerms(value) {
 
 function formatBriefSources(value) {
   return parseQuestionBrief(value).sources
+}
+
+function formatBriefAnswerInsights(value) {
+  return parseQuestionBrief(value).answerInsights
 }
 
 function splitStructuredEntries(value, delimiterRegex) {
@@ -225,7 +265,9 @@ function AddQuestionForm() {
   const [success, setSuccess]   = useState('')
   const [error, setError]       = useState('')
   const [briefTitle, setBriefTitle] = useState('')
+  const [briefPlainEnglish, setBriefPlainEnglish] = useState('')
   const [briefBackground, setBriefBackground] = useState('')
+  const [briefAnswerInsights, setBriefAnswerInsights] = useState('')
   const [briefKeyTerms, setBriefKeyTerms] = useState('')
   const [briefSources, setBriefSources] = useState('')
 
@@ -302,7 +344,7 @@ function AddQuestionForm() {
     setType('statement'); setCategory('Consumer'); setText(''); setOptions([])
     setImageMode('upload'); setImageFile(null); setImagePreview(''); setImageUrlInput('')
     setRevealMode('instant'); setRevealThreshold(''); setRevealDate('')
-    setBriefTitle(''); setBriefBackground(''); setBriefKeyTerms(''); setBriefSources('')
+    setBriefTitle(''); setBriefPlainEnglish(''); setBriefBackground(''); setBriefAnswerInsights(''); setBriefKeyTerms(''); setBriefSources('')
   }
 
   async function handleSubmit(e) {
@@ -346,7 +388,9 @@ function AddQuestionForm() {
         options: filledOptions.length > 0 ? filledOptions : null,
         brief: serializeQuestionBrief({
           title: briefTitle,
+          plainEnglish: briefPlainEnglish,
           background: briefBackground,
+          answerInsights: briefAnswerInsights,
           keyTerms: briefKeyTerms,
           sources: briefSources,
         }),
@@ -515,11 +559,15 @@ function AddQuestionForm() {
 
         <QuestionBriefFields
           title={briefTitle}
+          plainEnglish={briefPlainEnglish}
           background={briefBackground}
+          answerInsights={briefAnswerInsights}
           keyTerms={briefKeyTerms}
           sources={briefSources}
           onTitleChange={setBriefTitle}
+          onPlainEnglishChange={setBriefPlainEnglish}
           onBackgroundChange={setBriefBackground}
+          onAnswerInsightsChange={setBriefAnswerInsights}
           onKeyTermsChange={setBriefKeyTerms}
           onSourcesChange={setBriefSources}
         />
@@ -720,11 +768,15 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
 
 function QuestionBriefFields({
   title,
+  plainEnglish,
   background,
+  answerInsights,
   keyTerms,
   sources,
   onTitleChange,
+  onPlainEnglishChange,
   onBackgroundChange,
+  onAnswerInsightsChange,
   onKeyTermsChange,
   onSourcesChange,
 }) {
@@ -765,12 +817,34 @@ function QuestionBriefFields({
       </div>
 
       <div>
+        <FieldLabel>Plain English</FieldLabel>
+        <textarea
+          value={plainEnglish}
+          onChange={(event) => onPlainEnglishChange(event.target.value)}
+          rows={3}
+          placeholder="Explain the question in simple everyday language."
+          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+        />
+      </div>
+
+      <div>
         <FieldLabel>Background</FieldLabel>
         <textarea
           value={background}
           onChange={(event) => onBackgroundChange(event.target.value)}
           rows={4}
-          placeholder="Share a concise, high-level explanation for this question."
+          placeholder="Why does this question matter? Add a concise high-level explanation."
+          style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
+        />
+      </div>
+
+      <div>
+        <FieldLabel>Answer Insights</FieldLabel>
+        <textarea
+          value={answerInsights}
+          onChange={(event) => onAnswerInsightsChange(event.target.value)}
+          rows={4}
+          placeholder={'One per line\nOption text | one-line explanation'}
           style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5 }}
         />
       </div>
@@ -808,7 +882,7 @@ function QuestionBriefFields({
         borderRadius: 'var(--radius-sm)',
         padding: '10px 12px',
       }}>
-        Key terms format: <strong>term: definition</strong> per line. Sources format: <strong>label | url</strong> per line.
+        Use <strong>Plain English</strong> first for new users. Answer insights format: <strong>option | one-line explanation</strong>. Key terms format: <strong>term: definition</strong>. Sources format: <strong>label | url</strong>.
       </div>
     </div>
   )
@@ -847,7 +921,9 @@ function ManageQuestions() {
   const [editRevealThreshold, setEditRevealThreshold] = useState('')
   const [editRevealDate, setEditRevealDate]           = useState('')
   const [editBriefTitle, setEditBriefTitle]           = useState('')
+  const [editBriefPlainEnglish, setEditBriefPlainEnglish] = useState('')
   const [editBriefBackground, setEditBriefBackground] = useState('')
+  const [editBriefAnswerInsights, setEditBriefAnswerInsights] = useState('')
   const [editBriefKeyTerms, setEditBriefKeyTerms]     = useState('')
   const [editBriefSources, setEditBriefSources]       = useState('')
 
@@ -912,7 +988,9 @@ function ManageQuestions() {
     setEditRevealDate(question.reveal_date ? new Date(question.reveal_date).toISOString().slice(0, 16) : '')
     const brief = parseQuestionBrief(question.brief)
     setEditBriefTitle(brief.title)
+    setEditBriefPlainEnglish(brief.plainEnglish)
     setEditBriefBackground(brief.background)
+    setEditBriefAnswerInsights(brief.answerInsights)
     setEditBriefKeyTerms(brief.keyTerms)
     setEditBriefSources(brief.sources)
     setConfirmDelete(null)
@@ -929,7 +1007,9 @@ function ManageQuestions() {
     setEditRevealThreshold('')
     setEditRevealDate('')
     setEditBriefTitle('')
+    setEditBriefPlainEnglish('')
     setEditBriefBackground('')
+    setEditBriefAnswerInsights('')
     setEditBriefKeyTerms('')
     setEditBriefSources('')
   }
@@ -960,7 +1040,9 @@ function ManageQuestions() {
           image_url: resolvedImageUrl,
           brief: serializeQuestionBrief({
             title: editBriefTitle,
+            plainEnglish: editBriefPlainEnglish,
             background: editBriefBackground,
+            answerInsights: editBriefAnswerInsights,
             keyTerms: editBriefKeyTerms,
             sources: editBriefSources,
           }),
@@ -1032,7 +1114,9 @@ function ManageQuestions() {
         'Options': options,
         'Image URL': q.image_url || '',
         'Brief Title': q.brief?.title || '',
+        'Brief Plain English': q.brief?.plain_english || '',
         'Brief Background': q.brief?.background || '',
+        'Brief Answer Insights': formatBriefAnswerInsights(q.brief),
         'Brief Key Terms': formatBriefKeyTerms(q.brief),
         'Brief Sources': formatBriefSources(q.brief),
         'Votes': voteCounts[q.id] || 0,
@@ -1084,7 +1168,9 @@ function ManageQuestions() {
           image_url:   row['Image URL'] ? String(row['Image URL']).trim() || null : null,
           brief: serializeQuestionBrief({
             title: String(row['Brief Title'] || ''),
+            plainEnglish: String(row['Brief Plain English'] || ''),
             background: String(row['Brief Background'] || ''),
+            answerInsights: String(row['Brief Answer Insights'] || ''),
             keyTerms: String(row['Brief Key Terms'] || ''),
             sources: String(row['Brief Sources'] || ''),
           }),
@@ -1295,7 +1381,9 @@ function ManageQuestions() {
               editRevealThreshold={editRevealThreshold}
               editRevealDate={editRevealDate}
               editBriefTitle={editBriefTitle}
+              editBriefPlainEnglish={editBriefPlainEnglish}
               editBriefBackground={editBriefBackground}
+              editBriefAnswerInsights={editBriefAnswerInsights}
               editBriefKeyTerms={editBriefKeyTerms}
               editBriefSources={editBriefSources}
               onDeleteClick={() => { closeEdit(); setConfirmDelete(q.id) }}
@@ -1323,7 +1411,9 @@ function ManageQuestions() {
               onEditRevealThresholdChange={setEditRevealThreshold}
               onEditRevealDateChange={setEditRevealDate}
               onEditBriefTitleChange={setEditBriefTitle}
+              onEditBriefPlainEnglishChange={setEditBriefPlainEnglish}
               onEditBriefBackgroundChange={setEditBriefBackground}
+              onEditBriefAnswerInsightsChange={setEditBriefAnswerInsights}
               onEditBriefKeyTermsChange={setEditBriefKeyTerms}
               onEditBriefSourcesChange={setEditBriefSources}
               onSave={() => handleSaveEdit(q)}
@@ -1339,11 +1429,11 @@ function ManageQuestions() {
 function QuestionRow({
   question, voteCount, confirming, deleting, featuring, archiving,
   editing, editText, editOptions, editImageMode, editImageFile, editImagePreview, editImageUrl, editSaving,
-  editRevealMode, editRevealThreshold, editRevealDate, editBriefTitle, editBriefBackground, editBriefKeyTerms, editBriefSources,
+  editRevealMode, editRevealThreshold, editRevealDate, editBriefTitle, editBriefPlainEnglish, editBriefBackground, editBriefAnswerInsights, editBriefKeyTerms, editBriefSources,
   onDeleteClick, onConfirm, onCancel, onFeature, onArchive,
   onEditClick, onEditTextChange, onEditOptionsChange, onEditImageModeSwitch, onEditFileChange, onEditUrlChange, onEditClear,
   onEditRevealModeChange, onEditRevealThresholdChange, onEditRevealDateChange,
-  onEditBriefTitleChange, onEditBriefBackgroundChange, onEditBriefKeyTermsChange, onEditBriefSourcesChange,
+  onEditBriefTitleChange, onEditBriefPlainEnglishChange, onEditBriefBackgroundChange, onEditBriefAnswerInsightsChange, onEditBriefKeyTermsChange, onEditBriefSourcesChange,
   onSave, onCancelEdit,
 }) {
   const editFileRef = useRef(null)
@@ -1456,11 +1546,15 @@ function QuestionRow({
           <div style={{ marginBottom: 18 }}>
             <QuestionBriefFields
               title={editBriefTitle}
+              plainEnglish={editBriefPlainEnglish}
               background={editBriefBackground}
+              answerInsights={editBriefAnswerInsights}
               keyTerms={editBriefKeyTerms}
               sources={editBriefSources}
               onTitleChange={onEditBriefTitleChange}
+              onPlainEnglishChange={onEditBriefPlainEnglishChange}
               onBackgroundChange={onEditBriefBackgroundChange}
+              onAnswerInsightsChange={onEditBriefAnswerInsightsChange}
               onKeyTermsChange={onEditBriefKeyTermsChange}
               onSourcesChange={onEditBriefSourcesChange}
             />

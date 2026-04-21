@@ -20,7 +20,23 @@ function parseBrief(raw) {
   if (!value || typeof value !== 'object') return null
 
   const title = typeof value.title === 'string' ? value.title.trim() : ''
+  const plainEnglish = typeof value.plain_english === 'string' ? value.plain_english.trim() : ''
   const background = typeof value.background === 'string' ? value.background.trim() : ''
+  const answerInsights = Array.isArray(value.answer_insights)
+    ? value.answer_insights
+        .map((item) => {
+          if (typeof item === 'string') {
+            const answer = item.trim()
+            return answer ? { answer, insight: '' } : null
+          }
+          if (!item || typeof item !== 'object') return null
+          const answer = typeof item.answer === 'string' ? item.answer.trim() : ''
+          const insight = typeof item.insight === 'string' ? item.insight.trim() : ''
+          if (!answer) return null
+          return { answer, insight }
+        })
+        .filter(Boolean)
+    : []
   const keyTerms = Array.isArray(value.key_terms)
     ? value.key_terms
         .map((item) => {
@@ -52,8 +68,8 @@ function parseBrief(raw) {
         .filter(Boolean)
     : []
 
-  if (!title && !background && keyTerms.length === 0 && sources.length === 0) return null
-  return { title: title || 'More Insights', background, keyTerms, sources }
+  if (!title && !plainEnglish && !background && answerInsights.length === 0 && keyTerms.length === 0 && sources.length === 0) return null
+  return { title: title || 'More Insights', plainEnglish, background, answerInsights, keyTerms, sources }
 }
 
 function deriveWhyThisMatters(question) {
@@ -119,10 +135,31 @@ function MoreInsightsSummary({ brief, question, navigate }) {
             <div style={briefLabelStyle}>Why this matters</div>
             <p style={briefBodyStyle}>{deriveWhyThisMatters(question)}</p>
           </div>
+          {brief.plainEnglish ? (
+            <div>
+              <div style={briefLabelStyle}>In plain English</div>
+              <p style={briefBodyStyle}>{brief.plainEnglish}</p>
+            </div>
+          ) : null}
           {brief.background ? (
             <div>
-              <div style={briefLabelStyle}>Background</div>
+              <div style={briefLabelStyle}>Why this matters in context</div>
               <p style={briefBodyStyle}>{brief.background}</p>
+            </div>
+          ) : null}
+          {brief.answerInsights.length > 0 ? (
+            <div>
+              <div style={briefLabelStyle}>About the answers</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {brief.answerInsights.map((item) => (
+                  <div key={`${item.answer}-${item.insight || 'plain'}`} style={briefPanelStyle}>
+                    <div style={{ color: 'var(--gold)', fontWeight: 600, marginBottom: item.insight ? 4 : 0 }}>{item.answer}</div>
+                    {item.insight ? (
+                      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{item.insight}</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             </div>
           ) : null}
           {brief.keyTerms.length > 0 ? (

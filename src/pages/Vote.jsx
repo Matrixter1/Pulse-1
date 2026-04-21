@@ -29,7 +29,23 @@ function parseBrief(raw) {
   if (!value || typeof value !== 'object') return null
 
   const title = typeof value.title === 'string' ? value.title.trim() : ''
+  const plainEnglish = typeof value.plain_english === 'string' ? value.plain_english.trim() : ''
   const background = typeof value.background === 'string' ? value.background.trim() : ''
+  const answerInsights = Array.isArray(value.answer_insights)
+    ? value.answer_insights
+        .map((item) => {
+          if (typeof item === 'string') {
+            const answer = item.trim()
+            return answer ? { answer, insight: '' } : null
+          }
+          if (!item || typeof item !== 'object') return null
+          const answer = typeof item.answer === 'string' ? item.answer.trim() : ''
+          const insight = typeof item.insight === 'string' ? item.insight.trim() : ''
+          if (!answer) return null
+          return { answer, insight }
+        })
+        .filter(Boolean)
+    : []
   const keyTerms = Array.isArray(value.key_terms)
     ? value.key_terms
         .map((item) => {
@@ -61,11 +77,13 @@ function parseBrief(raw) {
         .filter(Boolean)
     : []
 
-  if (!title && !background && keyTerms.length === 0 && sources.length === 0) return null
+  if (!title && !plainEnglish && !background && answerInsights.length === 0 && keyTerms.length === 0 && sources.length === 0) return null
 
   return {
     title: title || 'More Insights',
+    plainEnglish,
     background,
+    answerInsights,
     keyTerms,
     sources,
   }
@@ -325,10 +343,33 @@ function MoreInsightsCard({ brief }) {
 
       {expanded && (
         <div style={{ padding: '0 20px 20px', display: 'grid', gap: 18 }}>
+          {brief.plainEnglish && (
+            <div>
+              <div style={sectionLabelStyle}>In plain English</div>
+              <p style={sectionBodyStyle}>{brief.plainEnglish}</p>
+            </div>
+          )}
+
           {brief.background && (
             <div>
-              <div style={sectionLabelStyle}>Background</div>
+              <div style={sectionLabelStyle}>Why this matters</div>
               <p style={sectionBodyStyle}>{brief.background}</p>
+            </div>
+          )}
+
+          {brief.answerInsights.length > 0 && (
+            <div>
+              <div style={sectionLabelStyle}>About the answers</div>
+              <div style={{ display: 'grid', gap: 10 }}>
+                {brief.answerInsights.map((item) => (
+                  <div key={`${item.answer}-${item.insight || 'plain'}`} style={glossaryRowStyle}>
+                    <div style={{ color: 'var(--gold)', fontWeight: 600, marginBottom: item.insight ? 4 : 0 }}>{item.answer}</div>
+                    {item.insight ? (
+                      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{item.insight}</div>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
