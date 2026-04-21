@@ -510,7 +510,6 @@ export default function Results() {
               />
               <ResultsMetaChip label="Reveal" value={formatRevealLabel(question)} />
             </div>
-            <MoreInsightsSummary brief={brief} question={question} navigate={navigate} />
           </div>
         )}
 
@@ -755,6 +754,10 @@ export default function Results() {
             {copied ? '✓ Link Copied' : 'Share Results ↗'}
           </button>
         </div>
+
+        {brief && visibility.visible && (
+          <MoreInsightsSummary brief={brief} question={question} navigate={navigate} />
+        )}
       </div>
     </div>
   )

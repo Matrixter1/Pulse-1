@@ -275,10 +275,6 @@ export default function Vote() {
           />
         </div>
 
-        {brief && (
-          <MoreInsightsCard brief={brief} question={question} />
-        )}
-
         {/* Already voted state */}
         {alreadyVoted && (
           <div style={{ textAlign: 'center', padding: '48px 24px' }}>
@@ -348,6 +344,10 @@ export default function Vote() {
               <RankedVote options={options} onSubmit={handleSubmit} submitting={submitting} canVote={canVote} />
             )}
           </>
+        )}
+
+        {brief && (
+          <MoreInsightsCard brief={brief} question={question} />
         )}
       </div>
 
