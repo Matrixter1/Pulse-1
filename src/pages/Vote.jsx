@@ -33,10 +33,14 @@ function parseBrief(raw) {
   const keyTerms = Array.isArray(value.key_terms)
     ? value.key_terms
         .map((item) => {
+          if (typeof item === 'string') {
+            const term = item.trim()
+            return term ? { term, definition: '' } : null
+          }
           if (!item || typeof item !== 'object') return null
           const term = typeof item.term === 'string' ? item.term.trim() : ''
           const definition = typeof item.definition === 'string' ? item.definition.trim() : ''
-          if (!term || !definition) return null
+          if (!term) return null
           return { term, definition }
         })
         .filter(Boolean)
@@ -44,10 +48,14 @@ function parseBrief(raw) {
   const sources = Array.isArray(value.sources)
     ? value.sources
         .map((item) => {
+          if (typeof item === 'string') {
+            const label = item.trim()
+            return label ? { label, url: '' } : null
+          }
           if (!item || typeof item !== 'object') return null
           const label = typeof item.label === 'string' ? item.label.trim() : ''
           const url = typeof item.url === 'string' ? item.url.trim() : ''
-          if (!label || !url) return null
+          if (!label) return null
           return { label, url }
         })
         .filter(Boolean)
@@ -330,8 +338,10 @@ function MoreInsightsCard({ brief }) {
               <div style={{ display: 'grid', gap: 10 }}>
                 {brief.keyTerms.map((item) => (
                   <div key={`${item.term}-${item.definition}`} style={glossaryRowStyle}>
-                    <div style={{ color: 'var(--gold)', fontWeight: 600, marginBottom: 4 }}>{item.term}</div>
-                    <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{item.definition}</div>
+                    <div style={{ color: 'var(--gold)', fontWeight: 600, marginBottom: item.definition ? 4 : 0 }}>{item.term}</div>
+                    {item.definition ? (
+                      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{item.definition}</div>
+                    ) : null}
                   </div>
                 ))}
               </div>
@@ -343,19 +353,32 @@ function MoreInsightsCard({ brief }) {
               <div style={sectionLabelStyle}>Sources</div>
               <div style={{ display: 'grid', gap: 8 }}>
                 {brief.sources.map((item) => (
-                  <a
-                    key={`${item.label}-${item.url}`}
-                    href={item.url}
-                    target="_blank"
-                    rel="noreferrer"
-                    style={{
-                      color: 'var(--teal)',
-                      textDecoration: 'none',
-                      fontSize: 13,
-                    }}
-                  >
-                    {item.label} {'->'}
-                  </a>
+                  item.url ? (
+                    <a
+                      key={`${item.label}-${item.url}`}
+                      href={item.url}
+                      target="_blank"
+                      rel="noreferrer"
+                      style={{
+                        color: 'var(--teal)',
+                        textDecoration: 'none',
+                        fontSize: 13,
+                      }}
+                    >
+                      {item.label} {'->'}
+                    </a>
+                  ) : (
+                    <div
+                      key={`${item.label}-plain`}
+                      style={{
+                        color: 'var(--text-muted)',
+                        fontSize: 13,
+                        lineHeight: 1.5,
+                      }}
+                    >
+                      {item.label}
+                    </div>
+                  )
                 ))}
               </div>
             </div>

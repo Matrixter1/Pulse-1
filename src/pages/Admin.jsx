@@ -51,10 +51,15 @@ function parseQuestionBrief(raw) {
   const keyTerms = Array.isArray(value.key_terms)
     ? value.key_terms
         .map((item) => {
+          if (typeof item === 'string') {
+            const text = item.trim()
+            return text || null
+          }
           if (!item || typeof item !== 'object') return null
           const term = typeof item.term === 'string' ? item.term.trim() : ''
           const definition = typeof item.definition === 'string' ? item.definition.trim() : ''
-          return term && definition ? `${term}: ${definition}` : null
+          if (!term) return null
+          return definition ? `${term}: ${definition}` : term
         })
         .filter(Boolean)
         .join('\n')
@@ -63,10 +68,15 @@ function parseQuestionBrief(raw) {
   const sources = Array.isArray(value.sources)
     ? value.sources
         .map((item) => {
+          if (typeof item === 'string') {
+            const text = item.trim()
+            return text || null
+          }
           if (!item || typeof item !== 'object') return null
           const label = typeof item.label === 'string' ? item.label.trim() : ''
           const url = typeof item.url === 'string' ? item.url.trim() : ''
-          return label && url ? `${label} | ${url}` : null
+          if (!label) return null
+          return url ? `${label} | ${url}` : label
         })
         .filter(Boolean)
         .join('\n')
@@ -88,10 +98,13 @@ function serializeQuestionBrief({ title, background, keyTerms, sources }) {
     .filter(Boolean)
     .map((line) => {
       const separator = line.indexOf(':')
-      if (separator === -1) return null
+      if (separator === -1) {
+        const term = line.trim()
+        return term ? { term, definition: '' } : null
+      }
       const term = line.slice(0, separator).trim()
       const definition = line.slice(separator + 1).trim()
-      return term && definition ? { term, definition } : null
+      return term ? { term, definition } : null
     })
     .filter(Boolean)
   const safeSources = splitStructuredEntries(sources, /(?:\r?\n|;\s*(?=[^|\n]+\|\s*https?:\/\/)|,(?=\s*[^|\n]+\|\s*https?:\/\/))/)
@@ -99,10 +112,13 @@ function serializeQuestionBrief({ title, background, keyTerms, sources }) {
     .filter(Boolean)
     .map((line) => {
       const parts = line.split('|')
-      if (parts.length < 2) return null
+      if (parts.length < 2) {
+        const label = line.trim()
+        return label ? { label, url: '' } : null
+      }
       const label = parts[0].trim()
       const url = parts.slice(1).join('|').trim()
-      return label && url ? { label, url } : null
+      return label ? { label, url } : null
     })
     .filter(Boolean)
 
