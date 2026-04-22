@@ -141,7 +141,7 @@ export default function Feed() {
   return (
     <div className="page">
       <NavBar />
-      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '40px 20px 88px' }}>
+      <div style={{ maxWidth: 1220, margin: '0 auto', padding: '40px 20px 96px' }}>
         <div style={{ marginBottom: 28, maxWidth: 760 }}>
           <div style={{ fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
             Live Feed
@@ -453,7 +453,7 @@ export default function Feed() {
               <div className="preview-grid" style={{
                 display: 'grid',
                 gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                gap: 16,
+                gap: 18,
               }}>
                 <PreviewCard
                   type="statement"
@@ -571,7 +571,7 @@ export default function Feed() {
                           {getSectionSubtitle(s.key)}
                         </p>
                       </div>
-                      <div className="feed-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 18 }}>
+                      <div className="feed-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 24 }}>
                         {s.items.map((q, i) => (
                           <div
                             key={q.id}
@@ -636,7 +636,7 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
       style={{
         position: 'relative',
         overflow: 'hidden',
-        minHeight: 320,
+        minHeight: 336,
         background: question?.image_url
           ? `linear-gradient(180deg, rgba(6,8,18,0.12), rgba(6,8,18,0.94)), url(${question.image_url}) center/cover`
           : elevated
@@ -644,7 +644,7 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
             : 'linear-gradient(180deg, rgba(10,12,26,0.92), rgba(10,12,26,0.74))',
         border: `1px solid ${isActive ? color : elevated ? `${color}99` : `${color}1A`}`,
         borderRadius: 'var(--radius-xl)',
-        padding: '20px',
+        padding: '22px',
         cursor: 'pointer',
         transition: 'all 0.25s ease',
         transform: isDimmed
@@ -687,7 +687,7 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
       <div style={{ marginTop: 'auto', position: 'relative', zIndex: 1 }}>
         <p style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 24,
+          fontSize: 22,
           color: 'var(--text)',
           lineHeight: 1.1,
           fontStyle: type === 'statement' ? 'italic' : 'normal',
@@ -795,13 +795,13 @@ function StatementCard({ question, counts, onClick }) {
       onClick={onClick}
       style={{
         position: 'relative',
-        minHeight: 420,
+        minHeight: 456,
         background: question.image_url
           ? `linear-gradient(180deg, rgba(4,7,16,0.1) 0%, rgba(4,7,16,0.54) 42%, rgba(4,7,16,0.96) 100%), url(${question.image_url}) center/cover`
           : 'linear-gradient(180deg, rgba(18,22,42,0.92), rgba(8,10,22,0.98))',
         border: `1px solid ${hovered ? 'rgba(201,168,76,0.4)' : 'rgba(201,168,76,0.15)'}`,
         borderRadius: 'var(--radius-xl)',
-        padding: '26px',
+        padding: '30px 30px 26px',
         cursor: 'pointer',
         transition: 'all var(--transition)',
         transform: hovered ? 'translateY(-4px)' : 'none',
@@ -822,8 +822,8 @@ function StatementCard({ question, counts, onClick }) {
           </div>
           <p style={{
             fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(24px, 2.8vw, 36px)',
-            lineHeight: 1.08,
+            fontSize: 'clamp(22px, 2.4vw, 32px)',
+            lineHeight: 1.12,
             color: '#FFFFFF',
             fontStyle: type === 'statement' ? 'italic' : 'normal',
             fontWeight: 600,

@@ -316,65 +316,17 @@ export default function Vote() {
                 onRequireAuth={() => setShowAuth(true)}
               />
             ) : (
-              <div style={{ maxWidth: 760, margin: '0 auto' }}>
-                <div className="glass" style={{ padding: '32px 36px', marginBottom: 24 }}>
-                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-                    <CategoryBadge category={question.category} />
-                    <TypeBadge type={questionType} />
-                  </div>
-                  <p style={{
-                    fontFamily: 'var(--font-display)',
-                    fontSize: 'clamp(22px, 3vw, 30px)',
-                    fontStyle: questionType === 'statement' ? 'italic' : 'normal',
-                    lineHeight: 1.4,
-                    color: 'var(--text)',
-                    marginBottom: 0,
-                  }}>
-                    {questionType === 'statement' ? `"${question.text}"` : question.text}
-                  </p>
-                </div>
-
-                {question.image_url && (
-                  <div style={{
-                    marginBottom: 24,
-                    borderRadius: 'var(--radius-lg)',
-                    overflow: 'hidden',
-                    border: '1px solid var(--gold-border)',
-                    maxHeight: 320,
-                    background: `linear-gradient(180deg, rgba(5,7,16,0.08), rgba(5,7,16,0.18)), url(${question.image_url}) center/cover`,
-                  }} />
-                )}
-
-                <div style={{ marginBottom: 24 }}>
-                  <TierBanner
-                    tier={tier}
-                    onAction={() => tier === 'guest' ? setShowAuth(true) : navigate('/verify')}
-                  />
-                </div>
-
-                <p style={{
-                  fontSize: 12,
-                  color: 'var(--text-muted)',
-                  fontStyle: 'italic',
-                  textAlign: 'center',
-                  marginBottom: 16,
-                }}>
-                  ◈ Your vote is anonymous — your identity is never linked to your response.
-                </p>
-
-                {questionType === 'statement' && (
-                  <StatementVote onSubmit={handleSubmit} submitting={submitting} canVote={canVote} />
-                )}
-                {questionType === 'ranked' && (
-                  <RankedVote options={options} onSubmit={handleSubmit} submitting={submitting} canVote={canVote} />
-                )}
-
-                {brief && (
-                  <div style={{ marginTop: 28 }}>
-                    <MoreInsightsCard brief={brief} question={question} />
-                  </div>
-                )}
-              </div>
+              <CinematicStandardVote
+                question={question}
+                questionType={questionType}
+                options={options}
+                tier={tier}
+                brief={brief}
+                canVote={canVote}
+                submitting={submitting}
+                onSubmit={handleSubmit}
+                onRequireAuth={() => setShowAuth(true)}
+              />
             )}
           </>
         )}
@@ -649,6 +601,158 @@ function CinematicChoiceVote({ question, options, tier, brief, canVote, submitti
             <span>•</span>
             <span>{tier === 'verified' ? 'Verified layer active' : 'Truth Layer available'}</span>
           </div>
+        </div>
+      </div>
+
+      {brief && (
+        <div style={{ maxWidth: 980, margin: '32px auto 0' }}>
+          <MoreInsightsCard brief={brief} question={question} />
+        </div>
+      )}
+    </>
+  )
+}
+
+function CinematicStandardVote({ question, questionType, options, tier, brief, canVote, submitting, onSubmit, onRequireAuth }) {
+  const answerInsights = deriveAnswerInsights(question, brief)
+
+  return (
+    <>
+      <style>{`
+        @media (max-width: 960px) {
+          .standard-vote-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+
+      <div className="standard-vote-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(320px, 0.92fr) minmax(0, 1.18fr)',
+        gap: 32,
+        alignItems: 'stretch',
+        maxWidth: 1180,
+        margin: '0 auto',
+      }}>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
+          <div style={{
+            minHeight: 520,
+            borderRadius: '34px',
+            overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.06)',
+            background: question.image_url
+              ? `linear-gradient(180deg, rgba(5,7,16,0.1), rgba(5,7,16,0.5)), url(${question.image_url}) center/cover`
+              : 'radial-gradient(circle at center, rgba(201,168,76,0.16), rgba(10,12,26,0.96) 62%)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            padding: 24,
+          }}>
+            <div style={{
+              fontSize: 12,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+              marginBottom: 10,
+            }}>
+              Prompt Reference
+            </div>
+            <div style={{ color: questionType === 'ranked' ? '#9B6FD8' : 'var(--gold)', fontSize: 14, fontWeight: 700 }}>
+              {questionType === 'ranked' ? 'Priority sequence active' : 'Live signal detected'}
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+              <CategoryBadge category={question.category} />
+              <TypeBadge type={questionType} />
+            </div>
+            <p style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(28px, 4vw, 48px)',
+              lineHeight: 1.02,
+              fontStyle: questionType === 'statement' ? 'italic' : 'normal',
+              color: 'var(--text)',
+              marginBottom: 12,
+            }}>
+              {questionType === 'ranked' ? 'Define your order.' : 'Define your stance.'}
+            </p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.7, marginBottom: 0 }}>
+              {brief?.plainEnglish || (questionType === 'ranked'
+                ? 'Arrange the options to reflect what matters most to you right now.'
+                : 'Place yourself on the signal and reveal the direction you trust most.')}
+            </p>
+          </div>
+        </div>
+
+        <div style={{
+          background: 'rgba(10,12,26,0.84)',
+          border: `1px solid ${questionType === 'ranked' ? 'rgba(155,111,216,0.18)' : 'rgba(201,168,76,0.18)'}`,
+          borderRadius: '34px',
+          padding: '26px 26px 30px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 20,
+          boxShadow: '0 18px 48px rgba(0,0,0,0.24)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
+            <div style={{
+              fontSize: 12,
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: questionType === 'ranked' ? '#9B6FD8' : 'var(--gold)',
+              fontWeight: 800,
+            }}>
+              {getVoteLabel(questionType)}
+            </div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' }}>
+              {canVote ? 'Anonymous signal. Real-time truth gap.' : 'Sign in to cast your pulse.'}
+            </div>
+          </div>
+
+          <div>
+            <h1 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(30px, 4vw, 54px)',
+              lineHeight: 1.02,
+              color: 'var(--text)',
+              fontStyle: questionType === 'statement' ? 'italic' : 'normal',
+              marginBottom: 14,
+            }}>
+              {questionType === 'statement' ? `"${question.text}"` : question.text}
+            </h1>
+            {answerInsights.length > 0 && (
+              <p style={{ color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.7, marginBottom: 0 }}>
+                {questionType === 'ranked'
+                  ? 'The image holds the atmosphere. The sequence on the right defines the signal.'
+                  : answerInsights[0]?.insight || 'The image and the answer belong to the same signal experience.'}
+              </p>
+            )}
+          </div>
+
+          <div style={{ marginBottom: 2 }}>
+            <TierBanner
+              tier={tier}
+              onAction={() => tier === 'guest' ? onRequireAuth() : navigate('/verify')}
+            />
+          </div>
+
+          <p style={{
+            fontSize: 12,
+            color: 'var(--text-muted)',
+            fontStyle: 'italic',
+            textAlign: 'center',
+            marginBottom: 0,
+          }}>
+            ◈ Your vote is anonymous — your identity is never linked to your response.
+          </p>
+
+          {questionType === 'statement' && (
+            <StatementVote onSubmit={onSubmit} submitting={submitting} canVote={canVote} />
+          )}
+          {questionType === 'ranked' && (
+            <RankedVote options={options} onSubmit={onSubmit} submitting={submitting} canVote={canVote} />
+          )}
         </div>
       </div>
 
