@@ -571,7 +571,7 @@ export default function Feed() {
                           {getSectionSubtitle(s.key)}
                         </p>
                       </div>
-                      <div className="feed-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 24 }}>
+                      <div className="feed-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 34, rowGap: 40 }}>
                         {s.items.map((q, i) => (
                           <div
                             key={q.id}
