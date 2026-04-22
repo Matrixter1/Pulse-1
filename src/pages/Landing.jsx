@@ -49,7 +49,7 @@ function TierBadge({ tier }) {
       fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
       color: c.color, border: `1px solid ${c.color}44`, borderRadius: 10, padding: '1px 6px',
     }}>
-      {tier === 'verified' && '✓ '}{c.label}
+      {tier === 'verified' && 'Verified '}{c.label}
     </span>
   )
 }
@@ -110,7 +110,7 @@ function HeroSection({ animVotes, user }) {
           maxWidth: 520, margin: '0 auto 44px',
           lineHeight: 1.75,
         }}>
-          The first platform that shows you the gap between what people say — and what
+          The first platform that shows you the gap between what people say - and what
           identity-verified humans actually believe.
         </p>
 
@@ -134,7 +134,7 @@ function HeroSection({ animVotes, user }) {
         </div>
 
         <div style={{ display: 'flex', gap: 14, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Link to={user ? '/feed' : '/splash'}><Button size="xl">Enter Pulse →</Button></Link>
+          <Link to={user ? '/feed' : '/splash'}><Button size="xl">Enter Pulse {'->'}</Button></Link>
           <Link to="/feed">
             <Button variant="secondary" size="xl">Browse</Button>
           </Link>
@@ -176,12 +176,12 @@ function HeroSection({ animVotes, user }) {
 
 /* ─── Three Types ───────────────────────────────────────────────────── */
 function StatementDemo({ data }) {
-  if (!data) return <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>Loading…</p>
+  if (!data) return <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>Loading...</p>
   const { question, results } = data
   return (
     <>
       <p style={{ fontSize: 12, color: 'var(--text-muted)', fontStyle: 'italic', marginBottom: 10, lineHeight: 1.5 }}>
-        "{question.text.length > 90 ? question.text.slice(0, 90) + '…' : question.text}"
+        "{question.text.length > 90 ? question.text.slice(0, 90) + '...' : question.text}"
       </p>
       {results.total > 0 ? (
         <>
@@ -204,18 +204,18 @@ function StatementDemo({ data }) {
 }
 
 function ChoiceDemo({ data }) {
-  if (!data) return <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>Loading…</p>
+  if (!data) return <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>Loading...</p>
   const { question, results } = data
   const top2 = [...(results.options || [])].sort((a, b) => b.pct - a.pct).slice(0, 2)
   return (
     <>
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
-        {question.text.length > 80 ? question.text.slice(0, 80) + '…' : question.text}
+        {question.text.length > 80 ? question.text.slice(0, 80) + '...' : question.text}
       </p>
       {results.total > 0 ? top2.map(opt => (
         <div key={opt.label} style={{ marginBottom: 6 }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 11, marginBottom: 3 }}>
-            <span style={{ color: 'var(--text-muted)' }}>{opt.label.length > 32 ? opt.label.slice(0, 32) + '…' : opt.label}</span>
+            <span style={{ color: 'var(--text-muted)' }}>{opt.label.length > 32 ? opt.label.slice(0, 32) + '...' : opt.label}</span>
             <span style={{ color: 'var(--teal)', fontWeight: 700 }}>{opt.pct}%</span>
           </div>
           <div style={{ height: 4, borderRadius: 2, background: 'rgba(255,255,255,0.06)' }}>
@@ -228,14 +228,14 @@ function ChoiceDemo({ data }) {
 }
 
 function RankedDemo({ data }) {
-  if (!data) return <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>Loading…</p>
+  if (!data) return <p style={{ fontSize: 12, color: 'var(--text-dim)' }}>Loading...</p>
   const { question, results } = data
   const top3 = (results.options || []).slice(0, 3)
   const rankColors = ['var(--gold)', 'var(--text-muted)', 'var(--violet)']
   return (
     <>
       <p style={{ fontSize: 12, color: 'var(--text-muted)', marginBottom: 10, lineHeight: 1.5 }}>
-        {question.text.length > 80 ? question.text.slice(0, 80) + '…' : question.text}
+        {question.text.length > 80 ? question.text.slice(0, 80) + '...' : question.text}
       </p>
       {results.total > 0 ? top3.map((opt, i) => (
         <div key={opt.label} style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 5 }}>
@@ -246,7 +246,7 @@ function RankedDemo({ data }) {
             display: 'flex', alignItems: 'center', justifyContent: 'center',
           }}>{i + 1}</span>
           <span style={{ fontSize: 11, color: 'var(--text-muted)' }}>
-            {opt.label.length > 40 ? opt.label.slice(0, 40) + '…' : opt.label}
+            {opt.label.length > 40 ? opt.label.slice(0, 40) + '...' : opt.label}
           </span>
         </div>
       )) : <div style={{ fontSize: 11, color: 'var(--text-dim)' }}>No votes yet</div>}
@@ -320,27 +320,27 @@ function ThreeTypesSection({ demos }) {
 
         <div style={{ display: 'flex', gap: 20, flexWrap: 'wrap', justifyContent: 'center' }}>
           <TypeCard
-            icon="◈" iconColor="var(--gold)"
+            icon="S" iconColor="var(--gold)"
             title="Signal"
             description="Your position on the spectrum."
             demo={<StatementDemo data={demos.statement} />}
-            ctaText="View Signals →"
+            ctaText="View Signals ->"
             ctaLink="/feed"
           />
           <TypeCard
-            icon="◉" iconColor="var(--teal)"
+            icon="D" iconColor="var(--teal)"
             title="Decide"
             description="One choice. No middle ground."
             demo={<ChoiceDemo data={demos.choice} />}
-            ctaText="View Decisions →"
+            ctaText="View Decisions ->"
             ctaLink="/feed"
           />
           <TypeCard
-            icon="◆" iconColor="var(--violet)"
+            icon="R" iconColor="var(--violet)"
             title="Rank"
             description="Your order. Your truth."
             demo={<RankedDemo data={demos.ranked} />}
-            ctaText="View Rankings →"
+            ctaText="View Rankings ->"
             ctaLink="/feed"
           />
         </div>
@@ -479,7 +479,7 @@ function TruthGapSection() {
           backgroundClip: 'text',
           lineHeight: 1, marginBottom: 18,
         }}>
-          The Truth Gap™
+          The Truth Gap (TM)
         </div>
         <p style={{
           color: 'var(--text-muted)', fontSize: 15,
@@ -493,7 +493,7 @@ function TruthGapSection() {
           alignItems: 'center', flexWrap: 'wrap', marginBottom: 60,
         }}>
           <div style={{ textAlign: 'center', minWidth: 160 }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>👥</div>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>People</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontSize: 19,
               color: 'var(--gold)', marginBottom: 5,
@@ -502,7 +502,7 @@ function TruthGapSection() {
           </div>
 
           <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 4 }}>
-            <div style={{ color: 'var(--text-dim)', fontSize: 24 }}>⟷</div>
+            <div style={{ color: 'var(--text-dim)', fontSize: 24 }}>|</div>
             <div style={{
               padding: '6px 14px',
               background: 'linear-gradient(135deg, var(--gold-dim), var(--teal-dim))',
@@ -515,7 +515,7 @@ function TruthGapSection() {
           </div>
 
           <div style={{ textAlign: 'center', minWidth: 160 }}>
-            <div style={{ fontSize: 36, marginBottom: 10 }}>✦</div>
+            <div style={{ fontSize: 36, marginBottom: 10 }}>Verified</div>
             <div style={{
               fontFamily: 'var(--font-display)', fontSize: 19,
               color: 'var(--teal)', marginBottom: 5,
@@ -566,12 +566,12 @@ function VisionSection() {
           maxWidth: 600, margin: '0 auto 52px',
           lineHeight: 1.75,
         }}>
-          "We have a lot planned. Our mission is to connect the dots — to provide a living image
+          "We have a lot planned. Our mission is to connect the dots - to provide a living image
           of a connected world, built entirely on sovereign, verifiable human data. What you share
           here matters. It is real. It is yours."
         </p>
         <Link to="/upcoming">
-          <Button variant="secondary" size="lg">See What's Coming →</Button>
+          <Button variant="secondary" size="lg">See What's Coming {'->'}</Button>
         </Link>
       </div>
     </section>
@@ -616,14 +616,14 @@ function SuggestionsTeaser({ suggestions, user, tier, suggestionText, setSuggest
               background: 'var(--teal-dim)', border: '1px solid var(--teal-border)',
               borderRadius: 'var(--radius)',
             }}>
-              ✓ Suggestion submitted! <Link to="/suggestions" style={{ color: 'var(--teal)', fontWeight: 700 }}>View all →</Link>
+              Success. Suggestion submitted! <Link to="/suggestions" style={{ color: 'var(--teal)', fontWeight: 700 }}>View all {'->'}</Link>
             </div>
           ) : (
             <form onSubmit={onSubmit} style={{ marginBottom: 44 }}>
               <textarea
                 value={suggestionText}
                 onChange={e => setSuggestionText(e.target.value)}
-                placeholder="Share your idea for Pulse… (10–500 characters)"
+                placeholder="Share your idea for Pulse... (10-500 characters)"
                 maxLength={500}
                 style={{
                   width: '100%', boxSizing: 'border-box',
@@ -657,7 +657,7 @@ function SuggestionsTeaser({ suggestions, user, tier, suggestionText, setSuggest
             borderRadius: 'var(--radius)', padding: '14px 20px',
             marginBottom: 44, textAlign: 'center', fontSize: 13, color: 'var(--gold)',
           }}>
-            <Link to="/splash" style={{ color: 'var(--gold)', fontWeight: 700 }}>Sign in as Member →</Link>
+            <Link to="/splash" style={{ color: 'var(--gold)', fontWeight: 700 }}>Sign in as Member {'->'}</Link>
             {' '}to submit ideas and upvote
           </div>
         )}
@@ -686,7 +686,7 @@ function SuggestionsTeaser({ suggestions, user, tier, suggestionText, setSuggest
                   fontSize: 13, color: 'var(--gold)', fontWeight: 700,
                   flexShrink: 0, paddingTop: 2,
                 }}>
-                  ▲ {s.upvotes}
+                  + {s.upvotes}
                 </div>
               </div>
             ))}
@@ -697,7 +697,7 @@ function SuggestionsTeaser({ suggestions, user, tier, suggestionText, setSuggest
           <Link to="/suggestions" style={{
             color: 'var(--teal)', fontSize: 14, fontWeight: 600, letterSpacing: '0.04em',
           }}>
-            View all suggestions →
+            View all suggestions {'->'}
           </Link>
         </div>
       </div>
@@ -773,7 +773,7 @@ function Footer() {
           paddingTop: 20, textAlign: 'center',
           fontSize: 12, color: 'var(--text-dim)',
         }}>
-          © 2025 Matrixter. All rights reserved.
+          (C) 2025 Matrixter. All rights reserved.
         </div>
       </div>
     </footer>
@@ -889,3 +889,4 @@ export default function Landing() {
     </div>
   )
 }
+
