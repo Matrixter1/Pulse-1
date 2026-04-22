@@ -2,7 +2,6 @@ import { useState, useEffect, useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import { CategoryBadge, TypeBadge, PageLoading, EmptyState } from '../components/ui'
-import QuestionMedia from '../components/QuestionMedia'
 import { fetchQuestions, fetchVotesForQuestion, calcResults, calcChoiceResults, calcRankedResults } from '../lib/data'
 import { supabase } from '../lib/supabase'
 import { CATEGORIES, CATEGORY_COLORS } from '../constants'
@@ -15,6 +14,18 @@ function parseOptions(raw) {
   if (!raw) return []
   if (typeof raw === 'string') return JSON.parse(raw)
   return raw
+}
+
+function getActionLabel(type) {
+  if (type === 'choice') return 'Open Decision'
+  if (type === 'ranked') return 'Open Ranking'
+  return 'Open Signal'
+}
+
+function getSectionSubtitle(type) {
+  if (type === 'choice') return 'One choice. No middle ground.'
+  if (type === 'ranked') return 'Arrange what matters most.'
+  return 'Where instinct, doubt, and conviction meet.'
 }
 
 export default function Feed() {
@@ -33,7 +44,6 @@ export default function Feed() {
   const totalQuestions = questions.length + (featuredQuestion && !questions.find(q => q.id === featuredQuestion.id) ? 1 : 0)
   const categoryCount = Math.max(categories.filter(cat => cat !== 'All').length, 0)
 
-  // Fetch distinct categories from DB; fall back to the hardcoded constant on error
   useEffect(() => {
     supabase
       .from('questions')
@@ -46,7 +56,6 @@ export default function Feed() {
   }, [])
 
   function handleFilterAndScroll(typeId) {
-    // Toggle off — clicking the active card returns to All
     if (activeType === typeId) {
       setActiveType('all')
       return
@@ -59,7 +68,6 @@ export default function Feed() {
 
   useEffect(() => { loadQuestions() }, [activeCategory])
 
-  // Save scroll position continuously while on feed
   useEffect(() => {
     const handleScroll = () => {
       sessionStorage.setItem('feed_scroll', window.scrollY)
@@ -68,7 +76,6 @@ export default function Feed() {
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
-  // Restore scroll position after questions have rendered
   useEffect(() => {
     if (!loading && questions.length > 0) {
       const saved = sessionStorage.getItem('feed_scroll')
@@ -84,7 +91,6 @@ export default function Feed() {
   async function loadQuestions() {
     setLoading(true)
 
-    // Fetch featured question independently so any failure never blocks the main feed
     let featuredData = null
     try {
       const { data, error } = await supabase
@@ -94,15 +100,13 @@ export default function Feed() {
         .eq('archived', false)
         .maybeSingle()
       if (!error) featuredData = data || null
-    } catch (_) { /* featured column may not exist yet */ }
+    } catch (_) {}
     setFeaturedQuestion(featuredData)
 
-    // Fetch main questions list + vote counts
     try {
       const data = await fetchQuestions(activeCategory)
       setQuestions(data)
 
-      // Include featured question in vote fetch if category filter excludes it
       const toFetch = [...data]
       if (featuredData && !data.find(q => q.id === featuredData.id)) {
         toFetch.push(featuredData)
@@ -137,32 +141,38 @@ export default function Feed() {
   return (
     <div className="page">
       <NavBar />
-      <div style={{ maxWidth: 800, margin: '0 auto', padding: '32px 20px' }}>
-        <div style={{ marginBottom: 24 }}>
-          <div style={{ fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 8 }}>
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '40px 20px 88px' }}>
+        <div style={{ marginBottom: 28, maxWidth: 760 }}>
+          <div style={{ fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
             Live Feed
           </div>
-          <h1 style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(24px, 3vw, 32px)', fontWeight: 600, color: 'var(--text)', marginBottom: 8 }}>
-            Today&apos;s active questions
+          <h1 style={{
+            fontFamily: 'var(--font-display)',
+            fontSize: 'clamp(34px, 5vw, 62px)',
+            fontWeight: 600,
+            color: 'var(--text)',
+            lineHeight: 1.02,
+            marginBottom: 14,
+            maxWidth: 760,
+          }}>
+            A cinematic stream of active questions.
           </h1>
-          <p style={{ color: 'var(--text-dim)', fontSize: 13, letterSpacing: '0.01em', lineHeight: 1.6, maxWidth: 520 }}>
-            Browse the current signal stream, cast anonymously, and watch the Truth Gap form in real time.
+          <p style={{ color: 'var(--text-dim)', fontSize: 15, letterSpacing: '0.01em', lineHeight: 1.7, maxWidth: 640 }}>
+            Browse the current signal stream, open the questions that pull you in, and watch the Truth Gap form in real time.
           </p>
         </div>
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 28 }}>
+        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 36 }}>
           <FeedMetricChip label="Questions" value={String(totalQuestions)} />
           <FeedMetricChip label="Categories" value={String(categoryCount)} />
           <FeedMetricChip label="Source" value="Live backend aligned" accent="var(--teal)" />
         </div>
 
-        {/* Featured / Pulse of the Day */}
         {featuredQuestion && (
           <div
             ref={featuredCardRef}
             className={`pulse-card${featuredBeat ? ' beat' : ''}`}
             onClick={() => {
-              // Single strong beat — one-shot spike animation, then navigate
               setFeaturedBeat(true)
               setTimeout(() => setFeaturedBeat(false), 400)
               sessionStorage.setItem('feed_scroll', window.scrollY)
@@ -170,86 +180,120 @@ export default function Feed() {
             }}
             style={{
               position: 'relative',
-              background: 'linear-gradient(135deg, rgba(201,168,76,0.08), rgba(10,12,26,0.95))',
-              border: '1px solid rgba(201,168,76,0.5)',
+              background: featuredQuestion.image_url
+                ? `linear-gradient(120deg, rgba(5,7,16,0.84), rgba(5,7,16,0.5)), url(${featuredQuestion.image_url}) center/cover`
+                : 'linear-gradient(135deg, rgba(201,168,76,0.08), rgba(10,12,26,0.95))',
+              border: '1px solid rgba(201,168,76,0.42)',
               borderRadius: 'var(--radius-xl)',
-              padding: '32px 36px',
-              marginBottom: 36,
+              padding: '36px',
+              marginBottom: 44,
               cursor: 'pointer',
               overflow: 'hidden',
             }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-              <div style={{
-                width: 10, height: 10, borderRadius: '50%',
-                background: 'var(--gold)',
-                animation: 'pulse-dot 1.5s ease-in-out infinite',
-              }} />
-              <span style={{
-                fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase',
-                color: 'var(--gold)', fontWeight: 800,
-                textShadow: '0 0 20px rgba(201,168,76,0.4)',
-              }}>
-                Pulse of the Day
-              </span>
-              <CategoryBadge category={featuredQuestion.category} />
-              <TypeBadge type={featuredQuestion.type || 'statement'} />
-            </div>
+            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(320px, 0.9fr)', gap: 28, alignItems: 'stretch', position: 'relative', zIndex: 1 }}>
+              <div style={{ minWidth: 0 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
+                  <div style={{
+                    width: 10, height: 10, borderRadius: '50%',
+                    background: 'var(--gold)',
+                    animation: 'pulse-dot 1.5s ease-in-out infinite',
+                  }} />
+                  <span style={{
+                    fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase',
+                    color: 'var(--gold)', fontWeight: 800,
+                    textShadow: '0 0 20px rgba(201,168,76,0.4)',
+                  }}>
+                    Pulse of the Day
+                  </span>
+                  <CategoryBadge category={featuredQuestion.category} />
+                  <TypeBadge type={featuredQuestion.type || 'statement'} />
+                </div>
 
-            <p style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(22px, 3vw, 30px)',
-              fontStyle: (featuredQuestion.type || 'statement') === 'statement' ? 'italic' : 'normal',
-              fontWeight: 600, color: '#FFFFFF', lineHeight: 1.35, marginBottom: 20,
-            }}>
-              {(featuredQuestion.type || 'statement') === 'statement'
-                ? `"${featuredQuestion.text}"`
-                : featuredQuestion.text}
-            </p>
+                <p style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 'clamp(28px, 4vw, 48px)',
+                  fontStyle: (featuredQuestion.type || 'statement') === 'statement' ? 'italic' : 'normal',
+                  fontWeight: 600,
+                  color: '#FFFFFF',
+                  lineHeight: 1.08,
+                  marginBottom: 18,
+                  maxWidth: 760,
+                }}>
+                  {(featuredQuestion.type || 'statement') === 'statement'
+                    ? `"${featuredQuestion.text}"`
+                    : featuredQuestion.text}
+                </p>
 
-            {featuredQuestion.image_url && (
-              <div style={{
-                borderRadius: 'var(--radius)', overflow: 'hidden',
-                maxHeight: 200, marginBottom: 20,
-                border: '1px solid rgba(201,168,76,0.2)',
-              }}>
-                <QuestionMedia src={featuredQuestion.image_url} alt="" variant="hero" />
+                <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.65, maxWidth: 600, marginBottom: 0 }}>
+                  Enter the question, cast anonymously, and see whether verified truth converges with popular instinct.
+                </p>
               </div>
-            )}
 
-            <div style={{
-              display: 'flex', alignItems: 'center',
-              justifyContent: 'space-between', flexWrap: 'wrap', gap: 12,
-            }}>
-              <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                {(() => {
-                  const n = voteCounts[featuredQuestion.id]?.all?.total || 0
-                  return n < 10 ? 'Be among the first to signal' : `${n} voices heard`
-                })()}
-              </span>
-              <span
-                className="reveal-btn"
-                onClick={(e) => {
-                  e.stopPropagation()
-                  const card = featuredCardRef.current
-                  if (card) {
-                    const cardRect = card.getBoundingClientRect()
-                    const btnRect = e.currentTarget.getBoundingClientRect()
-                    setRipple({
-                      x: btnRect.left - cardRect.left + btnRect.width / 2,
-                      y: btnRect.top - cardRect.top + btnRect.height / 2,
-                      key: Date.now(),
-                    })
-                  }
-                  sessionStorage.setItem('feed_scroll', window.scrollY)
-                  setTimeout(() => navigate(`/vote/${featuredQuestion.id}`), 420)
-                }}
-              >
-                Reveal the Signal →
-              </span>
+              <div style={{
+                background: 'rgba(6, 10, 22, 0.72)',
+                border: '1px solid rgba(201,168,76,0.18)',
+                borderRadius: 'var(--radius-xl)',
+                padding: 22,
+                display: 'flex',
+                flexDirection: 'column',
+                justifyContent: 'space-between',
+                gap: 18,
+                backdropFilter: 'blur(10px)',
+              }}>
+                <div style={{
+                  minHeight: 240,
+                  borderRadius: 'var(--radius-lg)',
+                  background: featuredQuestion.image_url
+                    ? `linear-gradient(180deg, rgba(5,7,16,0.06), rgba(5,7,16,0.22)), url(${featuredQuestion.image_url}) center/cover`
+                    : 'radial-gradient(circle at center, rgba(201,168,76,0.16), rgba(10,12,26,0.98) 62%)',
+                  border: '1px solid rgba(201,168,76,0.14)',
+                  display: 'flex',
+                  alignItems: 'flex-end',
+                  padding: 18,
+                }}>
+                  <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                    Featured Signal
+                  </div>
+                </div>
+
+                <div style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  flexWrap: 'wrap',
+                  gap: 12,
+                }}>
+                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+                    {(() => {
+                      const n = voteCounts[featuredQuestion.id]?.all?.total || 0
+                      return n < 10 ? 'Be among the first to signal' : `${n} voices heard`
+                    })()}
+                  </span>
+                  <span
+                    className="reveal-btn"
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      const card = featuredCardRef.current
+                      if (card) {
+                        const cardRect = card.getBoundingClientRect()
+                        const btnRect = e.currentTarget.getBoundingClientRect()
+                        setRipple({
+                          x: btnRect.left - cardRect.left + btnRect.width / 2,
+                          y: btnRect.top - cardRect.top + btnRect.height / 2,
+                          key: Date.now(),
+                        })
+                      }
+                      sessionStorage.setItem('feed_scroll', window.scrollY)
+                      setTimeout(() => navigate(`/vote/${featuredQuestion.id}`), 420)
+                    }}
+                  >
+                    Reveal the Signal →
+                  </span>
+                </div>
+              </div>
             </div>
 
-            {/* Ripple broadcast overlay — fires on Reveal button click */}
             {ripple && (
               <div
                 key={ripple.key}
@@ -258,6 +302,7 @@ export default function Feed() {
                   left: ripple.x,
                   top: ripple.y,
                   pointerEvents: 'none',
+                  transform: 'translate(-50%, -50%)',
                   zIndex: 5,
                 }}
               >
@@ -267,20 +312,30 @@ export default function Feed() {
               </div>
             )}
 
-            {/* Background glow */}
             <div style={{
               position: 'absolute', top: -60, right: -60,
               width: 200, height: 200, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(201,168,76,0.06) 0%, transparent 70%)',
+              background: 'radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%)',
               pointerEvents: 'none',
             }} />
           </div>
         )}
 
-        {/* Mobile responsive style for preview grid + animations */}
         <style>{`
+          @media (max-width: 1024px) {
+            .featured-grid {
+              grid-template-columns: 1fr !important;
+            }
+          }
+          @media (max-width: 900px) {
+            .feed-grid {
+              grid-template-columns: 1fr !important;
+            }
+          }
           @media (max-width: 768px) {
-            .preview-grid { grid-template-columns: 1fr !important; }
+            .preview-grid {
+              grid-template-columns: 1fr !important;
+            }
           }
           @keyframes fadeSlideUp {
             from { opacity: 0; transform: translateY(20px); }
@@ -338,20 +393,20 @@ export default function Feed() {
           .pulse-card:hover {
             animation: heartbeat-intense 1.2s ease-in-out infinite;
           }
-          /* Click beat overrides both calm and intense — placed last for specificity */
           .pulse-card.beat,
           .pulse-card:hover.beat {
             animation: heartbeat-spike 0.4s ease-out;
           }
           .reveal-btn {
             display: inline-block;
-            padding: 8px 20px;
+            padding: 10px 22px;
             border: 1px solid #C9A84C;
-            border-radius: 6px;
+            border-radius: 999px;
             color: #C9A84C;
-            font-size: 13px;
+            font-size: 12px;
             font-weight: 700;
-            letter-spacing: 0.05em;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
             transition: all 0.2s ease;
           }
           .reveal-btn:hover {
@@ -369,70 +424,81 @@ export default function Feed() {
             width: 180px;
             height: 36px;
             border: 2px solid #C9A84C;
-            border-radius: 10px;
+            border-radius: 999px;
             opacity: 0;
             pointer-events: none;
             animation: ripple-expand 0.5s ease-out forwards;
           }
         `}</style>
 
-        {/* Three type preview cards */}
         {!loading && questions.length > 0 && (() => {
-          const statements    = questions.filter(q => (q.type || 'statement') === 'statement' && !q.featured)
-          const choices       = questions.filter(q => q.type === 'choice' && !q.featured)
-          const ranked        = questions.filter(q => q.type === 'ranked' && !q.featured)
+          const statements = questions.filter(q => (q.type || 'statement') === 'statement' && !q.featured)
+          const choices = questions.filter(q => q.type === 'choice' && !q.featured)
+          const ranked = questions.filter(q => q.type === 'ranked' && !q.featured)
           const signalPreview = statements[0] || null
           const decidePreview = choices[0] || null
-          const rankPreview   = ranked[0] || null
+          const rankPreview = ranked[0] || null
           return (
-            <>
+            <div style={{ marginBottom: 40 }}>
               <p style={{
                 fontFamily: 'var(--font-display)',
-                fontSize: 15, fontStyle: 'italic',
-                color: 'var(--text-muted)', textAlign: 'center',
-                marginBottom: 16,
+                fontSize: 16,
+                fontStyle: 'italic',
+                color: 'var(--text-muted)',
+                textAlign: 'center',
+                marginBottom: 18,
               }}>
                 Explore how people think, choose, and prioritize.
               </p>
               <div className="preview-grid" style={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, 1fr)',
-                gap: 12,
-                marginBottom: 32,
+                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gap: 16,
               }}>
                 <PreviewCard
-                  type="statement" label="Signal" icon="◈" color="#C9A84C"
+                  type="statement"
+                  label="Signal"
+                  icon="◈"
+                  color="#C9A84C"
                   tagline="Where do you stand?"
                   viewAllLabel="Explore Signals →"
-                  question={signalPreview} count={statements.length}
+                  question={signalPreview}
+                  count={statements.length}
                   onClick={() => handleFilterAndScroll('statement')}
                   isActive={activeType === 'statement'}
                   isDimmed={activeType !== 'all' && activeType !== 'statement'}
                 />
                 <PreviewCard
-                  type="choice" label="Decide" icon="◉" color="#4CC9A8"
+                  type="choice"
+                  label="Decide"
+                  icon="◎"
+                  color="#4CC9A8"
                   tagline="One choice. No middle ground."
                   viewAllLabel="Explore Decisions →"
-                  question={decidePreview} count={choices.length}
+                  question={decidePreview}
+                  count={choices.length}
                   onClick={() => handleFilterAndScroll('choice')}
                   isActive={activeType === 'choice'}
                   isDimmed={activeType !== 'all' && activeType !== 'choice'}
                 />
                 <PreviewCard
-                  type="ranked" label="Rank" icon="◆" color="#9B6FD8"
+                  type="ranked"
+                  label="Rank"
+                  icon="◆"
+                  color="#9B6FD8"
                   tagline="Your order. Your truth."
                   viewAllLabel="Explore Rankings →"
-                  question={rankPreview} count={ranked.length}
+                  question={rankPreview}
+                  count={ranked.length}
                   onClick={() => handleFilterAndScroll('ranked')}
                   isActive={activeType === 'ranked'}
                   isDimmed={activeType !== 'all' && activeType !== 'ranked'}
                 />
               </div>
-            </>
+            </div>
           )
         })()}
 
-        {/* Category filter pills */}
         <div ref={contentRef} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28, scrollMarginTop: 80 }}>
           {categories.map(cat => {
             const isActive = activeCategory === cat
@@ -440,11 +506,15 @@ export default function Feed() {
             const rgb = cat === 'All' ? '201,168,76' : hexToRgb(CATEGORY_COLORS[cat] || '#C9A84C')
             return (
               <button key={cat} onClick={() => setActiveCategory(cat)} style={{
-                padding: '6px 16px', borderRadius: 20,
+                padding: '7px 18px',
+                borderRadius: 999,
                 border: `1px solid ${isActive ? catColor : 'rgba(201,168,76,0.15)'}`,
                 background: isActive ? `rgba(${rgb},0.12)` : 'transparent',
                 color: isActive ? catColor : 'var(--text-muted)',
-                fontSize: 13, fontWeight: 500, cursor: 'pointer', transition: 'var(--transition)',
+                fontSize: 13,
+                fontWeight: 500,
+                cursor: 'pointer',
+                transition: 'var(--transition)',
               }}>
                 {cat}
               </button>
@@ -458,12 +528,12 @@ export default function Feed() {
             ? <EmptyState message="Nothing here yet." />
             : (() => {
                 const statements = questions.filter(q => (q.type || 'statement') === 'statement' && !q.featured)
-                const choices    = questions.filter(q => q.type === 'choice' && !q.featured)
-                const ranked     = questions.filter(q => q.type === 'ranked' && !q.featured)
+                const choices = questions.filter(q => q.type === 'choice' && !q.featured)
+                const ranked = questions.filter(q => q.type === 'ranked' && !q.featured)
                 const allSections = [
-                  { key: 'statement', icon: '◈', color: 'var(--gold)',  title: 'Signals',   subtitle: 'What people feel across the spectrum', items: statements },
-                  { key: 'choice',    icon: '◉', color: 'var(--teal)',  title: 'Decisions', subtitle: 'One choice. No middle ground.',        items: choices    },
-                  { key: 'ranked',    icon: '◆', color: '#9B6FD8',      title: 'Rankings',  subtitle: 'Your order. Your truth.',              items: ranked     },
+                  { key: 'statement', icon: '◈', color: 'var(--gold)', title: 'Signals', items: statements },
+                  { key: 'choice', icon: '◎', color: 'var(--teal)', title: 'Decisions', items: choices },
+                  { key: 'ranked', icon: '◆', color: '#9B6FD8', title: 'Rankings', items: ranked },
                 ]
                 const sections = activeType === 'all'
                   ? allSections
@@ -471,16 +541,19 @@ export default function Feed() {
                 return sections
                   .filter(s => s.items.length > 0)
                   .map(s => (
-                    <div key={s.key} style={{ marginBottom: 48 }}>
+                    <div key={s.key} style={{ marginBottom: 54 }}>
                       <div style={{
-                        marginBottom: 20, paddingBottom: 16,
+                        marginBottom: 20,
+                        paddingBottom: 16,
                         borderBottom: '1px solid rgba(201,168,76,0.12)',
                       }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
                           <span style={{ fontSize: 20 }}>{s.icon}</span>
                           <h2 style={{
                             fontFamily: 'var(--font-display)',
-                            fontSize: 24, fontWeight: 600, color: s.color,
+                            fontSize: 28,
+                            fontWeight: 600,
+                            color: s.color,
                           }}>
                             {s.title}
                           </h2>
@@ -488,17 +561,17 @@ export default function Feed() {
                             {s.items.length} {s.items.length === 1 ? 'item' : 'items'}
                           </span>
                         </div>
-                        {s.subtitle && (
-                          <p style={{
-                            fontSize: 13, fontStyle: 'italic',
-                            color: 'var(--text-muted)',
-                            marginTop: 8, marginLeft: 32,
-                          }}>
-                            {s.subtitle}
-                          </p>
-                        )}
+                        <p style={{
+                          fontSize: 13,
+                          fontStyle: 'italic',
+                          color: 'var(--text-muted)',
+                          marginTop: 8,
+                          marginLeft: 32,
+                        }}>
+                          {getSectionSubtitle(s.key)}
+                        </p>
                       </div>
-                      <div key={`${activeType}-${s.key}`} style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+                      <div className="feed-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', gap: 18 }}>
                         {s.items.map((q, i) => (
                           <div
                             key={q.id}
@@ -550,8 +623,11 @@ function FeedMetricChip({ label, value, accent = 'var(--gold)' }) {
 
 function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question, count, onClick, isActive, isDimmed }) {
   const [hovered, setHovered] = useState(false)
-  // Elevated = actively selected, or hovered while not dimmed
   const elevated = isActive || (!isDimmed && hovered)
+  const previewText = question
+    ? (type === 'statement' ? `"${question.text}"` : question.text)
+    : tagline
+
   return (
     <div
       onMouseEnter={() => setHovered(true)}
@@ -560,11 +636,14 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
       style={{
         position: 'relative',
         overflow: 'hidden',
-        background: elevated
-          ? `linear-gradient(135deg, rgba(15,18,35,0.98), ${color}22)`
-          : 'rgba(10,12,26,0.8)',
-        border: `1px solid ${isActive ? color : elevated ? color + '99' : color + '1A'}`,
-        borderRadius: 'var(--radius-lg)',
+        minHeight: 320,
+        background: question?.image_url
+          ? `linear-gradient(180deg, rgba(6,8,18,0.12), rgba(6,8,18,0.94)), url(${question.image_url}) center/cover`
+          : elevated
+            ? `linear-gradient(135deg, rgba(15,18,35,0.98), ${color}22)`
+            : 'linear-gradient(180deg, rgba(10,12,26,0.92), rgba(10,12,26,0.74))',
+        border: `1px solid ${isActive ? color : elevated ? `${color}99` : `${color}1A`}`,
+        borderRadius: 'var(--radius-xl)',
         padding: '20px',
         cursor: 'pointer',
         transition: 'all 0.25s ease',
@@ -577,64 +656,72 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
         boxShadow: isActive
           ? `0 16px 48px ${color}66, 0 0 0 1px ${color}, 0 0 24px ${color}44`
           : elevated
-            ? `0 12px 40px ${color}55, 0 0 0 1px ${color}66`
+            ? `0 12px 40px ${color}33, 0 0 0 1px ${color}44`
             : 'none',
+        display: 'flex',
+        flexDirection: 'column',
       }}
     >
-      {/* Animated bottom border */}
       <div style={{
-        position: 'absolute', bottom: 0, left: 0, right: 0,
-        height: 3,
-        borderRadius: '0 0 var(--radius-lg) var(--radius-lg)',
-        background: `linear-gradient(to right, transparent, ${color}ee, transparent)`,
-        opacity: elevated ? 1 : 0,
-        transition: 'opacity 0.25s ease',
+        position: 'absolute', inset: 0,
+        background: 'linear-gradient(180deg, rgba(3,4,11,0.08) 0%, rgba(3,4,11,0.2) 36%, rgba(3,4,11,0.92) 100%)',
+        pointerEvents: 'none',
       }} />
 
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
           <span style={{ color, fontSize: 14 }}>{icon}</span>
           <span style={{ fontSize: 13, fontWeight: 700, color, letterSpacing: '0.05em' }}>{label}</span>
         </div>
         <span style={{
-          fontSize: 11, color: 'var(--text-dim)',
+          fontSize: 11,
+          color: 'var(--text-dim)',
           background: 'rgba(255,255,255,0.04)',
-          padding: '2px 8px', borderRadius: 10,
+          padding: '2px 8px',
+          borderRadius: 999,
         }}>
           {count}
         </span>
       </div>
 
-      <p style={{
-        fontSize: 12, color: 'var(--text-muted)',
-        fontStyle: 'italic', marginBottom: 14, lineHeight: 1.4,
-      }}>
-        {tagline}
-      </p>
-
-      {question && (
+      <div style={{ marginTop: 'auto', position: 'relative', zIndex: 1 }}>
         <p style={{
           fontFamily: 'var(--font-display)',
-          fontSize: 13, color: 'var(--text)', lineHeight: 1.4,
+          fontSize: 24,
+          color: 'var(--text)',
+          lineHeight: 1.1,
           fontStyle: type === 'statement' ? 'italic' : 'normal',
-          marginBottom: 14,
+          marginBottom: 12,
           display: '-webkit-box',
-          WebkitLineClamp: 2,
+          WebkitLineClamp: 3,
           WebkitBoxOrient: 'vertical',
           overflow: 'hidden',
         }}>
-          {type === 'statement' ? `"${question.text}"` : question.text}
+          {previewText}
         </p>
-      )}
 
-      <div style={{
-        fontSize: 13, color, fontWeight: 600,
-        letterSpacing: '0.05em',
-        opacity: elevated ? 1 : 0.7,
-        transform: elevated ? 'translateX(6px)' : 'none',
-        transition: 'all 0.25s ease',
-      }}>
-        {isActive ? `← Back to All` : viewAllLabel}
+        <p style={{
+          fontSize: 12,
+          color: 'var(--text-muted)',
+          fontStyle: 'italic',
+          marginBottom: 14,
+          lineHeight: 1.5,
+          maxWidth: 280,
+        }}>
+          {tagline}
+        </p>
+
+        <div style={{
+          fontSize: 13,
+          color,
+          fontWeight: 600,
+          letterSpacing: '0.05em',
+          opacity: elevated ? 1 : 0.75,
+          transform: elevated ? 'translateX(6px)' : 'none',
+          transition: 'all 0.25s ease',
+        }}>
+          {isActive ? '← Back to All' : viewAllLabel}
+        </div>
       </div>
     </div>
   )
@@ -653,8 +740,12 @@ function StatementCard({ question, counts, onClick }) {
     if (isLocked) {
       return (
         <div style={{
-          display: 'flex', alignItems: 'center', gap: 8,
-          fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic',
+          display: 'flex',
+          alignItems: 'center',
+          gap: 8,
+          fontSize: 12,
+          color: 'var(--text-dim)',
+          fontStyle: 'italic',
         }}>
           <span style={{ opacity: 0.5 }}>◈</span>
           <span>
@@ -670,27 +761,31 @@ function StatementCard({ question, counts, onClick }) {
       const { Disagree, Neutral, Agree } = counts.all
       return (
         <>
-          <div style={{ display: 'flex', gap: 2, height: 5, borderRadius: 3, overflow: 'hidden', marginBottom: 5 }}>
+          <div style={{ display: 'flex', gap: 2, height: 5, borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
             <div style={{ width: `${Disagree}%`, background: '#C94C4C' }} />
-            <div style={{ width: `${Neutral}%`,  background: 'var(--gold)' }} />
-            <div style={{ width: `${Agree}%`,    background: 'var(--teal)' }} />
+            <div style={{ width: `${Neutral}%`, background: 'var(--gold)' }} />
+            <div style={{ width: `${Agree}%`, background: 'var(--teal)' }} />
           </div>
-          <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--text-muted)' }}>
-            <span><span style={{ color: '#C94C4C',      fontWeight: 600 }}>{Disagree}%</span> Disagree</span>
-            <span><span style={{ color: 'var(--gold)',  fontWeight: 600 }}>{Neutral}%</span> Neutral</span>
-            <span><span style={{ color: 'var(--teal)',  fontWeight: 600 }}>{Agree}%</span> Agree</span>
+          <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
+            <span><span style={{ color: '#C94C4C', fontWeight: 600 }}>{Disagree}%</span> Disagree</span>
+            <span><span style={{ color: 'var(--gold)', fontWeight: 600 }}>{Neutral}%</span> Neutral</span>
+            <span><span style={{ color: 'var(--teal)', fontWeight: 600 }}>{Agree}%</span> Agree</span>
           </div>
         </>
       )
     }
+
     if (type === 'choice') {
-      const w = counts.all?.winner
-      return w ? <div style={{ fontSize: 12, color: 'var(--teal)' }}>Leading: <strong>{w}</strong></div> : null
+      const winner = counts.all?.winner
+      return winner ? <div style={{ fontSize: 12, color: 'var(--teal)' }}>Leading: <strong>{winner}</strong></div> : null
     }
+
     if (type === 'ranked') {
-      const t = counts.all?.options?.[0]?.label
-      return t ? <div style={{ fontSize: 12, color: '#9B6FD8' }}>Top ranked: <strong>{t}</strong></div> : null
+      const top = counts.all?.options?.[0]?.label
+      return top ? <div style={{ fontSize: 12, color: '#9B6FD8' }}>Top ranked: <strong>{top}</strong></div> : null
     }
+
+    return null
   }
 
   return (
@@ -699,34 +794,58 @@ function StatementCard({ question, counts, onClick }) {
       onMouseLeave={() => setHovered(false)}
       onClick={onClick}
       style={{
-        background: 'rgba(10,12,26,0.8)',
+        position: 'relative',
+        minHeight: 420,
+        background: question.image_url
+          ? `linear-gradient(180deg, rgba(4,7,16,0.1) 0%, rgba(4,7,16,0.54) 42%, rgba(4,7,16,0.96) 100%), url(${question.image_url}) center/cover`
+          : 'linear-gradient(180deg, rgba(18,22,42,0.92), rgba(8,10,22,0.98))',
         border: `1px solid ${hovered ? 'rgba(201,168,76,0.4)' : 'rgba(201,168,76,0.15)'}`,
-        borderRadius: 'var(--radius-lg)', padding: '24px 28px',
-        cursor: 'pointer', transition: 'all var(--transition)',
-        transform: hovered ? 'translateY(-2px)' : 'none',
-        boxShadow: hovered ? '0 8px 32px rgba(201,168,76,0.07)' : 'none',
+        borderRadius: 'var(--radius-xl)',
+        padding: '26px',
+        cursor: 'pointer',
+        transition: 'all var(--transition)',
+        transform: hovered ? 'translateY(-4px)' : 'none',
+        boxShadow: hovered ? '0 18px 42px rgba(0,0,0,0.26)' : 'none',
+        overflow: 'hidden',
+        display: 'flex',
+        flexDirection: 'column',
+        justifyContent: 'space-between',
       }}
     >
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 14 }}>
-        <div style={{ flex: 1 }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 10 }}>
+      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0) 10%, rgba(5,6,15,0.72) 55%, rgba(5,6,15,0.96) 100%)', pointerEvents: 'none' }} />
+
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20 }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
             <CategoryBadge category={question.category} />
             <TypeBadge type={type} />
           </div>
           <p style={{
             fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(20px, 2.5vw, 24px)',
-            lineHeight: 1.35,
+            fontSize: 'clamp(24px, 2.8vw, 36px)',
+            lineHeight: 1.08,
             color: '#FFFFFF',
             fontStyle: type === 'statement' ? 'italic' : 'normal',
             fontWeight: 600,
             letterSpacing: '0.01em',
             marginTop: 4,
+            marginBottom: 0,
+            maxWidth: 520,
           }}>
             {type === 'statement' ? `"${question.text}"` : question.text}
           </p>
         </div>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 3, textAlign: 'right', flexShrink: 0 }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 3,
+          textAlign: 'right',
+          flexShrink: 0,
+          background: 'rgba(7,10,22,0.72)',
+          padding: '10px 12px',
+          borderRadius: 16,
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}>
           <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
             <span style={{ color: 'var(--text)', fontWeight: 600 }}>{total}</span> {total === 1 ? 'vote' : 'votes'}
           </div>
@@ -737,22 +856,25 @@ function StatementCard({ question, counts, onClick }) {
           )}
         </div>
       </div>
-      {question.image_url && (
-        <div style={{
-          marginTop: 14,
-          marginBottom: 14,
-          borderRadius: 'var(--radius)',
-          overflow: 'hidden',
-          maxHeight: 220,
-          border: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          <QuestionMedia src={question.image_url} alt="" variant="card" />
+
+      <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, marginTop: 'auto' }}>
+        <div style={{ flex: 1, minWidth: 0 }}>
+          {total > 0
+            ? getSummary()
+            : <div style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>Be the first to signal →</div>
+          }
         </div>
-      )}
-      {total > 0
-        ? getSummary()
-        : <div style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>Be the first to signal →</div>
-      }
+        <div style={{
+          fontSize: 12,
+          color: hovered ? 'var(--gold)' : 'var(--text-dim)',
+          letterSpacing: '0.12em',
+          textTransform: 'uppercase',
+          transition: 'var(--transition)',
+          flexShrink: 0,
+        }}>
+          {getActionLabel(type)} →
+        </div>
+      </div>
     </div>
   )
 }

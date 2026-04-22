@@ -2,10 +2,8 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import AuthModal from '../components/AuthModal'
-import { TierBanner, PageLoading, CategoryBadge, TypeBadge } from '../components/ui'
-import QuestionMedia from '../components/QuestionMedia'
+import { TierBanner, PageLoading, CategoryBadge, TypeBadge, Button } from '../components/ui'
 import StatementVote from '../components/question-types/StatementVote'
-import ChoiceVote from '../components/question-types/ChoiceVote'
 import RankedVote from '../components/question-types/RankedVote'
 import { fetchQuestion, submitVote, hasUserVoted } from '../lib/data'
 import { useAuth } from '../lib/auth'
@@ -159,6 +157,12 @@ function parseBrief(raw) {
   }
 }
 
+function getVoteLabel(type) {
+  if (type === 'choice') return 'Binary Choice'
+  if (type === 'ranked') return 'Ranked Priority'
+  return 'Signal'
+}
+
 export default function Vote() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -211,14 +215,16 @@ export default function Vote() {
 
   if (loading) return <><NavBar /><PageLoading /></>
 
-  if (!question) return (
-    <div className="page">
-      <NavBar />
-      <div style={{ textAlign: 'center', padding: '100px 20px', color: 'var(--text-muted)' }}>
-        {error || 'Not found.'}
+  if (!question) {
+    return (
+      <div className="page">
+        <NavBar />
+        <div style={{ textAlign: 'center', padding: '100px 20px', color: 'var(--text-muted)' }}>
+          {error || 'Not found.'}
+        </div>
       </div>
-    </div>
-  )
+    )
+  }
 
   const canVote = tier !== 'guest' && !!user
   const questionType = question.type || 'statement'
@@ -229,125 +235,148 @@ export default function Vote() {
     <div className="page">
       <NavBar />
 
-      <div style={{ maxWidth: 660, margin: '0 auto', padding: '40px 20px 80px' }}>
+      <div style={{ maxWidth: 1220, margin: '0 auto', padding: '40px 20px 90px' }}>
         <button onClick={() => navigate('/feed')} style={{
-          background: 'none', border: 'none', color: 'var(--text-muted)',
-          cursor: 'pointer', fontSize: 13, marginBottom: 32,
-          display: 'flex', alignItems: 'center', gap: 6,
+          background: 'none',
+          border: 'none',
+          color: 'var(--text-muted)',
+          cursor: 'pointer',
+          fontSize: 13,
+          marginBottom: 28,
+          display: 'flex',
+          alignItems: 'center',
+          gap: 6,
         }}>
           ← Back
         </button>
 
-        {/* Question card */}
-        <div className="glass" style={{ padding: '32px 36px', marginBottom: 24 }}>
-          <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
-            <CategoryBadge category={question.category} />
-            <TypeBadge type={questionType} />
-          </div>
-          <p style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(20px, 3vw, 26px)',
-            fontStyle: questionType === 'statement' ? 'italic' : 'normal',
-            lineHeight: 1.45, color: 'var(--text)',
-          }}>
-            {questionType === 'statement' ? `"${question.text}"` : question.text}
-          </p>
-        </div>
-
-        {/* Question image */}
-        {question.image_url && (
+        {error && (
           <div style={{
-            marginBottom: 24,
-            borderRadius: 'var(--radius-lg)',
-            overflow: 'hidden',
-            border: '1px solid var(--gold-border)',
-            maxHeight: 320,
+            background: 'var(--red-dim)',
+            border: '1px solid var(--red-border)',
+            borderRadius: 'var(--radius)',
+            padding: '10px 14px',
+            marginBottom: 20,
+            fontSize: 13,
+            color: 'var(--red)',
           }}>
-            <QuestionMedia src={question.image_url} alt="" variant="detail" />
+            {error}
           </div>
         )}
 
-        {/* Tier banner */}
-        <div style={{ marginBottom: 24 }}>
-          <TierBanner
-            tier={tier}
-            onAction={() => tier === 'guest' ? setShowAuth(true) : navigate('/verify')}
-          />
-        </div>
-
-        {/* Already voted state */}
-        {alreadyVoted && (
-          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+        {alreadyVoted ? (
+          <div style={{
+            background: 'rgba(10,12,26,0.76)',
+            border: '1px solid rgba(201,168,76,0.16)',
+            borderRadius: 'var(--radius-xl)',
+            padding: '56px 32px',
+            textAlign: 'center',
+          }}>
+            <div style={{ fontSize: 32, marginBottom: 16, color: 'var(--teal)' }}>◈</div>
             <div style={{
-              fontSize: 32, marginBottom: 16, color: 'var(--teal)'
-            }}>◈</div>
-            <div style={{
-              fontFamily: 'var(--font-display)', fontSize: 24,
-              color: 'var(--text)', marginBottom: 12
+              fontFamily: 'var(--font-display)',
+              fontSize: 28,
+              color: 'var(--text)',
+              marginBottom: 12,
             }}>
-              You've already signalled on this.
+              You&apos;ve already signalled on this.
             </div>
-            <p style={{
-              color: 'var(--text-muted)', fontSize: 14,
-              marginBottom: 28
-            }}>
+            <p style={{ color: 'var(--text-muted)', fontSize: 15, marginBottom: 28 }}>
               Your anonymous vote is recorded in the Truth Layer.
             </p>
             <button
               onClick={() => navigate(`/results/${id}`)}
               style={{
                 background: 'linear-gradient(135deg, #C9A84C, #a8882e)',
-                border: 'none', color: '#05060F',
-                padding: '14px 32px', borderRadius: 10,
-                fontSize: 14, fontWeight: 700, cursor: 'pointer'
+                border: 'none',
+                color: '#05060F',
+                padding: '14px 32px',
+                borderRadius: 999,
+                fontSize: 13,
+                fontWeight: 800,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+                cursor: 'pointer',
               }}
             >
               See the Truth Gap →
             </button>
           </div>
-        )}
-
-        {/* Error */}
-        {error && (
-          <div style={{
-            background: 'var(--red-dim)', border: '1px solid var(--red-border)',
-            borderRadius: 'var(--radius)', padding: '10px 14px', marginBottom: 20,
-            fontSize: 13, color: 'var(--red)',
-          }}>
-            {error}
-          </div>
-        )}
-
-        {/* Anonymity assurance */}
-        {!alreadyVoted && (
-          <p style={{
-            fontSize: 12,
-            color: 'var(--text-muted)',
-            fontStyle: 'italic',
-            textAlign: 'center',
-            marginBottom: 16,
-          }}>
-            ◈ Your vote is anonymous — your identity is never linked to your response.
-          </p>
-        )}
-
-        {/* Vote UI — type-aware */}
-        {!alreadyVoted && (
+        ) : (
           <>
-            {questionType === 'statement' && (
-              <StatementVote onSubmit={handleSubmit} submitting={submitting} canVote={canVote} />
-            )}
-            {questionType === 'choice' && (
-              <ChoiceVote options={options} onSubmit={handleSubmit} submitting={submitting} canVote={canVote} />
-            )}
-            {questionType === 'ranked' && (
-              <RankedVote options={options} onSubmit={handleSubmit} submitting={submitting} canVote={canVote} />
+            {questionType === 'choice' ? (
+              <CinematicChoiceVote
+                question={question}
+                options={options}
+                tier={tier}
+                brief={brief}
+                canVote={canVote}
+                submitting={submitting}
+                onSubmit={handleSubmit}
+                onRequireAuth={() => setShowAuth(true)}
+              />
+            ) : (
+              <div style={{ maxWidth: 760, margin: '0 auto' }}>
+                <div className="glass" style={{ padding: '32px 36px', marginBottom: 24 }}>
+                  <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 16 }}>
+                    <CategoryBadge category={question.category} />
+                    <TypeBadge type={questionType} />
+                  </div>
+                  <p style={{
+                    fontFamily: 'var(--font-display)',
+                    fontSize: 'clamp(22px, 3vw, 30px)',
+                    fontStyle: questionType === 'statement' ? 'italic' : 'normal',
+                    lineHeight: 1.4,
+                    color: 'var(--text)',
+                    marginBottom: 0,
+                  }}>
+                    {questionType === 'statement' ? `"${question.text}"` : question.text}
+                  </p>
+                </div>
+
+                {question.image_url && (
+                  <div style={{
+                    marginBottom: 24,
+                    borderRadius: 'var(--radius-lg)',
+                    overflow: 'hidden',
+                    border: '1px solid var(--gold-border)',
+                    maxHeight: 320,
+                    background: `linear-gradient(180deg, rgba(5,7,16,0.08), rgba(5,7,16,0.18)), url(${question.image_url}) center/cover`,
+                  }} />
+                )}
+
+                <div style={{ marginBottom: 24 }}>
+                  <TierBanner
+                    tier={tier}
+                    onAction={() => tier === 'guest' ? setShowAuth(true) : navigate('/verify')}
+                  />
+                </div>
+
+                <p style={{
+                  fontSize: 12,
+                  color: 'var(--text-muted)',
+                  fontStyle: 'italic',
+                  textAlign: 'center',
+                  marginBottom: 16,
+                }}>
+                  ◈ Your vote is anonymous — your identity is never linked to your response.
+                </p>
+
+                {questionType === 'statement' && (
+                  <StatementVote onSubmit={handleSubmit} submitting={submitting} canVote={canVote} />
+                )}
+                {questionType === 'ranked' && (
+                  <RankedVote options={options} onSubmit={handleSubmit} submitting={submitting} canVote={canVote} />
+                )}
+
+                {brief && (
+                  <div style={{ marginTop: 28 }}>
+                    <MoreInsightsCard brief={brief} question={question} />
+                  </div>
+                )}
+              </div>
             )}
           </>
-        )}
-
-        {brief && (
-          <MoreInsightsCard brief={brief} question={question} />
         )}
       </div>
 
@@ -355,6 +384,280 @@ export default function Vote() {
         <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)} />
       )}
     </div>
+  )
+}
+
+function CinematicChoiceVote({ question, options, tier, brief, canVote, submitting, onSubmit, onRequireAuth }) {
+  const [selected, setSelected] = useState(null)
+  const answerInsights = deriveAnswerInsights(question, brief)
+  const optionDescriptions = Object.fromEntries(answerInsights.map((item) => [item.answer, item.insight]))
+
+  function handleReveal() {
+    if (!selected) return
+    if (!canVote) {
+      onRequireAuth()
+      return
+    }
+    onSubmit({ choiceValue: selected })
+  }
+
+  return (
+    <>
+      <style>{`
+        @media (max-width: 960px) {
+          .choice-hero-grid {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+
+      <div style={{ textAlign: 'center', marginBottom: 34, maxWidth: 980, marginInline: 'auto' }}>
+        <div style={{
+          fontSize: 12,
+          letterSpacing: '0.26em',
+          textTransform: 'uppercase',
+          color: 'var(--teal)',
+          fontWeight: 800,
+          marginBottom: 14,
+        }}>
+          {getVoteLabel(question.type)}
+        </div>
+        <h1 style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'clamp(36px, 5vw, 72px)',
+          lineHeight: 0.98,
+          color: 'var(--text)',
+          marginBottom: 18,
+        }}>
+          {question.text}
+        </h1>
+        <p style={{
+          fontSize: 17,
+          color: 'var(--text-muted)',
+          fontStyle: 'italic',
+          lineHeight: 1.65,
+          maxWidth: 820,
+          margin: '0 auto',
+        }}>
+          {brief?.plainEnglish || 'Reflect on the signal. The choice defines the architecture of the void.'}
+        </p>
+      </div>
+
+      <div className="choice-hero-grid" style={{
+        display: 'grid',
+        gridTemplateColumns: 'minmax(340px, 0.9fr) minmax(0, 1.25fr)',
+        gap: 34,
+        alignItems: 'stretch',
+      }}>
+        <div style={{
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 18,
+        }}>
+          <div style={{
+            minHeight: 520,
+            borderRadius: '34px',
+            overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.06)',
+            background: question.image_url
+              ? `linear-gradient(180deg, rgba(5,7,16,0.1), rgba(5,7,16,0.5)), url(${question.image_url}) center/cover`
+              : 'radial-gradient(circle at center, rgba(76,201,168,0.18), rgba(10,12,26,0.96) 62%)',
+            display: 'flex',
+            flexDirection: 'column',
+            justifyContent: 'flex-end',
+            padding: 24,
+          }}>
+            <div style={{
+              fontSize: 12,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+              marginBottom: 10,
+            }}>
+              Prompt Reference
+            </div>
+            <div style={{ color: 'var(--teal)', fontSize: 14, fontWeight: 700 }}>
+              Active Pulse Detected
+            </div>
+          </div>
+
+          <div>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
+              <CategoryBadge category={question.category} />
+              <TypeBadge type={question.type || 'choice'} />
+            </div>
+            <p style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(28px, 4vw, 48px)',
+              lineHeight: 1.02,
+              color: 'var(--text)',
+              marginBottom: 12,
+            }}>
+              Define your signal.
+            </p>
+            <p style={{ color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.7, marginBottom: 0 }}>
+              Choose the answer that best reflects your current stance. The reveal holds until you commit.
+            </p>
+          </div>
+        </div>
+
+        <div style={{
+          background: 'rgba(10,12,26,0.84)',
+          border: '1px solid rgba(76,201,168,0.18)',
+          borderRadius: '34px',
+          padding: '26px 26px 30px',
+          display: 'flex',
+          flexDirection: 'column',
+          gap: 18,
+          boxShadow: '0 18px 48px rgba(0,0,0,0.24)',
+        }}>
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
+            <div style={{
+              fontSize: 12,
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: 'var(--teal)',
+              fontWeight: 800,
+            }}>
+              Binary choice
+            </div>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' }}>
+              {canVote ? 'One answer. No middle ground.' : 'Sign in to cast your pulse.'}
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gap: 16 }}>
+            {options.map((option, index) => {
+              const isSelected = selected === option
+              return (
+                <button
+                  key={option}
+                  type="button"
+                  onClick={() => setSelected(isSelected ? null : option)}
+                  style={{
+                    width: '100%',
+                    textAlign: 'left',
+                    background: isSelected ? 'rgba(76,201,168,0.08)' : 'rgba(255,255,255,0.02)',
+                    border: `1px solid ${isSelected ? 'rgba(76,201,168,0.8)' : 'rgba(255,255,255,0.08)'}`,
+                    borderRadius: 28,
+                    padding: '22px 24px',
+                    cursor: 'pointer',
+                    transition: 'var(--transition)',
+                    transform: isSelected ? 'translateY(-2px)' : 'none',
+                    boxShadow: isSelected ? '0 0 0 1px rgba(76,201,168,0.2), 0 12px 30px rgba(76,201,168,0.12)' : 'none',
+                  }}
+                >
+                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18 }}>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{
+                        fontSize: 11,
+                        letterSpacing: '0.16em',
+                        textTransform: 'uppercase',
+                        color: 'var(--text-muted)',
+                        marginBottom: 8,
+                      }}>
+                        Option {String.fromCharCode(65 + index)}
+                      </div>
+                      <div style={{
+                        fontFamily: 'var(--font-display)',
+                        fontSize: 'clamp(28px, 2.8vw, 48px)',
+                        lineHeight: 1.02,
+                        color: isSelected ? '#FFFFFF' : 'var(--text)',
+                        marginBottom: 10,
+                      }}>
+                        {option}
+                      </div>
+                      <div style={{ color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.65, maxWidth: 520 }}>
+                        {optionDescriptions[option] || `This answer represents the case for ${humanizeOptionLabel(option).toLowerCase()}.`}
+                      </div>
+                    </div>
+                    <div style={{
+                      width: 34,
+                      height: 34,
+                      borderRadius: '50%',
+                      border: `2px solid ${isSelected ? 'var(--teal)' : 'rgba(255,255,255,0.12)'}`,
+                      background: isSelected ? 'var(--teal)' : 'transparent',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: '#05060F',
+                      fontWeight: 900,
+                      flexShrink: 0,
+                      marginTop: 10,
+                    }}>
+                      {isSelected ? '✓' : ''}
+                    </div>
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+
+          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', marginTop: 4 }} />
+
+          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+            <button
+              type="button"
+              onClick={() => setSelected(null)}
+              style={{
+                background: 'none',
+                border: 'none',
+                color: 'var(--text-muted)',
+                cursor: 'pointer',
+                fontSize: 12,
+                textTransform: 'uppercase',
+                letterSpacing: '0.12em',
+                padding: 0,
+              }}
+            >
+              Reset choice
+            </button>
+
+            <Button
+              size="xl"
+              variant={canVote && selected ? 'teal' : 'secondary'}
+              loading={submitting}
+              disabled={!selected}
+              onClick={handleReveal}
+              style={canVote && selected ? {
+                background: 'linear-gradient(135deg, var(--teal), #2fa886)',
+                color: '#05060F',
+                border: 'none',
+                borderRadius: 999,
+                minWidth: 260,
+                letterSpacing: '0.14em',
+                textTransform: 'uppercase',
+              } : {
+                borderRadius: 999,
+                minWidth: 260,
+              }}
+            >
+              {!canVote ? 'Sign in to Cast Your Pulse' : !selected ? 'Select an option to vote' : 'Reveal the Signal'}
+            </Button>
+          </div>
+
+          <div style={{
+            display: 'flex',
+            justifyContent: 'center',
+            gap: 22,
+            flexWrap: 'wrap',
+            color: 'var(--text-muted)',
+            fontSize: 13,
+            paddingTop: 4,
+          }}>
+            <span>Anonymous vote</span>
+            <span>•</span>
+            <span>{tier === 'verified' ? 'Verified layer active' : 'Truth Layer available'}</span>
+          </div>
+        </div>
+      </div>
+
+      {brief && (
+        <div style={{ maxWidth: 980, margin: '32px auto 0' }}>
+          <MoreInsightsCard brief={brief} question={question} />
+        </div>
+      )}
+    </>
   )
 }
 
