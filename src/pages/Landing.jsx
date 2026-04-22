@@ -49,7 +49,7 @@ function TierBadge({ tier }) {
       fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase',
       color: c.color, border: `1px solid ${c.color}44`, borderRadius: 10, padding: '1px 6px',
     }}>
-      {tier === 'verified' && 'Verified '}{c.label}
+      {c.label}
     </span>
   )
 }
