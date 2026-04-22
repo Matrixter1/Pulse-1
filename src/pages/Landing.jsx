@@ -782,6 +782,7 @@ function Footer() {
 
 /* ─── Main Page ─────────────────────────────────────────────────────── */
 export default function Landing() {
+  const navigate = useNavigate()
   const { user, tier } = useAuth()
   const [totalVotes, setTotalVotes] = useState(0)
   const [animVotes, setAnimVotes] = useState(0)
@@ -790,6 +791,12 @@ export default function Landing() {
   const [suggestionText, setSuggestionText] = useState('')
   const [submitLoading, setSubmitLoading] = useState(false)
   const [submitSuccess, setSubmitSuccess] = useState(false)
+
+  useEffect(() => {
+    if (user && tier !== 'guest') {
+      navigate('/feed', { replace: true })
+    }
+  }, [navigate, tier, user])
 
   useEffect(() => {
     async function load() {
