@@ -482,10 +482,11 @@ export default function Results() {
               {question.category} · Results
             </div>
             <p style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(20px, 3vw, 28px)',
-              fontStyle: (!question.type || question.type === 'statement') ? 'italic' : 'normal',
-              lineHeight: 1.4,
+              fontFamily: 'var(--font-ui, inherit)',
+              fontSize: 'clamp(22px, 2.4vw, 30px)',
+              lineHeight: 1.28,
+              letterSpacing: '-0.01em',
+              fontWeight: 700,
               color: 'var(--text)',
             }}>
               {(!question.type || question.type === 'statement') ? `"${question.text}"` : question.text}
@@ -612,7 +613,6 @@ export default function Results() {
             fontSize: 14,
             color: 'var(--text-muted)',
             lineHeight: 1.6,
-            fontStyle: 'italic',
           }}>
             {insight(allResults, verifiedResults)}
           </div>
@@ -798,11 +798,12 @@ function LockedResults({ visibility }) {
       <div style={{ fontSize: 32, marginBottom: 16, opacity: 0.6 }}>◈</div>
 
       <div style={{
-        fontFamily: 'var(--font-display)',
-        fontSize: 22,
+        fontFamily: 'var(--font-ui, inherit)',
+        fontSize: 21,
         color: 'var(--gold)',
         marginBottom: 12,
-        fontStyle: 'italic',
+        fontWeight: 700,
+        lineHeight: 1.2,
       }}>
         {visibility.mode === 'threshold' ? 'The signal is gathering...' : 'The signal is locked.'}
       </div>

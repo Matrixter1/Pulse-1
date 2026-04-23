@@ -211,12 +211,12 @@ export default function Feed() {
                 </div>
 
                 <p style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 'clamp(28px, 4vw, 48px)',
-                  fontStyle: (featuredQuestion.type || 'statement') === 'statement' ? 'italic' : 'normal',
-                  fontWeight: 600,
+                  fontFamily: 'var(--font-ui, inherit)',
+                  fontSize: 'clamp(26px, 3.6vw, 42px)',
+                  fontWeight: 700,
                   color: '#FFFFFF',
-                  lineHeight: 1.08,
+                  lineHeight: 1.14,
+                  letterSpacing: '-0.01em',
                   marginBottom: 18,
                   maxWidth: 760,
                 }}>
@@ -449,12 +449,12 @@ export default function Feed() {
           return (
             <div style={{ marginBottom: 40 }}>
               <p style={{
-                fontFamily: 'var(--font-display)',
-                fontSize: 16,
-                fontStyle: 'italic',
+                fontFamily: 'var(--font-ui, inherit)',
+                fontSize: 15,
                 color: 'var(--text-muted)',
                 textAlign: 'center',
                 marginBottom: 18,
+                lineHeight: 1.6,
               }}>
                 Explore how people think, choose, and prioritize.
               </p>
@@ -571,10 +571,10 @@ export default function Feed() {
                         </div>
                         <p style={{
                           fontSize: 13,
-                          fontStyle: 'italic',
                           color: 'var(--text-muted)',
                           marginTop: 8,
                           marginLeft: 32,
+                          lineHeight: 1.5,
                         }}>
                           {getSectionSubtitle(s.key)}
                         </p>
@@ -694,11 +694,11 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
 
       <div style={{ marginTop: 'auto', position: 'relative', zIndex: 1 }}>
         <p style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 22,
+          fontFamily: 'var(--font-ui, inherit)',
+          fontSize: 21,
           color: 'var(--text)',
-          lineHeight: 1.1,
-          fontStyle: type === 'statement' ? 'italic' : 'normal',
+          lineHeight: 1.26,
+          fontWeight: 700,
           marginBottom: 12,
           display: '-webkit-box',
           WebkitLineClamp: 3,
@@ -711,9 +711,8 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
         <p style={{
           fontSize: 12,
           color: 'var(--text-muted)',
-          fontStyle: 'italic',
           marginBottom: 14,
-          lineHeight: 1.5,
+          lineHeight: 1.55,
           maxWidth: 280,
         }}>
           {tagline}
@@ -753,7 +752,7 @@ function StatementCard({ question, counts, onClick }) {
           gap: 8,
           fontSize: 12,
           color: 'var(--text-dim)',
-          fontStyle: 'italic',
+          lineHeight: 1.45,
         }}>
           <span style={{ opacity: 0.5 }}>◈</span>
           <span>
@@ -872,13 +871,12 @@ function StatementCard({ question, counts, onClick }) {
 
       <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
         <p style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(22px, 2.3vw, 34px)',
-          lineHeight: 1.12,
+          fontFamily: 'var(--font-ui, inherit)',
+          fontSize: 'clamp(22px, 2vw, 31px)',
+          lineHeight: 1.22,
           color: '#FFFFFF',
-          fontStyle: type === 'statement' ? 'italic' : 'normal',
-          fontWeight: 600,
-          letterSpacing: '0.01em',
+          fontWeight: 700,
+          letterSpacing: '-0.01em',
           marginTop: 0,
           marginBottom: 12,
         }}>

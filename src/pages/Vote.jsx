@@ -420,9 +420,11 @@ function SignalAnalysisVote({ question, tier, brief, canVote, submitting, onSubm
             </div>
 
             <h1 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(44px, 6vw, 78px)',
-              lineHeight: 1,
+              fontFamily: 'var(--font-ui, inherit)',
+              fontSize: 'clamp(38px, 5vw, 64px)',
+              lineHeight: 1.08,
+              letterSpacing: '-0.02em',
+              fontWeight: 700,
               color: 'var(--text)',
               marginBottom: 18,
             }}>
@@ -600,9 +602,11 @@ function CinematicChoiceVote({ question, options, tier, brief, canVote, submitti
           {getVoteLabel(question.type)}
         </div>
         <h1 style={{
-          fontFamily: 'var(--font-display)',
-          fontSize: 'clamp(36px, 5vw, 72px)',
-          lineHeight: 0.98,
+          fontFamily: 'var(--font-ui, inherit)',
+          fontSize: 'clamp(34px, 4.2vw, 58px)',
+          lineHeight: 1.08,
+          letterSpacing: '-0.02em',
+          fontWeight: 700,
           color: 'var(--text)',
           marginBottom: 18,
         }}>
@@ -611,7 +615,6 @@ function CinematicChoiceVote({ question, options, tier, brief, canVote, submitti
         <p style={{
           fontSize: 17,
           color: 'var(--text-muted)',
-          fontStyle: 'italic',
           lineHeight: 1.65,
           maxWidth: 820,
           margin: '0 auto',
@@ -664,9 +667,11 @@ function CinematicChoiceVote({ question, options, tier, brief, canVote, submitti
               <TypeBadge type={question.type || 'choice'} />
             </div>
             <p style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(28px, 4vw, 48px)',
-              lineHeight: 1.02,
+              fontFamily: 'var(--font-ui, inherit)',
+              fontSize: 'clamp(26px, 3vw, 40px)',
+              lineHeight: 1.14,
+              letterSpacing: '-0.01em',
+              fontWeight: 700,
               color: 'var(--text)',
               marginBottom: 12,
             }}>
@@ -698,7 +703,7 @@ function CinematicChoiceVote({ question, options, tier, brief, canVote, submitti
             }}>
               Binary choice
             </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.45 }}>
               {canVote ? 'One answer. No middle ground.' : 'Sign in to cast your pulse.'}
             </div>
           </div>
@@ -736,9 +741,11 @@ function CinematicChoiceVote({ question, options, tier, brief, canVote, submitti
                         Option {String.fromCharCode(65 + index)}
                       </div>
                       <div style={{
-                        fontFamily: 'var(--font-display)',
-                        fontSize: 'clamp(28px, 2.8vw, 48px)',
-                        lineHeight: 1.02,
+                        fontFamily: 'var(--font-ui, inherit)',
+                        fontSize: 'clamp(26px, 2.4vw, 40px)',
+                        lineHeight: 1.14,
+                        letterSpacing: '-0.01em',
+                        fontWeight: 700,
                         color: isSelected ? '#FFFFFF' : 'var(--text)',
                         marginBottom: 10,
                       }}>
@@ -893,10 +900,11 @@ function CinematicStandardVote({ question, questionType, options, tier, brief, c
               <TypeBadge type={questionType} />
             </div>
             <p style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(28px, 4vw, 48px)',
-              lineHeight: 1.02,
-              fontStyle: questionType === 'statement' ? 'italic' : 'normal',
+              fontFamily: 'var(--font-ui, inherit)',
+              fontSize: 'clamp(26px, 3vw, 40px)',
+              lineHeight: 1.14,
+              letterSpacing: '-0.01em',
+              fontWeight: 700,
               color: 'var(--text)',
               marginBottom: 12,
             }}>
@@ -930,18 +938,19 @@ function CinematicStandardVote({ question, questionType, options, tier, brief, c
             }}>
               {getVoteLabel(questionType)}
             </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: 13, fontStyle: 'italic' }}>
+            <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.45 }}>
               {canVote ? 'Anonymous signal. Real-time truth gap.' : 'Sign in to cast your pulse.'}
             </div>
           </div>
 
           <div>
             <h1 style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 'clamp(30px, 4vw, 54px)',
-              lineHeight: 1.02,
+              fontFamily: 'var(--font-ui, inherit)',
+              fontSize: 'clamp(28px, 3.4vw, 44px)',
+              lineHeight: 1.16,
+              letterSpacing: '-0.01em',
+              fontWeight: 700,
               color: 'var(--text)',
-              fontStyle: questionType === 'statement' ? 'italic' : 'normal',
               marginBottom: 14,
             }}>
               {questionType === 'statement' ? `"${question.text}"` : question.text}
@@ -965,9 +974,9 @@ function CinematicStandardVote({ question, questionType, options, tier, brief, c
           <p style={{
             fontSize: 12,
             color: 'var(--text-muted)',
-            fontStyle: 'italic',
             textAlign: 'center',
             marginBottom: 0,
+            lineHeight: 1.45,
           }}>
             ◈ Your vote is anonymous — your identity is never linked to your response.
           </p>
