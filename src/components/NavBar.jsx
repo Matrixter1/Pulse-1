@@ -63,9 +63,9 @@ export default function NavBar() {
         }}
       >
         <div className="pulse-nav-brand" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-          <a
+          <Link
             className="pulse-nav-link"
-            href="https://www.matrixter.com"
+            to="/feed"
             style={{ display: 'flex', alignItems: 'center', gap: 10 }}
           >
             <SacredMark size={32} showRings={false} />
@@ -80,19 +80,28 @@ export default function NavBar() {
             >
               Pulse
             </span>
-            <span
-              className="pulse-nav-subbrand"
-              style={{
-                fontFamily: 'var(--font-ui)',
-                fontSize: 11,
-                color: 'var(--text-muted)',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                marginTop: 2,
-              }}
-            >
-              by Matrixter
-            </span>
+          </Link>
+
+          <a
+            className="pulse-nav-subbrand"
+            href="https://www.matrixter.com"
+            style={{
+              fontFamily: 'var(--font-ui)',
+              fontSize: 11,
+              color: 'var(--text-muted)',
+              letterSpacing: '0.15em',
+              textTransform: 'uppercase',
+              marginTop: 2,
+            }}
+          >
+            by Matrixter
+          </a>
+
+          <Link
+            className="pulse-nav-link"
+            to="/feed"
+            style={{ display: 'flex', alignItems: 'center', gap: 10 }}
+          >
             <span
               className="pulse-nav-tagline"
               style={{
@@ -120,7 +129,7 @@ export default function NavBar() {
             >
               • votes anonymous
             </span>
-          </a>
+          </Link>
 
           {isAdmin && (
             <Link
