@@ -191,7 +191,7 @@ export default function Feed() {
               overflow: 'hidden',
             }}
           >
-            <div style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(320px, 0.9fr)', gap: 28, alignItems: 'stretch', position: 'relative', zIndex: 1 }}>
+            <div className="featured-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(320px, 0.9fr)', gap: 28, alignItems: 'stretch', position: 'relative', zIndex: 1 }}>
               <div style={{ minWidth: 0 }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
                   <div style={{
@@ -325,6 +325,14 @@ export default function Feed() {
           @media (max-width: 1024px) {
             .featured-grid {
               grid-template-columns: 1fr !important;
+            }
+          }
+          @media (max-width: 768px) {
+            .featured-grid {
+              gap: 18px !important;
+            }
+            .pulse-card {
+              padding: 20px !important;
             }
           }
           @media (max-width: 900px) {
