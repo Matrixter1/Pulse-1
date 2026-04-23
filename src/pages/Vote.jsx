@@ -3,7 +3,6 @@ import { useParams, useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import AuthModal from '../components/AuthModal'
 import { TierBanner, PageLoading, CategoryBadge, TypeBadge, Button } from '../components/ui'
-import StatementVote from '../components/question-types/StatementVote'
 import RankedVote from '../components/question-types/RankedVote'
 import { fetchQuestion, submitVote, hasUserVoted } from '../lib/data'
 import { useAuth } from '../lib/auth'
@@ -315,6 +314,16 @@ export default function Vote() {
                 onSubmit={handleSubmit}
                 onRequireAuth={() => setShowAuth(true)}
               />
+            ) : questionType === 'statement' ? (
+              <SignalAnalysisVote
+                question={question}
+                tier={tier}
+                brief={brief}
+                canVote={canVote}
+                submitting={submitting}
+                onSubmit={handleSubmit}
+                onRequireAuth={() => setShowAuth(true)}
+              />
             ) : (
               <CinematicStandardVote
                 question={question}
@@ -336,6 +345,222 @@ export default function Vote() {
         <AuthModal onClose={() => setShowAuth(false)} onSuccess={() => setShowAuth(false)} />
       )}
     </div>
+  )
+}
+
+function SignalAnalysisVote({ question, tier, brief, canVote, submitting, onSubmit, onRequireAuth }) {
+  const [value, setValue] = useState(50)
+  const [reason, setReason] = useState(null)
+  const color = value <= 50
+    ? `rgb(201,${Math.round(76 + (168 - 76) * (value / 50))},76)`
+    : `rgb(${Math.round(201 + (76 - 201) * ((value - 50) / 50))},${Math.round(168 + (201 - 168) * ((value - 50) / 50))},${Math.round(76 + (168 - 76) * ((value - 50) / 50))})`
+  const stanceLabel = value < 35 ? 'Collective Echo' : value > 65 ? 'Pure Whisper' : 'Balanced Frequency'
+  const analysisLabel = value < 50
+    ? `Identity bias: ${100 - value}% collective`
+    : `Identity bias: ${value}% personal`
+
+  function handleReveal() {
+    if (!canVote) {
+      onRequireAuth()
+      return
+    }
+    onSubmit({ spectrumValue: value, reason })
+  }
+
+  return (
+    <>
+      <style>{`
+        .signal-analysis-range {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 100%;
+          height: 6px;
+          border-radius: 999px;
+          background: linear-gradient(to right, rgba(76,201,168,0.7) 0%, rgba(76,201,168,0.7) 50%, rgba(255,255,255,0.08) 50%, rgba(255,255,255,0.08) 100%);
+          outline: none;
+          cursor: pointer;
+        }
+        .signal-analysis-range::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #76e0d8;
+          border: 4px solid #0a0c18;
+          box-shadow: 0 0 0 1px rgba(118,224,216,0.3), 0 0 28px rgba(118,224,216,0.42);
+        }
+        .signal-analysis-range::-moz-range-thumb {
+          width: 32px;
+          height: 32px;
+          border-radius: 50%;
+          background: #76e0d8;
+          border: 4px solid #0a0c18;
+          box-shadow: 0 0 0 1px rgba(118,224,216,0.3), 0 0 28px rgba(118,224,216,0.42);
+        }
+      `}</style>
+
+      <div style={{ maxWidth: 1120, margin: '0 auto' }}>
+        <div style={{
+          background: 'linear-gradient(180deg, rgba(10,12,22,0.96), rgba(8,10,18,0.98))',
+          border: '1px solid rgba(76,201,168,0.14)',
+          borderRadius: '38px',
+          padding: '42px 34px 54px',
+          boxShadow: '0 18px 48px rgba(0,0,0,0.24)',
+        }}>
+          <div style={{ textAlign: 'center', maxWidth: 920, margin: '0 auto' }}>
+            <div style={{
+              fontSize: 12,
+              letterSpacing: '0.22em',
+              textTransform: 'uppercase',
+              color: 'var(--teal)',
+              fontWeight: 800,
+              marginBottom: 18,
+            }}>
+              Signal Analysis
+            </div>
+
+            <h1 style={{
+              fontFamily: 'var(--font-display)',
+              fontSize: 'clamp(44px, 6vw, 78px)',
+              lineHeight: 1,
+              color: 'var(--text)',
+              marginBottom: 18,
+            }}>
+              "{question.text}"
+            </h1>
+
+            <p style={{
+              fontSize: 17,
+              color: 'var(--text-muted)',
+              lineHeight: 1.7,
+              maxWidth: 760,
+              margin: '0 auto 34px',
+            }}>
+              {brief?.plainEnglish || 'Move across the spectrum and define whether your instinct leans toward the collective field or the private self.'}
+            </p>
+          </div>
+
+          <div style={{ maxWidth: 840, margin: '0 auto' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', gap: 16, marginBottom: 18, fontSize: 12, letterSpacing: '0.16em', textTransform: 'uppercase' }}>
+              <span style={{ color: 'var(--text-muted)' }}>Total Echo</span>
+              <span style={{ color: 'var(--text-muted)' }}>Pure Whisper</span>
+            </div>
+
+            <div style={{ position: 'relative', marginBottom: 26 }}>
+              <div style={{
+                position: 'absolute',
+                left: 0,
+                right: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                height: 6,
+                borderRadius: 999,
+                background: 'rgba(255,255,255,0.08)',
+              }} />
+              <div style={{
+                position: 'absolute',
+                left: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                height: 6,
+                borderRadius: 999,
+                width: `${value}%`,
+                background: 'linear-gradient(90deg, rgba(76,201,168,0.64), rgba(118,224,216,0.96))',
+                boxShadow: '0 0 28px rgba(118,224,216,0.24)',
+              }} />
+              <input
+                className="signal-analysis-range"
+                type="range"
+                min={0}
+                max={100}
+                value={value}
+                onChange={(e) => setValue(Number(e.target.value))}
+                style={{ position: 'relative', zIndex: 1, background: 'transparent' }}
+              />
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 34 }}>
+              <div style={{
+                padding: '12px 22px',
+                borderRadius: 999,
+                border: '1px solid rgba(76,201,168,0.22)',
+                background: 'rgba(6,18,24,0.44)',
+                color: '#76e0d8',
+                fontSize: 13,
+                fontWeight: 700,
+                letterSpacing: '0.12em',
+                textTransform: 'uppercase',
+              }}>
+                {analysisLabel}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', justifyContent: 'center', marginBottom: 18 }}>
+              <Button
+                size="xl"
+                variant={canVote ? 'teal' : 'secondary'}
+                loading={submitting}
+                onClick={handleReveal}
+                style={canVote ? {
+                  background: 'linear-gradient(135deg, var(--teal), #2fa886)',
+                  color: '#05060F',
+                  border: 'none',
+                  borderRadius: 999,
+                  minWidth: 260,
+                  letterSpacing: '0.16em',
+                  textTransform: 'uppercase',
+                } : {
+                  borderRadius: 999,
+                  minWidth: 260,
+                }}
+              >
+                {!canVote ? 'Sign in to Reveal Analysis' : 'Reveal Analysis'}
+              </Button>
+            </div>
+
+            <div style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 14, marginBottom: 20 }}>
+              Results are stored in your encrypted manifesto.
+            </div>
+
+            <div style={{ textAlign: 'center', color, fontSize: 14, fontWeight: 600, marginBottom: 18 }}>
+              {stanceLabel}
+            </div>
+
+            <div>
+              <p style={{ fontSize: 12, color: 'var(--text-muted)', letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 12, textAlign: 'center' }}>
+                Optional: Primary reason
+              </p>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center' }}>
+                {['Personal Experience', 'Scientific Evidence', 'Moral Instinct', 'Historical Pattern', 'Spiritual Belief'].map(chip => (
+                  <button
+                    key={chip}
+                    onClick={() => setReason(reason === chip ? null : chip)}
+                    style={{
+                      padding: '6px 14px',
+                      borderRadius: 20,
+                      border: `1px solid ${reason === chip ? 'var(--teal)' : 'rgba(76,201,168,0.12)'}`,
+                      background: reason === chip ? 'rgba(76,201,168,0.12)' : 'transparent',
+                      color: reason === chip ? 'var(--teal)' : 'var(--text-muted)',
+                      fontSize: 12,
+                      cursor: 'pointer',
+                      transition: 'var(--transition)',
+                    }}
+                  >
+                    {chip}
+                  </button>
+                ))}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        {brief && (
+          <div style={{ maxWidth: 980, margin: '32px auto 0' }}>
+            <MoreInsightsCard brief={brief} question={question} />
+          </div>
+        )}
+      </div>
+    </>
   )
 }
 

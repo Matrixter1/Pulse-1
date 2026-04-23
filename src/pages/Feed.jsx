@@ -803,13 +803,11 @@ function StatementCard({ question, counts, onClick }) {
       onClick={onClick}
       style={{
         position: 'relative',
-        minHeight: 456,
-        background: question.image_url
-          ? `linear-gradient(180deg, rgba(4,7,16,0.1) 0%, rgba(4,7,16,0.54) 42%, rgba(4,7,16,0.96) 100%), url(${question.image_url}) center/cover`
-          : 'linear-gradient(180deg, rgba(18,22,42,0.92), rgba(8,10,22,0.98))',
+        minHeight: 520,
+        background: 'linear-gradient(180deg, rgba(15,18,34,0.96), rgba(8,10,22,0.98))',
         border: `1px solid ${hovered ? 'rgba(201,168,76,0.4)' : 'rgba(201,168,76,0.15)'}`,
         borderRadius: 'var(--radius-xl)',
-        padding: '30px 30px 26px',
+        padding: '22px 22px 24px',
         cursor: 'pointer',
         transition: 'all var(--transition)',
         transform: hovered ? 'translateY(-4px)' : 'none',
@@ -820,28 +818,10 @@ function StatementCard({ question, counts, onClick }) {
         justifyContent: 'space-between',
       }}
     >
-      <div style={{ position: 'absolute', inset: 0, background: 'linear-gradient(180deg, rgba(0,0,0,0) 10%, rgba(5,6,15,0.72) 55%, rgba(5,6,15,0.96) 100%)', pointerEvents: 'none' }} />
-
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, marginBottom: 20 }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 12 }}>
-            <CategoryBadge category={question.category} />
-            <TypeBadge type={type} />
-          </div>
-          <p style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(22px, 2.4vw, 32px)',
-            lineHeight: 1.12,
-            color: '#FFFFFF',
-            fontStyle: type === 'statement' ? 'italic' : 'normal',
-            fontWeight: 600,
-            letterSpacing: '0.01em',
-            marginTop: 4,
-            marginBottom: 0,
-            maxWidth: 520,
-          }}>
-            {type === 'statement' ? `"${question.text}"` : question.text}
-          </p>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 18 }}>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+          <CategoryBadge category={question.category} />
+          <TypeBadge type={type} />
         </div>
         <div style={{
           display: 'flex',
@@ -865,7 +845,62 @@ function StatementCard({ question, counts, onClick }) {
         </div>
       </div>
 
-      <div style={{ position: 'relative', zIndex: 1, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, marginTop: 'auto' }}>
+      <div style={{
+        minHeight: 180,
+        borderRadius: '26px',
+        overflow: 'hidden',
+        background: question.image_url
+          ? `linear-gradient(180deg, rgba(5,7,16,0.06), rgba(5,7,16,0.22)), url(${question.image_url}) center/cover`
+          : 'radial-gradient(circle at center, rgba(76,201,168,0.1), rgba(18,22,42,0.98) 62%)',
+        border: '1px solid rgba(255,255,255,0.06)',
+        marginBottom: 20,
+      }}>
+        {!question.image_url && (
+          <div style={{
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            color: 'rgba(255,255,255,0.14)',
+            fontSize: 34,
+            letterSpacing: '0.2em',
+          }}>
+            {type === 'choice' ? '◎' : type === 'ranked' ? '◆' : '◈'}
+          </div>
+        )}
+      </div>
+
+      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+        <p style={{
+          fontFamily: 'var(--font-display)',
+          fontSize: 'clamp(22px, 2.3vw, 34px)',
+          lineHeight: 1.12,
+          color: '#FFFFFF',
+          fontStyle: type === 'statement' ? 'italic' : 'normal',
+          fontWeight: 600,
+          letterSpacing: '0.01em',
+          marginTop: 0,
+          marginBottom: 12,
+        }}>
+          {type === 'statement' ? `"${question.text}"` : question.text}
+        </p>
+        <p style={{
+          fontSize: 14,
+          color: 'var(--text-muted)',
+          lineHeight: 1.65,
+          marginTop: 0,
+          marginBottom: 22,
+          maxWidth: 520,
+        }}>
+          {type === 'choice'
+            ? 'Choose one side and reveal where the collective is leaning.'
+            : type === 'ranked'
+              ? 'Arrange the options in order of intensity, importance, or risk.'
+              : 'Place yourself on the spectrum and see how the wider signal responds.'}
+        </p>
+      </div>
+
+      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, marginTop: 'auto' }}>
         <div style={{ flex: 1, minWidth: 0 }}>
           {total > 0
             ? getSummary()
