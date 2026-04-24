@@ -1,10 +1,12 @@
 import { useState, useEffect, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import { CategoryBadge, TypeBadge, PageLoading, EmptyState } from '../components/ui'
 import { fetchQuestions, fetchVotesForQuestion, calcResults, calcChoiceResults, calcRankedResults } from '../lib/data'
 import { supabase } from '../lib/supabase'
 import { CATEGORIES, CATEGORY_COLORS } from '../constants'
+import { useAuth } from '../lib/auth'
+import { isAdminUser } from '../lib/adminAccess'
 
 function hexToRgb(hex) {
   return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`
@@ -29,8 +31,14 @@ function getSectionSubtitle(type) {
 }
 
 export default function Feed() {
+  const { user } = useAuth()
+  const isAdmin = isAdminUser(user)
+  const [searchParams, setSearchParams] = useSearchParams()
   const [activeCategory, setActiveCategory] = useState('All')
-  const [activeType, setActiveType] = useState('all')
+  const requestedType = ['statement', 'choice', 'ranked'].includes(searchParams.get('type'))
+    ? searchParams.get('type')
+    : 'all'
+  const [activeType, setActiveType] = useState(requestedType)
   const [questions, setQuestions] = useState([])
   const [featuredQuestion, setFeaturedQuestion] = useState(null)
   const [voteCounts, setVoteCounts] = useState({})
@@ -43,6 +51,15 @@ export default function Feed() {
   const featuredCardRef = useRef(null)
   const totalQuestions = questions.length + (featuredQuestion && !questions.find(q => q.id === featuredQuestion.id) ? 1 : 0)
   const categoryCount = Math.max(categories.filter(cat => cat !== 'All').length, 0)
+  const typeCounts = {
+    statement: questions.filter(q => (q.type || 'statement') === 'statement' && !q.featured).length,
+    choice: questions.filter(q => q.type === 'choice' && !q.featured).length,
+    ranked: questions.filter(q => q.type === 'ranked' && !q.featured).length,
+  }
+
+  useEffect(() => {
+    setActiveType(requestedType)
+  }, [requestedType])
 
   useEffect(() => {
     supabase
@@ -56,11 +73,19 @@ export default function Feed() {
   }, [])
 
   function handleFilterAndScroll(typeId) {
-    if (activeType === typeId) {
+    const nextType = activeType === typeId ? 'all' : typeId
+    setActiveType(nextType)
+    const nextParams = new URLSearchParams(searchParams)
+    if (nextType === 'all') {
+      nextParams.delete('type')
+    } else {
+      nextParams.set('type', nextType)
+    }
+    setSearchParams(nextParams, { replace: true })
+    if (nextType === 'all') {
       setActiveType('all')
       return
     }
-    setActiveType(typeId)
     setTimeout(() => {
       contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
@@ -141,7 +166,91 @@ export default function Feed() {
   return (
     <div className="page">
       <NavBar />
-      <div style={{ maxWidth: 1220, margin: '0 auto', padding: '40px 20px 96px' }}>
+      <style>{`
+        @media (max-width: 1120px) {
+          .feed-shell {
+            grid-template-columns: 1fr !important;
+          }
+          .feed-sidebar {
+            display: none !important;
+          }
+        }
+        @media (min-width: 1121px) {
+          .feed-chip-row {
+            display: none !important;
+          }
+        }
+      `}</style>
+      <div style={{ maxWidth: 1380, margin: '0 auto', padding: '36px 20px 96px' }}>
+        <div className="feed-shell" style={{ display: 'grid', gridTemplateColumns: '248px minmax(0, 1fr)', gap: 36, alignItems: 'start' }}>
+          <aside className="feed-sidebar" style={{ position: 'sticky', top: 90 }}>
+            <div style={{
+              background: 'rgba(8,10,22,0.88)',
+              border: '1px solid rgba(201,168,76,0.12)',
+              borderRadius: 'var(--radius-xl)',
+              overflow: 'hidden',
+              boxShadow: '0 18px 40px rgba(0,0,0,0.18)',
+            }}>
+              <div style={{ padding: '24px 22px 18px', borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
+                <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--text)', marginBottom: 8 }}>
+                  Pulse Feed
+                </div>
+                <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>
+                  Intellectual rigor
+                </div>
+              </div>
+
+              <div style={{ padding: '18px 12px 14px' }}>
+                <div style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-dim)', padding: '0 10px 10px' }}>
+                  Browse
+                </div>
+                <div style={{ display: 'grid', gap: 4 }}>
+                  {categories.map((cat) => (
+                    <button
+                      key={cat}
+                      onClick={() => setActiveCategory(cat)}
+                      style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        width: '100%',
+                        background: activeCategory === cat ? 'rgba(255,255,255,0.04)' : 'transparent',
+                        border: 'none',
+                        borderLeft: activeCategory === cat ? '2px solid var(--gold)' : '2px solid transparent',
+                        color: activeCategory === cat ? 'var(--text)' : 'var(--text-muted)',
+                        padding: '12px 12px',
+                        cursor: 'pointer',
+                        textAlign: 'left',
+                        transition: 'var(--transition)',
+                      }}
+                    >
+                      <span style={{ fontSize: 15 }}>{cat}</span>
+                      <span style={{ fontSize: 11, color: activeCategory === cat ? 'var(--gold)' : 'var(--text-dim)' }}>
+                        {cat === 'All'
+                          ? totalQuestions
+                          : questions.filter(q => q.category === cat).length}
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ padding: '10px 12px 18px', borderTop: '1px solid rgba(201,168,76,0.08)' }}>
+                <div style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-dim)', padding: '0 10px 10px' }}>
+                  Your space
+                </div>
+                <div style={{ display: 'grid', gap: 8 }}>
+                  <SidebarNavLink to="/my-pulses" label="My Pulses" meta="What you've opened and answered" />
+                  <SidebarNavLink to="/suggestions" label="Suggestions" meta="Shape what Pulse asks next" />
+                  <SidebarNavLink to="/upcoming" label="Upcoming" meta="See the roadmap ahead" />
+                  <SidebarNavLink to="/profile" label="Profile" meta="Identity, recovery, and settings" />
+                  {isAdmin ? <SidebarNavLink to="/admin" label="Admin" meta="Manage questions and reviews" accent="var(--gold)" /> : null}
+                </div>
+              </div>
+            </div>
+          </aside>
+
+          <div>
         <div style={{ marginBottom: 28, maxWidth: 760 }}>
           <div style={{ fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
             Live Feed
@@ -166,6 +275,9 @@ export default function Feed() {
           <FeedMetricChip label="Questions" value={String(totalQuestions)} />
           <FeedMetricChip label="Categories" value={String(categoryCount)} />
           <FeedMetricChip label="Source" value="Live backend aligned" accent="var(--teal)" />
+          <FeedMetricChip label="Signals" value={String(typeCounts.statement)} accent="var(--gold)" />
+          <FeedMetricChip label="Decisions" value={String(typeCounts.choice)} accent="var(--teal)" />
+          <FeedMetricChip label="Rankings" value={String(typeCounts.ranked)} accent="#9B6FD8" />
         </div>
 
         {featuredQuestion && (
@@ -507,7 +619,7 @@ export default function Feed() {
           )
         })()}
 
-        <div ref={contentRef} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28, scrollMarginTop: 80 }}>
+        <div className="feed-chip-row" ref={contentRef} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28, scrollMarginTop: 80 }}>
           {categories.map(cat => {
             const isActive = activeCategory === cat
             const catColor = cat === 'All' ? 'var(--gold)' : (CATEGORY_COLORS[cat] || 'var(--gold)')
@@ -603,6 +715,8 @@ export default function Feed() {
                   ))
               })()
         }
+          </div>
+        </div>
       </div>
     </div>
   )
@@ -626,6 +740,30 @@ function FeedMetricChip({ label, value, accent = 'var(--gold)' }) {
         {value}
       </div>
     </div>
+  )
+}
+
+function SidebarNavLink({ to, label, meta, accent = 'var(--teal)' }) {
+  return (
+    <Link
+      to={to}
+      style={{
+        display: 'block',
+        padding: '12px 12px',
+        borderRadius: 14,
+        background: 'rgba(255,255,255,0.02)',
+        border: '1px solid rgba(255,255,255,0.04)',
+        textDecoration: 'none',
+        transition: 'var(--transition)',
+      }}
+    >
+      <div style={{ color: accent, fontSize: 13, fontWeight: 700, marginBottom: 4, letterSpacing: '0.04em' }}>
+        {label}
+      </div>
+      <div style={{ color: 'var(--text-dim)', fontSize: 12, lineHeight: 1.45 }}>
+        {meta}
+      </div>
+    </Link>
   )
 }
 

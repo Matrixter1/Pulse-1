@@ -11,6 +11,7 @@ import Admin from './pages/Admin'
 import Upcoming from './pages/Upcoming'
 import Suggestions from './pages/Suggestions'
 import Profile from './pages/Profile'
+import MyPulses from './pages/MyPulses'
 
 export default function App() {
   return (
@@ -28,6 +29,7 @@ export default function App() {
           <Route path="/upcoming" element={<Upcoming />} />
           <Route path="/suggestions" element={<Suggestions />} />
           <Route path="/profile" element={<Profile />} />
+          <Route path="/my-pulses" element={<MyPulses />} />
         </Routes>
       </BrowserRouter>
     </AuthProvider>
