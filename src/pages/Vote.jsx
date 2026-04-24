@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import AuthModal from '../components/AuthModal'
+import QuestionMedia from '../components/QuestionMedia'
 import { TierBanner, PageLoading, CategoryBadge, TypeBadge, Button } from '../components/ui'
 import RankedVote from '../components/question-types/RankedVote'
 import { fetchQuestion, submitVote, hasUserVoted } from '../lib/data'
@@ -635,29 +636,43 @@ function CinematicChoiceVote({ question, options, tier, brief, canVote, submitti
           gap: 18,
         }}>
           <div style={{
+            position: 'relative',
             minHeight: 520,
             borderRadius: '34px',
             overflow: 'hidden',
             border: '1px solid rgba(255,255,255,0.06)',
             background: question.image_url
-              ? `linear-gradient(180deg, rgba(5,7,16,0.1), rgba(5,7,16,0.5)), url(${question.image_url}) center/cover`
+              ? 'rgba(5,7,16,0.82)'
               : 'radial-gradient(circle at center, rgba(76,201,168,0.18), rgba(10,12,26,0.96) 62%)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-end',
-            padding: 24,
           }}>
-            <div style={{
-              fontSize: 12,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: 'var(--text-muted)',
-              marginBottom: 10,
-            }}>
-              Prompt Reference
-            </div>
-            <div style={{ color: 'var(--teal)', fontSize: 14, fontWeight: 700 }}>
-              Active Pulse Detected
+            {question.image_url && (
+              <>
+                <QuestionMedia
+                  src={question.image_url}
+                  alt={question.text}
+                  variant="card"
+                  style={{ minHeight: 520, height: '100%' }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(180deg, rgba(5,7,16,0.04), rgba(5,7,16,0.18) 52%, rgba(5,7,16,0.68))',
+                }} />
+              </>
+            )}
+            <div style={{ position: 'absolute', left: 24, bottom: 24 }}>
+              <div style={{
+                fontSize: 12,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: 'var(--text-muted)',
+                marginBottom: 10,
+              }}>
+                Prompt Reference
+              </div>
+              <div style={{ color: 'var(--teal)', fontSize: 14, fontWeight: 700 }}>
+                Active Pulse Detected
+              </div>
             </div>
           </div>
 
@@ -868,29 +883,43 @@ function CinematicStandardVote({ question, questionType, options, tier, brief, c
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
           <div style={{
+            position: 'relative',
             minHeight: 520,
             borderRadius: '34px',
             overflow: 'hidden',
             border: '1px solid rgba(255,255,255,0.06)',
             background: question.image_url
-              ? `linear-gradient(180deg, rgba(5,7,16,0.1), rgba(5,7,16,0.5)), url(${question.image_url}) center/cover`
+              ? 'rgba(5,7,16,0.82)'
               : 'radial-gradient(circle at center, rgba(201,168,76,0.16), rgba(10,12,26,0.96) 62%)',
-            display: 'flex',
-            flexDirection: 'column',
-            justifyContent: 'flex-end',
-            padding: 24,
           }}>
-            <div style={{
-              fontSize: 12,
-              letterSpacing: '0.18em',
-              textTransform: 'uppercase',
-              color: 'var(--text-muted)',
-              marginBottom: 10,
-            }}>
-              Prompt Reference
-            </div>
-            <div style={{ color: questionType === 'ranked' ? '#9B6FD8' : 'var(--gold)', fontSize: 14, fontWeight: 700 }}>
-              {questionType === 'ranked' ? 'Priority sequence active' : 'Live signal detected'}
+            {question.image_url && (
+              <>
+                <QuestionMedia
+                  src={question.image_url}
+                  alt={question.text}
+                  variant="card"
+                  style={{ minHeight: 520, height: '100%' }}
+                />
+                <div style={{
+                  position: 'absolute',
+                  inset: 0,
+                  background: 'linear-gradient(180deg, rgba(5,7,16,0.04), rgba(5,7,16,0.18) 52%, rgba(5,7,16,0.68))',
+                }} />
+              </>
+            )}
+            <div style={{ position: 'absolute', left: 24, bottom: 24 }}>
+              <div style={{
+                fontSize: 12,
+                letterSpacing: '0.18em',
+                textTransform: 'uppercase',
+                color: 'var(--text-muted)',
+                marginBottom: 10,
+              }}>
+                Prompt Reference
+              </div>
+              <div style={{ color: questionType === 'ranked' ? '#9B6FD8' : 'var(--gold)', fontSize: 14, fontWeight: 700 }}>
+                {questionType === 'ranked' ? 'Priority sequence active' : 'Live signal detected'}
+              </div>
             </div>
           </div>
 

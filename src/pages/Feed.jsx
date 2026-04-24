@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import NavBar from '../components/NavBar'
+import QuestionMedia from '../components/QuestionMedia'
 import { CategoryBadge, TypeBadge, PageLoading, EmptyState } from '../components/ui'
 import { fetchQuestions, fetchVotesForQuestion, calcResults, calcChoiceResults, calcRankedResults } from '../lib/data'
 import { supabase } from '../lib/supabase'
@@ -292,9 +293,7 @@ export default function Feed() {
             }}
             style={{
               position: 'relative',
-              background: featuredQuestion.image_url
-                ? `linear-gradient(120deg, rgba(5,7,16,0.84), rgba(5,7,16,0.5)), url(${featuredQuestion.image_url}) center/cover`
-                : 'linear-gradient(135deg, rgba(201,168,76,0.08), rgba(10,12,26,0.95))',
+              background: 'linear-gradient(135deg, rgba(201,168,76,0.08), rgba(10,12,26,0.95))',
               border: '1px solid rgba(201,168,76,0.42)',
               borderRadius: 'var(--radius-xl)',
               padding: '36px',
@@ -356,15 +355,37 @@ export default function Feed() {
                 <div style={{
                   minHeight: 240,
                   borderRadius: 'var(--radius-lg)',
+                  position: 'relative',
                   background: featuredQuestion.image_url
-                    ? `linear-gradient(180deg, rgba(5,7,16,0.06), rgba(5,7,16,0.22)), url(${featuredQuestion.image_url}) center/cover`
+                    ? 'rgba(5,7,16,0.82)'
                     : 'radial-gradient(circle at center, rgba(201,168,76,0.16), rgba(10,12,26,0.98) 62%)',
                   border: '1px solid rgba(201,168,76,0.14)',
-                  display: 'flex',
-                  alignItems: 'flex-end',
-                  padding: 18,
+                  overflow: 'hidden',
                 }}>
-                  <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-muted)' }}>
+                  {featuredQuestion.image_url && (
+                    <>
+                      <QuestionMedia
+                        src={featuredQuestion.image_url}
+                        alt={featuredQuestion.text}
+                        variant="hero"
+                        style={{ minHeight: 240, height: '100%' }}
+                      />
+                      <div style={{
+                        position: 'absolute',
+                        inset: 0,
+                        background: 'linear-gradient(180deg, rgba(5,7,16,0.08), rgba(5,7,16,0.5) 78%, rgba(5,7,16,0.72))',
+                      }} />
+                    </>
+                  )}
+                  <div style={{
+                    position: 'absolute',
+                    left: 18,
+                    bottom: 18,
+                    fontSize: 11,
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-muted)',
+                  }}>
                     Featured Signal
                   </div>
                 </div>
@@ -783,11 +804,9 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
         position: 'relative',
         overflow: 'hidden',
         minHeight: 336,
-        background: question?.image_url
-          ? `linear-gradient(180deg, rgba(6,8,18,0.12), rgba(6,8,18,0.94)), url(${question.image_url}) center/cover`
-          : elevated
-            ? `linear-gradient(135deg, rgba(15,18,35,0.98), ${color}22)`
-            : 'linear-gradient(180deg, rgba(10,12,26,0.92), rgba(10,12,26,0.74))',
+        background: elevated
+          ? `linear-gradient(135deg, rgba(15,18,35,0.98), ${color}22)`
+          : 'linear-gradient(180deg, rgba(10,12,26,0.92), rgba(10,12,26,0.74))',
         border: `1px solid ${isActive ? color : elevated ? `${color}99` : `${color}1A`}`,
         borderRadius: 'var(--radius-xl)',
         padding: '22px',
@@ -831,6 +850,29 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
       </div>
 
       <div style={{ marginTop: 'auto', position: 'relative', zIndex: 1 }}>
+        {question?.image_url && (
+          <div style={{
+            position: 'relative',
+            borderRadius: 22,
+            overflow: 'hidden',
+            border: '1px solid rgba(255,255,255,0.08)',
+            marginBottom: 18,
+            minHeight: 176,
+            background: 'rgba(5,7,16,0.72)',
+          }}>
+            <QuestionMedia
+              src={question.image_url}
+              alt={question.text}
+              variant="card"
+              style={{ minHeight: 176, height: '100%' }}
+            />
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg, rgba(3,4,11,0.04), rgba(3,4,11,0.18) 48%, rgba(3,4,11,0.52))',
+            }} />
+          </div>
+        )}
         <p style={{
           fontFamily: 'var(--font-ui, inherit)',
           fontSize: 21,
@@ -986,12 +1028,28 @@ function StatementCard({ question, counts, onClick }) {
         minHeight: 180,
         borderRadius: '26px',
         overflow: 'hidden',
+        position: 'relative',
         background: question.image_url
-          ? `linear-gradient(180deg, rgba(5,7,16,0.06), rgba(5,7,16,0.22)), url(${question.image_url}) center/cover`
+          ? 'rgba(5,7,16,0.82)'
           : 'radial-gradient(circle at center, rgba(76,201,168,0.1), rgba(18,22,42,0.98) 62%)',
         border: '1px solid rgba(255,255,255,0.06)',
         marginBottom: 20,
       }}>
+        {question.image_url && (
+          <>
+            <QuestionMedia
+              src={question.image_url}
+              alt={question.text}
+              variant="card"
+              style={{ minHeight: 180, height: '100%' }}
+            />
+            <div style={{
+              position: 'absolute',
+              inset: 0,
+              background: 'linear-gradient(180deg, rgba(5,7,16,0.05), rgba(5,7,16,0.18) 55%, rgba(5,7,16,0.32))',
+            }} />
+          </>
+        )}
         {!question.image_url && (
           <div style={{
             height: '100%',
