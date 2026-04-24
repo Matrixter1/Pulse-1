@@ -268,24 +268,7 @@ export default function NavBar() {
               </span>
             )}
 
-            {user ? (
-              <Link
-                to="/profile"
-                style={{
-                  background: 'linear-gradient(135deg, rgba(201,168,76,0.2), rgba(201,168,76,0.08))',
-                  border: '1px solid var(--gold-border)',
-                  color: 'var(--gold)',
-                  padding: '7px 14px',
-                  borderRadius: 999,
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Profile
-              </Link>
-            ) : (
+            {!user && (
               <Link
                 to="/splash"
                 style={{
