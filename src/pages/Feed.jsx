@@ -57,6 +57,11 @@ export default function Feed() {
     choice: questions.filter(q => q.type === 'choice' && !q.featured).length,
     ranked: questions.filter(q => q.type === 'ranked' && !q.featured).length,
   }
+  const categoryCounts = Object.fromEntries(
+    categories
+      .filter(cat => cat !== 'All')
+      .map(cat => [cat, questions.filter(q => q.category === cat).length])
+  )
 
   useEffect(() => {
     setActiveType(requestedType)
@@ -191,14 +196,24 @@ export default function Feed() {
               borderRadius: 'var(--radius-xl)',
               overflow: 'hidden',
               boxShadow: '0 18px 40px rgba(0,0,0,0.18)',
+              backdropFilter: 'blur(18px)',
             }}>
               <div style={{ padding: '24px 22px 18px', borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
                 <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--text)', marginBottom: 8 }}>
                   Pulse Feed
                 </div>
-                <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-dim)' }}>
+                <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 10 }}>
                   Intellectual rigor
                 </div>
+                <p style={{
+                  fontFamily: 'var(--font-display)',
+                  fontSize: 18,
+                  fontStyle: 'italic',
+                  color: 'var(--text-muted)',
+                  lineHeight: 1.3,
+                }}>
+                  Curated signals with room to think.
+                </p>
               </div>
 
               <div style={{ padding: '18px 12px 14px' }}>
@@ -215,7 +230,7 @@ export default function Feed() {
                         alignItems: 'center',
                         justifyContent: 'space-between',
                         width: '100%',
-                        background: activeCategory === cat ? 'rgba(255,255,255,0.04)' : 'transparent',
+                        background: activeCategory === cat ? 'rgba(255,255,255,0.05)' : 'transparent',
                         border: 'none',
                         borderLeft: activeCategory === cat ? '2px solid var(--gold)' : '2px solid transparent',
                         color: activeCategory === cat ? 'var(--text)' : 'var(--text-muted)',
@@ -223,13 +238,26 @@ export default function Feed() {
                         cursor: 'pointer',
                         textAlign: 'left',
                         transition: 'var(--transition)',
+                        borderRadius: 14,
                       }}
                     >
-                      <span style={{ fontSize: 15 }}>{cat}</span>
+                      <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15 }}>
+                        {cat !== 'All' && (categoryCounts[cat] || 0) > 0 && (
+                          <span style={{
+                            width: 7,
+                            height: 7,
+                            borderRadius: '50%',
+                            background: activeCategory === cat ? 'var(--gold)' : 'var(--teal)',
+                            boxShadow: activeCategory === cat ? '0 0 14px rgba(201,168,76,0.35)' : '0 0 12px rgba(76,201,168,0.26)',
+                            flexShrink: 0,
+                          }} />
+                        )}
+                        {cat}
+                      </span>
                       <span style={{ fontSize: 11, color: activeCategory === cat ? 'var(--gold)' : 'var(--text-dim)' }}>
                         {cat === 'All'
                           ? totalQuestions
-                          : questions.filter(q => q.category === cat).length}
+                          : categoryCounts[cat] || 0}
                       </span>
                     </button>
                   ))}
@@ -247,6 +275,29 @@ export default function Feed() {
                   <SidebarNavLink to="/profile" label="Profile" meta="Identity, recovery, and settings" />
                   {isAdmin ? <SidebarNavLink to="/admin" label="Admin" meta="Manage questions and reviews" accent="var(--gold)" /> : null}
                 </div>
+              </div>
+
+              <div style={{ padding: '0 12px 18px' }}>
+                <Link
+                  to={isAdmin ? '/admin' : '/suggestions'}
+                  style={{
+                    display: 'block',
+                    width: '100%',
+                    textAlign: 'center',
+                    padding: '13px 14px',
+                    borderRadius: 16,
+                    border: '1px solid rgba(201,168,76,0.22)',
+                    background: 'linear-gradient(180deg, rgba(201,168,76,0.12), rgba(201,168,76,0.04))',
+                    color: 'var(--gold)',
+                    fontSize: 12,
+                    fontWeight: 700,
+                    letterSpacing: '0.14em',
+                    textTransform: 'uppercase',
+                    boxShadow: '0 10px 22px rgba(0,0,0,0.18)',
+                  }}
+                >
+                  {isAdmin ? 'New Signal' : 'Suggest a Signal'}
+                </Link>
               </div>
             </div>
           </aside>
@@ -703,11 +754,13 @@ export default function Feed() {
                           </span>
                         </div>
                         <p style={{
-                          fontSize: 13,
+                          fontFamily: 'var(--font-display)',
+                          fontSize: 17,
+                          fontStyle: 'italic',
                           color: 'var(--text-muted)',
                           marginTop: 8,
                           marginLeft: 32,
-                          lineHeight: 1.5,
+                          lineHeight: 1.45,
                         }}>
                           {getSectionSubtitle(s.key)}
                         </p>
@@ -772,8 +825,8 @@ function SidebarNavLink({ to, label, meta, accent = 'var(--teal)' }) {
         display: 'block',
         padding: '12px 12px',
         borderRadius: 14,
-        background: 'rgba(255,255,255,0.02)',
-        border: '1px solid rgba(255,255,255,0.04)',
+        background: 'rgba(255,255,255,0.025)',
+        border: '1px solid rgba(255,255,255,0.05)',
         textDecoration: 'none',
         transition: 'var(--transition)',
       }}
@@ -997,6 +1050,21 @@ function StatementCard({ question, counts, onClick }) {
         justifyContent: 'space-between',
       }}
     >
+      <div style={{
+        position: 'absolute',
+        left: 0,
+        top: 0,
+        right: 0,
+        height: 1,
+        background: type === 'choice'
+          ? 'linear-gradient(90deg, transparent, rgba(76,201,168,0.75), transparent)'
+          : type === 'ranked'
+            ? 'linear-gradient(90deg, transparent, rgba(155,111,216,0.75), transparent)'
+            : 'linear-gradient(90deg, transparent, rgba(201,168,76,0.75), transparent)',
+        opacity: hovered ? 1 : 0.55,
+        transition: 'var(--transition)',
+      }} />
+
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 18 }}>
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
           <CategoryBadge category={question.category} />
@@ -1100,6 +1168,19 @@ function StatementCard({ question, counts, onClick }) {
             ? getSummary()
             : <div style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>Be the first to signal →</div>
           }
+          {hovered && (
+            <div style={{
+              marginTop: 12,
+              display: 'flex',
+              gap: 14,
+              flexWrap: 'wrap',
+              fontSize: 11,
+              color: 'var(--text-dim)',
+            }}>
+              <span>Verified Truth: <span style={{ color: 'var(--teal)' }}>{verCount}</span></span>
+              <span>Layer: <span style={{ color: 'var(--text-muted)' }}>{type === 'ranked' ? 'Priority' : type === 'choice' ? 'Decision' : 'Signal'}</span></span>
+            </div>
+          )}
         </div>
         <div style={{
           fontSize: 12,
