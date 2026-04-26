@@ -8,6 +8,12 @@
   "theme_color": "#050814",
   "icons": [
     {
+      "src": "/pulse-icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
       "src": "/pulse-icon.svg",
       "sizes": "any",
       "type": "image/svg+xml",
