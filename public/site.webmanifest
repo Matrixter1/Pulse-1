@@ -1,0 +1,17 @@
+{
+  "name": "Pulse by Matrixter",
+  "short_name": "Pulse",
+  "description": "Daily signals, decisions, and rankings across the pulse of humanity.",
+  "start_url": "/feed",
+  "display": "standalone",
+  "background_color": "#050814",
+  "theme_color": "#050814",
+  "icons": [
+    {
+      "src": "/pulse-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}

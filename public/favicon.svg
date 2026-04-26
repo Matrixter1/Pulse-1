@@ -1,5 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
-  <circle cx="16" cy="16" r="15" stroke="#C9A84C" stroke-width="1" fill="none" opacity="0.3"/>
-  <circle cx="16" cy="16" r="10" stroke="#C9A84C" stroke-width="1" fill="none" opacity="0.5"/>
-  <circle cx="16" cy="16" r="5" fill="#C9A84C" opacity="0.9"/>
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#131a2d"/>
+      <stop offset="55%" stop-color="#090c19"/>
+      <stop offset="100%" stop-color="#04060d"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f4dea1"/>
+      <stop offset="45%" stop-color="#c9a84c"/>
+      <stop offset="100%" stop-color="#8d6720"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8bfff2"/>
+      <stop offset="100%" stop-color="#3bcfc0"/>
+    </linearGradient>
+  </defs>
+  <rect width="32" height="32" rx="8" fill="url(#bg)"/>
+  <circle cx="16" cy="16" r="9.4" stroke="url(#gold)" stroke-width="0.8" opacity="0.34" fill="none"/>
+  <circle cx="16" cy="16" r="6.7" stroke="url(#gold)" stroke-width="0.8" opacity="0.46" fill="none"/>
+  <circle cx="16" cy="16" r="3.9" stroke="url(#teal)" stroke-width="1" opacity="0.95" fill="none"/>
+  <circle cx="16" cy="16" r="1.25" fill="url(#gold)"/>
+  <path d="M5.4 16c1.7-1.9 3.4-1.9 5 0s3.3 1.9 5 0 3.4-1.9 5 0 3.3 1.9 5 0" stroke="url(#teal)" stroke-width="1" fill="none" stroke-linecap="round" opacity="0.88"/>
 </svg>

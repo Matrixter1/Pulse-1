@@ -1,0 +1,33 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
+  <defs>
+    <radialGradient id="bg" cx="50%" cy="38%" r="75%">
+      <stop offset="0%" stop-color="#131a2d"/>
+      <stop offset="55%" stop-color="#090c19"/>
+      <stop offset="100%" stop-color="#04060d"/>
+    </radialGradient>
+    <linearGradient id="gold" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f4dea1"/>
+      <stop offset="45%" stop-color="#c9a84c"/>
+      <stop offset="100%" stop-color="#8d6720"/>
+    </linearGradient>
+    <linearGradient id="teal" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#8bfff2"/>
+      <stop offset="100%" stop-color="#3bcfc0"/>
+    </linearGradient>
+    <filter id="glow" x="-30%" y="-30%" width="160%" height="160%">
+      <feGaussianBlur stdDeviation="7" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+  </defs>
+  <rect width="512" height="512" rx="120" fill="url(#bg)"/>
+  <g transform="translate(256 256)" fill="none">
+    <circle r="148" stroke="url(#gold)" stroke-width="8" opacity="0.34"/>
+    <circle r="104" stroke="url(#gold)" stroke-width="8" opacity="0.46"/>
+    <circle r="58" stroke="url(#teal)" stroke-width="10" opacity="0.92" filter="url(#glow)"/>
+    <circle r="18" fill="url(#gold)" opacity="0.96"/>
+    <path d="M-166 0c30-34 58-34 88 0s58 34 88 0 58-34 88 0 58 34 88 0" stroke="url(#teal)" stroke-width="11" stroke-linecap="round" opacity="0.85"/>
+  </g>
+</svg>
