@@ -22,7 +22,7 @@ CREATE TABLE IF NOT EXISTS public.users (
 CREATE TABLE IF NOT EXISTS public.questions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   text TEXT NOT NULL,
-  category TEXT NOT NULL CHECK (category IN ('Consumer', 'Health', 'Spirituality', 'Politics', 'Technology')),
+  category TEXT NOT NULL CONSTRAINT questions_category_not_empty_check CHECK (length(btrim(category)) > 0),
   brief JSONB,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

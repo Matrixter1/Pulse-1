@@ -202,6 +202,11 @@ function mergeCategoryOptions(dynamicCategories = []) {
   return [...new Set([...known, ...dynamic])]
 }
 
+function normalizeCategory(value, fallback = 'Consumer') {
+  const category = String(value || '').trim()
+  return category || fallback
+}
+
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
@@ -402,7 +407,7 @@ function AddQuestionForm() {
 
       const payload = {
         text: text.trim(),
-        category,
+        category: normalizeCategory(category),
         type,
         options: filledOptions.length > 0 ? filledOptions : null,
         brief: serializeQuestionBrief({
@@ -1060,7 +1065,7 @@ function ManageQuestions() {
         .from('questions')
         .update({
           text: editText.trim(),
-          category: editCategory,
+          category: normalizeCategory(editCategory),
           options: cleanedOptions.length > 0 ? cleanedOptions : null,
           image_url: resolvedImageUrl,
           brief: serializeQuestionBrief({
@@ -1187,7 +1192,7 @@ function ManageQuestions() {
         return {
           id: isUuid(id) ? id : null,
           text:        String(row['Question Text'] || '').trim(),
-          category:    String(row['Category']      || 'Consumer').trim(),
+          category:    normalizeCategory(row['Category']),
           type,
           options:     needsOptions && parsedOptions && parsedOptions.length >= 2 ? parsedOptions : null,
           image_url:   row['Image URL'] ? String(row['Image URL']).trim() || null : null,
