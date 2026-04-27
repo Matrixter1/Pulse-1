@@ -91,8 +91,17 @@ export function Badge({ children, color = 'var(--gold)', style = {} }) {
 }
 
 const CAT_COLORS = {
-  Consumer: '#C9A84C', Health: '#4CC9A8', Spirituality: '#9B6FD8',
-  Politics: '#C94C4C', Technology: '#4C8EC9',
+  Consumer: '#C9A84C',
+  Entertainment: '#D8845C',
+  Food: '#E0B85C',
+  Health: '#4CC9A8',
+  Lifestyle: '#7CCB8A',
+  Personality: '#D86FA5',
+  Politics: '#C94C4C',
+  Relationships: '#E08B8B',
+  Spirituality: '#9B6FD8',
+  Technology: '#4C8EC9',
+  Travel: '#5FB8D6',
 }
 
 export function CategoryBadge({ category }) {

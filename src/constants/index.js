@@ -1,11 +1,30 @@
-export const CATEGORIES = ['All', 'Consumer', 'Health', 'Spirituality', 'Politics', 'Technology']
+export const CATEGORIES = [
+  'All',
+  'Consumer',
+  'Entertainment',
+  'Food',
+  'Health',
+  'Lifestyle',
+  'Personality',
+  'Politics',
+  'Relationships',
+  'Spirituality',
+  'Technology',
+  'Travel',
+]
 
 export const CATEGORY_COLORS = {
   Consumer: '#C9A84C',
+  Entertainment: '#D8845C',
+  Food: '#E0B85C',
   Health: '#4CC9A8',
+  Lifestyle: '#7CCB8A',
+  Personality: '#D86FA5',
   Spirituality: '#9B6FD8',
   Politics: '#C94C4C',
+  Relationships: '#E08B8B',
   Technology: '#4C8EC9',
+  Travel: '#5FB8D6',
 }
 
 export const QUESTION_TYPES = { STATEMENT: 'statement', CHOICE: 'choice', RANKED: 'ranked' }

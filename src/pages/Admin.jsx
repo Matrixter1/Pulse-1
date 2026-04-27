@@ -194,6 +194,14 @@ function splitStructuredEntries(value, delimiterRegex) {
     .filter(Boolean)
 }
 
+function mergeCategoryOptions(dynamicCategories = []) {
+  const known = CATEGORIES.filter((category) => category !== 'All')
+  const dynamic = dynamicCategories
+    .map((category) => String(category || '').trim())
+    .filter(Boolean)
+  return [...new Set([...known, ...dynamic])]
+}
+
 function isUuid(value) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value)
 }
@@ -259,6 +267,7 @@ export default function Admin() {
 function AddQuestionForm() {
   const [type, setType]         = useState('statement')
   const [category, setCategory] = useState('Consumer')
+  const [categoryOptions, setCategoryOptions] = useState(mergeCategoryOptions())
   const [text, setText]         = useState('')
   const [options, setOptions]   = useState(['', ''])
   const [submitting, setSubmitting] = useState(false)
@@ -318,6 +327,16 @@ function AddQuestionForm() {
     setImageFile(file)
     setImagePreview(URL.createObjectURL(file))
   }
+
+  useEffect(() => {
+    supabase
+      .from('questions')
+      .select('category')
+      .then(({ data }) => {
+        if (!data) return
+        setCategoryOptions(mergeCategoryOptions(data.map((row) => row.category)))
+      })
+  }, [])
 
   useEffect(() => {
     function handleGlobalPaste(e) {
@@ -450,7 +469,7 @@ function AddQuestionForm() {
         <div>
           <FieldLabel>Category</FieldLabel>
           <select value={category} onChange={e => setCategory(e.target.value)} style={selectStyle}>
-            {CATEGORIES.filter(c => c !== 'All').map(c => (
+            {categoryOptions.map(c => (
               <option key={c} value={c}>{c}</option>
             ))}
           </select>
@@ -891,6 +910,7 @@ function QuestionBriefFields({
 function ManageQuestions() {
   const [questions, setQuestions]         = useState([])
   const [voteCounts, setVoteCounts]       = useState({})
+  const [categoryOptions, setCategoryOptions] = useState(mergeCategoryOptions())
   const [loading, setLoading]             = useState(true)
   const [confirmDelete, setConfirmDelete] = useState(null)
   const [deleting, setDeleting]           = useState(null)
@@ -910,6 +930,7 @@ function ManageQuestions() {
   // Edit state
   const [editingId, setEditingId]           = useState(null)
   const [editText, setEditText]             = useState('')
+  const [editCategory, setEditCategory]     = useState('Consumer')
   const [editOptions, setEditOptions]       = useState([])
   const [editImageFile, setEditImageFile]   = useState(null)
   const [editImageUrl, setEditImageUrl]     = useState('')
@@ -952,6 +973,7 @@ function ManageQuestions() {
         supabase.from('votes').select('question_id'),
       ])
       setQuestions(qs || [])
+      setCategoryOptions(mergeCategoryOptions((qs || []).map((question) => question.category)))
       const counts = {}
       votes?.forEach(v => { counts[v.question_id] = (counts[v.question_id] || 0) + 1 })
       setVoteCounts(counts)
@@ -977,6 +999,7 @@ function ManageQuestions() {
   function openEdit(question) {
     setEditingId(question.id)
     setEditText(question.text)
+    setEditCategory(question.category || 'Consumer')
     // Pre-fill options / reason chips for all question types
     setEditOptions(parseQuestionOptions(question.options))
     setEditImageUrl(question.image_url || '')
@@ -999,6 +1022,7 @@ function ManageQuestions() {
   function closeEdit() {
     setEditingId(null)
     setEditText('')
+    setEditCategory('Consumer')
     setEditOptions([])
     setEditImageFile(null)
     setEditImageUrl('')
@@ -1036,6 +1060,7 @@ function ManageQuestions() {
         .from('questions')
         .update({
           text: editText.trim(),
+          category: editCategory,
           options: cleanedOptions.length > 0 ? cleanedOptions : null,
           image_url: resolvedImageUrl,
           brief: serializeQuestionBrief({
@@ -1371,6 +1396,8 @@ function ManageQuestions() {
               archiving={archiving === q.id}
               editing={editingId === q.id}
               editText={editText}
+              editCategory={editCategory}
+              categoryOptions={categoryOptions}
               editOptions={editOptions}
               editImageMode={editImageMode}
               editImageFile={editImageFile}
@@ -1393,6 +1420,7 @@ function ManageQuestions() {
               onArchive={() => handleArchive(q.id, !!q.archived)}
               onEditClick={() => editingId === q.id ? closeEdit() : openEdit(q)}
               onEditTextChange={setEditText}
+              onEditCategoryChange={setEditCategory}
               onEditOptionsChange={setEditOptions}
               onEditImageModeSwitch={mode => {
                 setEditImageMode(mode)
@@ -1428,10 +1456,10 @@ function ManageQuestions() {
 
 function QuestionRow({
   question, voteCount, confirming, deleting, featuring, archiving,
-  editing, editText, editOptions, editImageMode, editImageFile, editImagePreview, editImageUrl, editSaving,
+  editing, editText, editCategory, categoryOptions, editOptions, editImageMode, editImageFile, editImagePreview, editImageUrl, editSaving,
   editRevealMode, editRevealThreshold, editRevealDate, editBriefTitle, editBriefPlainEnglish, editBriefBackground, editBriefAnswerInsights, editBriefKeyTerms, editBriefSources,
   onDeleteClick, onConfirm, onCancel, onFeature, onArchive,
-  onEditClick, onEditTextChange, onEditOptionsChange, onEditImageModeSwitch, onEditFileChange, onEditUrlChange, onEditClear,
+  onEditClick, onEditTextChange, onEditCategoryChange, onEditOptionsChange, onEditImageModeSwitch, onEditFileChange, onEditUrlChange, onEditClear,
   onEditRevealModeChange, onEditRevealThresholdChange, onEditRevealDateChange,
   onEditBriefTitleChange, onEditBriefPlainEnglishChange, onEditBriefBackgroundChange, onEditBriefAnswerInsightsChange, onEditBriefKeyTermsChange, onEditBriefSourcesChange,
   onSave, onCancelEdit,
@@ -1534,6 +1562,22 @@ function QuestionRow({
               rows={3}
               style={{ ...inputStyle, resize: 'vertical', lineHeight: 1.5, width: '100%', boxSizing: 'border-box' }}
             />
+          </div>
+
+          {/* Category */}
+          <div style={{ marginBottom: 16 }}>
+            <label style={{ display: 'block', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'var(--text-muted)', fontWeight: 600, marginBottom: 7 }}>
+              Category
+            </label>
+            <select
+              value={editCategory}
+              onChange={e => onEditCategoryChange(e.target.value)}
+              style={{ ...selectStyle, width: '100%', boxSizing: 'border-box' }}
+            >
+              {categoryOptions.map(c => (
+                <option key={c} value={c}>{c}</option>
+              ))}
+            </select>
           </div>
 
           {/* Options / Reason Chips — all types */}
