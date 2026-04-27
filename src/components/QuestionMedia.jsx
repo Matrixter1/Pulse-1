@@ -31,6 +31,60 @@ function getMediaStyles(variant, style) {
 
 export { hasQuestionMedia }
 
+function VideoPreview({ mediaStyle }) {
+  return (
+    <div
+      style={{
+        ...mediaStyle,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        padding: 24,
+        boxSizing: 'border-box',
+        border: '1px solid rgba(76,201,168,0.18)',
+        background:
+          'radial-gradient(circle at center, rgba(76,201,168,0.14), rgba(5,7,16,0.94) 62%)',
+        textAlign: 'center',
+      }}
+    >
+      <div
+        style={{
+          width: 72,
+          height: 72,
+          borderRadius: '50%',
+          border: '1px solid rgba(76,201,168,0.46)',
+          display: 'grid',
+          placeItems: 'center',
+          color: 'var(--teal)',
+          fontFamily: 'var(--font-ui, inherit)',
+          fontWeight: 700,
+          letterSpacing: '0.08em',
+          textTransform: 'uppercase',
+          background: 'rgba(76,201,168,0.08)',
+        }}
+      >
+        Play
+      </div>
+      <div
+        style={{
+          color: 'var(--gold)',
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+        }}
+      >
+        Video signal
+      </div>
+      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>
+        Open the question to load and play the full media.
+      </div>
+    </div>
+  )
+}
+
 export default function QuestionMedia({
   src,
   alt = '',
@@ -45,6 +99,10 @@ export default function QuestionMedia({
 
   if (kind === 'video') {
     const isDetail = variant === 'detail'
+    if (!isDetail) {
+      return <VideoPreview mediaStyle={mediaStyle} />
+    }
+
     const enforceMute = (event) => {
       if (!isDetail) {
         event.currentTarget.muted = true
@@ -57,10 +115,10 @@ export default function QuestionMedia({
       <video
         src={src}
         style={mediaStyle}
-        muted={!isDetail}
-        defaultMuted={!isDetail}
-        loop={!isDetail}
-        autoPlay={!isDetail}
+        muted={false}
+        defaultMuted={false}
+        loop={false}
+        autoPlay={false}
         playsInline
         controls={controls || isDetail}
         preload="metadata"
@@ -70,5 +128,5 @@ export default function QuestionMedia({
     )
   }
 
-  return <img src={src} alt={alt} style={mediaStyle} />
+  return <img src={src} alt={alt} style={mediaStyle} loading="lazy" decoding="async" />
 }
