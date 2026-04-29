@@ -31,6 +31,10 @@ function getSectionSubtitle(type) {
   return 'Where instinct, doubt, and conviction meet.'
 }
 
+function getFeedMediaUrl(question) {
+  return question?.thumbnail_url || question?.image_url || ''
+}
+
 export default function Feed() {
   const { user } = useAuth()
   const isAdmin = isAdminUser(user)
@@ -407,16 +411,16 @@ export default function Feed() {
                   minHeight: 240,
                   borderRadius: 'var(--radius-lg)',
                   position: 'relative',
-                  background: featuredQuestion.image_url
+                  background: getFeedMediaUrl(featuredQuestion)
                     ? 'rgba(5,7,16,0.82)'
                     : 'radial-gradient(circle at center, rgba(201,168,76,0.16), rgba(10,12,26,0.98) 62%)',
                   border: '1px solid rgba(201,168,76,0.14)',
                   overflow: 'hidden',
                 }}>
-                  {featuredQuestion.image_url && (
+                  {getFeedMediaUrl(featuredQuestion) && (
                     <>
                       <QuestionMedia
-                        src={featuredQuestion.image_url}
+                        src={getFeedMediaUrl(featuredQuestion)}
                         alt={featuredQuestion.text}
                         variant="hero"
                         style={{ minHeight: 240, height: '100%' }}
@@ -903,7 +907,7 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
       </div>
 
       <div style={{ marginTop: 'auto', position: 'relative', zIndex: 1 }}>
-        {question?.image_url && (
+        {getFeedMediaUrl(question) && (
           <div style={{
             position: 'relative',
             borderRadius: 22,
@@ -914,7 +918,7 @@ function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question
             background: 'rgba(5,7,16,0.72)',
           }}>
             <QuestionMedia
-              src={question.image_url}
+              src={getFeedMediaUrl(question)}
               alt={question.text}
               variant="card"
               style={{ minHeight: 176, height: '100%' }}
@@ -1097,16 +1101,16 @@ function StatementCard({ question, counts, onClick }) {
         borderRadius: '26px',
         overflow: 'hidden',
         position: 'relative',
-        background: question.image_url
+        background: getFeedMediaUrl(question)
           ? 'rgba(5,7,16,0.82)'
           : 'radial-gradient(circle at center, rgba(76,201,168,0.1), rgba(18,22,42,0.98) 62%)',
         border: '1px solid rgba(255,255,255,0.06)',
         marginBottom: 20,
       }}>
-        {question.image_url && (
+        {getFeedMediaUrl(question) && (
           <>
             <QuestionMedia
-              src={question.image_url}
+              src={getFeedMediaUrl(question)}
               alt={question.text}
               variant="card"
               style={{ minHeight: 180, height: '100%' }}
@@ -1118,7 +1122,7 @@ function StatementCard({ question, counts, onClick }) {
             }} />
           </>
         )}
-        {!question.image_url && (
+        {!getFeedMediaUrl(question) && (
           <div style={{
             height: '100%',
             display: 'flex',

@@ -14,6 +14,10 @@ function formatWhen(dateString) {
   }).format(date)
 }
 
+function getArchiveMediaUrl(question) {
+  return question?.thumbnail_url || question?.image_url || ''
+}
+
 export default function MyPulses() {
   const { user, loading: authLoading } = useAuth()
   const navigate = useNavigate()
@@ -169,11 +173,11 @@ export default function MyPulses() {
                   </span>
                 </div>
 
-                {item.image_url ? (
+                {getArchiveMediaUrl(item) ? (
                   <div style={{
                     height: 188,
                     borderRadius: 20,
-                    background: `linear-gradient(180deg, rgba(5,7,16,0.06), rgba(5,7,16,0.26)), url(${item.image_url}) center/cover`,
+                    background: `linear-gradient(180deg, rgba(5,7,16,0.06), rgba(5,7,16,0.26)), url(${getArchiveMediaUrl(item)}) center/cover`,
                     border: '1px solid rgba(255,255,255,0.06)',
                     marginBottom: 18,
                   }} />
