@@ -12,8 +12,13 @@ import Upcoming from './pages/Upcoming'
 import Suggestions from './pages/Suggestions'
 import Profile from './pages/Profile'
 import MyPulses from './pages/MyPulses'
+import Maintenance, { isPulseMaintenanceActive } from './pages/Maintenance'
 
 export default function App() {
+  if (isPulseMaintenanceActive()) {
+    return <Maintenance />
+  }
+
   return (
     <AuthProvider>
       <BrowserRouter>
