@@ -1143,6 +1143,7 @@ function ManageQuestions() {
         'Question Text': q.text || '',
         'Options': options,
         'Image URL': q.image_url || '',
+        'Thumbnail URL': q.thumbnail_url || '',
         'Brief Title': q.brief?.title || '',
         'Brief Plain English': q.brief?.plain_english || '',
         'Brief Background': q.brief?.background || '',
@@ -1196,6 +1197,7 @@ function ManageQuestions() {
           type,
           options:     needsOptions && parsedOptions && parsedOptions.length >= 2 ? parsedOptions : null,
           image_url:   row['Image URL'] ? String(row['Image URL']).trim() || null : null,
+          thumbnail_url: row['Thumbnail URL'] ? String(row['Thumbnail URL']).trim() || null : null,
           brief: serializeQuestionBrief({
             title: String(row['Brief Title'] || ''),
             plainEnglish: String(row['Brief Plain English'] || ''),
