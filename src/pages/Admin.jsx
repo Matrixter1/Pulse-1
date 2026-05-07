@@ -7,6 +7,7 @@ import QuestionMedia from '../components/QuestionMedia'
 import { isAdminUser } from '../lib/adminAccess'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
+import { uploadQuestionMedia } from '../lib/mediaUpload'
 import { CATEGORIES } from '../constants'
 
 const TYPE_OPTIONS = [
@@ -384,21 +385,15 @@ function AddQuestionForm() {
 
     setSubmitting(true)
     let resolvedImageUrl = null
+    let resolvedThumbnailUrl = null
 
     try {
-      // Upload file to Supabase Storage if one was selected
+      // Upload through the configured media provider. Supabase remains the fallback.
       if (imageMode === 'upload' && imageFile) {
         setUploading(true)
-        const ext  = imageFile.name.split('.').pop()
-        const name = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: uploadErr } = await supabase.storage
-          .from('question-images')
-          .upload(name, imageFile, { contentType: imageFile.type, upsert: false })
-        if (uploadErr) throw new Error(`Media upload failed: ${uploadErr.message}`)
-        const { data: { publicUrl } } = supabase.storage
-          .from('question-images')
-          .getPublicUrl(name)
-        resolvedImageUrl = publicUrl
+        const media = await uploadQuestionMedia(imageFile)
+        resolvedImageUrl = media.imageUrl
+        resolvedThumbnailUrl = media.thumbnailUrl
         setUploading(false)
       } else if (imageMode === 'url' && imageUrlInput.trim()) {
         resolvedImageUrl = imageUrlInput.trim()
@@ -419,6 +414,7 @@ function AddQuestionForm() {
           sources: briefSources,
         }),
         ...(resolvedImageUrl ? { image_url: resolvedImageUrl } : {}),
+        ...(resolvedThumbnailUrl ? { thumbnail_url: resolvedThumbnailUrl } : {}),
         reveal_mode: revealMode,
         reveal_threshold: revealMode === 'threshold' && revealThreshold ? parseInt(revealThreshold) : null,
         reveal_date: revealMode === 'date' && revealDate ? new Date(revealDate).toISOString() : null,
@@ -1047,16 +1043,12 @@ function ManageQuestions() {
     setEditSaving(true)
     try {
       let resolvedImageUrl = editImageUrl || null
+      let resolvedThumbnailUrl = editImageUrl === question.image_url ? question.thumbnail_url || null : null
 
       if (editImageMode === 'upload' && editImageFile) {
-        const ext  = editImageFile.name.split('.').pop()
-        const name = `${Date.now()}-${Math.random().toString(36).slice(2)}.${ext}`
-        const { error: uploadErr } = await supabase.storage
-          .from('question-images')
-          .upload(name, editImageFile, { contentType: editImageFile.type, upsert: false })
-        if (uploadErr) throw new Error(`Media upload failed: ${uploadErr.message}`)
-        const { data: { publicUrl } } = supabase.storage.from('question-images').getPublicUrl(name)
-        resolvedImageUrl = publicUrl
+        const media = await uploadQuestionMedia(editImageFile)
+        resolvedImageUrl = media.imageUrl
+        resolvedThumbnailUrl = media.thumbnailUrl
       }
 
       const cleanedOptions = editOptions.map(o => o.trim()).filter(Boolean)
@@ -1068,6 +1060,7 @@ function ManageQuestions() {
           category: normalizeCategory(editCategory),
           options: cleanedOptions.length > 0 ? cleanedOptions : null,
           image_url: resolvedImageUrl,
+          thumbnail_url: resolvedThumbnailUrl,
           brief: serializeQuestionBrief({
             title: editBriefTitle,
             plainEnglish: editBriefPlainEnglish,
