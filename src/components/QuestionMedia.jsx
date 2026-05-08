@@ -26,7 +26,17 @@ function getMediaStyles(variant, style) {
     return { ...base, height: 220, ...style }
   }
 
-  return { ...base, maxHeight: 320, ...style }
+  if (variant === 'reference') {
+    return {
+      ...base,
+      height: '100%',
+      objectFit: 'contain',
+      background: 'rgba(5,7,16,0.72)',
+      ...style,
+    }
+  }
+
+  return { ...base, maxHeight: 520, objectFit: 'contain', ...style }
 }
 
 export { hasQuestionMedia }

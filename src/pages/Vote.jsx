@@ -588,6 +588,21 @@ function CinematicChoiceVote({ question, options, tier, brief, canVote, submitti
           .choice-hero-grid {
             grid-template-columns: 1fr !important;
           }
+          .vote-reference-frame {
+            min-height: 0 !important;
+            aspect-ratio: auto !important;
+            max-height: none !important;
+          }
+          .vote-reference-frame img,
+          .vote-reference-frame video {
+            height: auto !important;
+            max-height: 74vh !important;
+          }
+          .vote-reference-caption {
+            position: static !important;
+            padding: 14px 16px 16px !important;
+            background: rgba(5, 7, 16, 0.78) !important;
+          }
         }
       `}</style>
 
@@ -635,7 +650,7 @@ function CinematicChoiceVote({ question, options, tier, brief, canVote, submitti
           flexDirection: 'column',
           gap: 18,
         }}>
-          <div style={{
+          <div className="vote-reference-frame" style={{
             position: 'relative',
             minHeight: 520,
             borderRadius: '34px',
@@ -650,17 +665,18 @@ function CinematicChoiceVote({ question, options, tier, brief, canVote, submitti
                 <QuestionMedia
                   src={question.image_url}
                   alt={question.text}
-                  variant="card"
-                  style={{ minHeight: 520, height: '100%' }}
+                  variant="reference"
+                  style={{ minHeight: 520, height: '100%', padding: 12, boxSizing: 'border-box' }}
                 />
                 <div style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(180deg, rgba(5,7,16,0.04), rgba(5,7,16,0.18) 52%, rgba(5,7,16,0.68))',
+                  pointerEvents: 'none',
+                  background: 'linear-gradient(180deg, rgba(5,7,16,0.02), transparent 46%, rgba(5,7,16,0.42))',
                 }} />
               </>
             )}
-            <div style={{ position: 'absolute', left: 24, bottom: 24 }}>
+            <div className="vote-reference-caption" style={{ position: 'absolute', left: 24, right: 24, bottom: 24 }}>
               <div style={{
                 fontSize: 12,
                 letterSpacing: '0.18em',
@@ -870,6 +886,21 @@ function CinematicStandardVote({ question, questionType, options, tier, brief, c
           .standard-vote-grid {
             grid-template-columns: 1fr !important;
           }
+          .vote-reference-frame {
+            min-height: 0 !important;
+            aspect-ratio: auto !important;
+            max-height: none !important;
+          }
+          .vote-reference-frame img,
+          .vote-reference-frame video {
+            height: auto !important;
+            max-height: 74vh !important;
+          }
+          .vote-reference-caption {
+            position: static !important;
+            padding: 14px 16px 16px !important;
+            background: rgba(5, 7, 16, 0.78) !important;
+          }
         }
       `}</style>
 
@@ -882,7 +913,7 @@ function CinematicStandardVote({ question, questionType, options, tier, brief, c
         margin: '0 auto',
       }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div style={{
+          <div className="vote-reference-frame" style={{
             position: 'relative',
             minHeight: 520,
             borderRadius: '34px',
@@ -897,17 +928,18 @@ function CinematicStandardVote({ question, questionType, options, tier, brief, c
                 <QuestionMedia
                   src={question.image_url}
                   alt={question.text}
-                  variant="card"
-                  style={{ minHeight: 520, height: '100%' }}
+                  variant="reference"
+                  style={{ minHeight: 520, height: '100%', padding: 12, boxSizing: 'border-box' }}
                 />
                 <div style={{
                   position: 'absolute',
                   inset: 0,
-                  background: 'linear-gradient(180deg, rgba(5,7,16,0.04), rgba(5,7,16,0.18) 52%, rgba(5,7,16,0.68))',
+                  pointerEvents: 'none',
+                  background: 'linear-gradient(180deg, rgba(5,7,16,0.02), transparent 46%, rgba(5,7,16,0.42))',
                 }} />
               </>
             )}
-            <div style={{ position: 'absolute', left: 24, bottom: 24 }}>
+            <div className="vote-reference-caption" style={{ position: 'absolute', left: 24, right: 24, bottom: 24 }}>
               <div style={{
                 fontSize: 12,
                 letterSpacing: '0.18em',

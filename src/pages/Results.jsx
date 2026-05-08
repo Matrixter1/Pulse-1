@@ -497,7 +497,7 @@ export default function Results() {
                 borderRadius: 'var(--radius-lg)',
                 overflow: 'hidden',
                 border: '1px solid var(--gold-border)',
-                maxHeight: 320,
+                background: 'rgba(5,7,16,0.72)',
               }}>
                 <QuestionMedia src={question.image_url} alt="" variant="detail" />
               </div>
