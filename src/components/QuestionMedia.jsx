@@ -1,3 +1,5 @@
+import { useEffect, useState } from 'react'
+
 function hasQuestionMedia(src) {
   return typeof src === 'string' && src.trim().length > 0
 }
@@ -41,6 +43,60 @@ function getMediaStyles(variant, style) {
 }
 
 export { hasQuestionMedia }
+
+function MediaFallback({ mediaStyle }) {
+  return (
+    <div
+      style={{
+        ...mediaStyle,
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        gap: 10,
+        padding: 24,
+        boxSizing: 'border-box',
+        border: '1px solid rgba(201,168,76,0.18)',
+        background:
+          'radial-gradient(circle at center, rgba(201,168,76,0.11), rgba(5,7,16,0.94) 64%)',
+        textAlign: 'center',
+      }}
+    >
+      <div
+        style={{
+          width: 62,
+          height: 62,
+          borderRadius: '50%',
+          border: '1px solid rgba(201,168,76,0.42)',
+          display: 'grid',
+          placeItems: 'center',
+          color: 'var(--gold)',
+          fontFamily: 'var(--font-ui, inherit)',
+          fontWeight: 800,
+          letterSpacing: '0.1em',
+          textTransform: 'uppercase',
+          background: 'rgba(201,168,76,0.08)',
+        }}
+      >
+        Pulse
+      </div>
+      <div
+        style={{
+          color: 'var(--gold)',
+          fontSize: 11,
+          fontWeight: 800,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
+        }}
+      >
+        Media unavailable
+      </div>
+      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>
+        The signal is still live. The media can be refreshed or replaced from Admin.
+      </div>
+    </div>
+  )
+}
 
 function VideoPreview({ mediaStyle }) {
   return (
@@ -103,10 +159,20 @@ export default function QuestionMedia({
   controls = false,
   style,
 }) {
+  const [hasLoadError, setHasLoadError] = useState(false)
+
+  useEffect(() => {
+    setHasLoadError(false)
+  }, [src])
+
   if (!hasQuestionMedia(src)) return null
 
   const kind = inferMediaKind(src)
   const mediaStyle = getMediaStyles(variant, style)
+
+  if (hasLoadError) {
+    return <MediaFallback mediaStyle={mediaStyle} />
+  }
 
   if (kind === 'video') {
     const shouldLoadVideo = variant === 'detail' || variant === 'reference'
@@ -135,9 +201,19 @@ export default function QuestionMedia({
         preload="metadata"
         onLoadedMetadata={enforceMute}
         onPlay={enforceMute}
+        onError={() => setHasLoadError(true)}
       />
     )
   }
 
-  return <img src={src} alt={alt} style={mediaStyle} loading="lazy" decoding="async" />
+  return (
+    <img
+      src={src}
+      alt={alt}
+      style={mediaStyle}
+      loading="lazy"
+      decoding="async"
+      onError={() => setHasLoadError(true)}
+    />
+  )
 }
