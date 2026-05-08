@@ -6,6 +6,7 @@ function inferMediaKind(src) {
   if (!hasQuestionMedia(src)) return null
 
   const value = src.split('?')[0].split('#')[0].toLowerCase()
+  if (value.includes('res.cloudinary.com') && value.includes('/video/upload/')) return 'video'
   if (/\.(mp4|mov|m4v|webm)$/.test(value)) return 'video'
   return 'image'
 }
@@ -108,13 +109,13 @@ export default function QuestionMedia({
   const mediaStyle = getMediaStyles(variant, style)
 
   if (kind === 'video') {
-    const isDetail = variant === 'detail'
-    if (!isDetail) {
+    const shouldLoadVideo = variant === 'detail' || variant === 'reference'
+    if (!shouldLoadVideo) {
       return <VideoPreview mediaStyle={mediaStyle} />
     }
 
     const enforceMute = (event) => {
-      if (!isDetail) {
+      if (!shouldLoadVideo) {
         event.currentTarget.muted = true
         event.currentTarget.defaultMuted = true
         event.currentTarget.volume = 0
@@ -130,7 +131,7 @@ export default function QuestionMedia({
         loop={false}
         autoPlay={false}
         playsInline
-        controls={controls || isDetail}
+        controls={controls || shouldLoadVideo}
         preload="metadata"
         onLoadedMetadata={enforceMute}
         onPlay={enforceMute}
