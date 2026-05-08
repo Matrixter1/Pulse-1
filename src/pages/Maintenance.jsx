@@ -1,9 +1,24 @@
 const REOPEN_DATE_LABEL = '10 May 2026';
 
 export const PULSE_MAINTENANCE_UNTIL = new Date('2026-05-10T00:00:00+02:00').getTime();
+const MAINTENANCE_BYPASS_PARAM = 'pulse_admin_bypass';
+const MAINTENANCE_BYPASS_VALUE = 'matrixter-test';
+const MAINTENANCE_BYPASS_SESSION_KEY = 'pulse-maintenance-bypass';
 
 export function isPulseMaintenanceActive(now = Date.now()) {
   return now < PULSE_MAINTENANCE_UNTIL;
+}
+
+export function hasPulseMaintenanceBypass() {
+  if (typeof window === 'undefined') return false;
+
+  const params = new URLSearchParams(window.location.search);
+  if (params.get(MAINTENANCE_BYPASS_PARAM) === MAINTENANCE_BYPASS_VALUE) {
+    window.sessionStorage.setItem(MAINTENANCE_BYPASS_SESSION_KEY, 'true');
+    return true;
+  }
+
+  return window.sessionStorage.getItem(MAINTENANCE_BYPASS_SESSION_KEY) === 'true';
 }
 
 export default function Maintenance() {

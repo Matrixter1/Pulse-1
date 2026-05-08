@@ -12,10 +12,10 @@ import Upcoming from './pages/Upcoming'
 import Suggestions from './pages/Suggestions'
 import Profile from './pages/Profile'
 import MyPulses from './pages/MyPulses'
-import Maintenance, { isPulseMaintenanceActive } from './pages/Maintenance'
+import Maintenance, { hasPulseMaintenanceBypass, isPulseMaintenanceActive } from './pages/Maintenance'
 
 export default function App() {
-  if (isPulseMaintenanceActive()) {
+  if (isPulseMaintenanceActive() && !hasPulseMaintenanceBypass()) {
     return <Maintenance />
   }
 
