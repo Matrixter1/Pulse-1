@@ -8,6 +8,7 @@ import { supabase } from '../lib/supabase'
 import { CATEGORIES, CATEGORY_COLORS } from '../constants'
 import { useAuth } from '../lib/auth'
 import { isAdminUser } from '../lib/adminAccess'
+import { getOptimizedFeedMediaUrl } from '../lib/mediaUrls'
 
 function hexToRgb(hex) {
   return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`
@@ -32,7 +33,7 @@ function getSectionSubtitle(type) {
 }
 
 function getFeedMediaUrl(question) {
-  return question?.thumbnail_url || question?.image_url || ''
+  return getOptimizedFeedMediaUrl(question)
 }
 
 export default function Feed() {

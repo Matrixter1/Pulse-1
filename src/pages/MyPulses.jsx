@@ -4,6 +4,7 @@ import NavBar from '../components/NavBar'
 import { PageLoading, EmptyState, CategoryBadge, TypeBadge } from '../components/ui'
 import { useAuth } from '../lib/auth'
 import { supabase } from '../lib/supabase'
+import { getOptimizedFeedMediaUrl } from '../lib/mediaUrls'
 
 function formatWhen(dateString) {
   const date = new Date(dateString)
@@ -15,7 +16,7 @@ function formatWhen(dateString) {
 }
 
 function getArchiveMediaUrl(question) {
-  return question?.thumbnail_url || question?.image_url || ''
+  return getOptimizedFeedMediaUrl(question)
 }
 
 export default function MyPulses() {
