@@ -7,7 +7,7 @@ import QuestionMedia from '../components/QuestionMedia'
 import { isAdminUser } from '../lib/adminAccess'
 import { supabase } from '../lib/supabase'
 import { useAuth } from '../lib/auth'
-import { uploadQuestionMedia } from '../lib/mediaUpload'
+import { uploadQuestionMedia, uploadRemoteQuestionMedia } from '../lib/mediaUpload'
 import { CATEGORIES } from '../constants'
 
 const TYPE_OPTIONS = [
@@ -201,6 +201,14 @@ function mergeCategoryOptions(dynamicCategories = []) {
     .map((category) => String(category || '').trim())
     .filter(Boolean)
   return [...new Set([...known, ...dynamic])]
+}
+
+function isLegacySupabaseMedia(url) {
+  return Boolean(
+    url &&
+    String(url).includes('.supabase.co/storage/v1/object/public/') &&
+    !String(url).includes('res.cloudinary.com'),
+  )
 }
 
 function normalizeCategory(value, fallback = 'Consumer') {
@@ -927,6 +935,9 @@ function ManageQuestions() {
   const [importSuccess, setImportSuccess] = useState('')
   const [importError, setImportError]     = useState('')
   const importFileRef                     = useRef(null)
+  const [migratingMedia, setMigratingMedia] = useState(false)
+  const [mediaMigrationStatus, setMediaMigrationStatus] = useState('')
+  const [mediaMigrationError, setMediaMigrationError] = useState('')
 
   // Edit state
   const [editingId, setEditingId]           = useState(null)
@@ -1121,6 +1132,54 @@ function ManageQuestions() {
   }
 
   // ── Export ──────────────────────────────────────────────────────────────
+  async function handleMigrateSupabaseMedia() {
+    const targets = questions.filter((question) => isLegacySupabaseMedia(question.image_url))
+    if (targets.length === 0) {
+      setMediaMigrationStatus('No Supabase media URLs need migration.')
+      setTimeout(() => setMediaMigrationStatus(''), 6000)
+      return
+    }
+
+    setMigratingMedia(true)
+    setMediaMigrationError('')
+    setMediaMigrationStatus(`Migrating 0 / ${targets.length} media file${targets.length === 1 ? '' : 's'}...`)
+
+    let migrated = 0
+    const failures = []
+
+    for (const question of targets) {
+      try {
+        const media = await uploadRemoteQuestionMedia(question.image_url)
+        const { error } = await supabase
+          .from('questions')
+          .update({
+            image_url: media.imageUrl,
+            thumbnail_url: media.thumbnailUrl,
+          })
+          .eq('id', question.id)
+
+        if (error) throw error
+        migrated += 1
+        setMediaMigrationStatus(`Migrated ${migrated} / ${targets.length} media file${targets.length === 1 ? '' : 's'}...`)
+      } catch (err) {
+        const label = question.text.length > 48 ? `${question.text.slice(0, 48)}...` : question.text
+        failures.push(`${label}: ${err.message}`)
+      }
+    }
+
+    await load()
+    setMigratingMedia(false)
+
+    if (failures.length > 0) {
+      setMediaMigrationError(`Migrated ${migrated}; ${failures.length} failed. ${failures.slice(0, 3).join(' | ')}`)
+      setTimeout(() => setMediaMigrationError(''), 12000)
+      return
+    }
+
+    setMediaMigrationStatus(`Migrated ${migrated} media file${migrated === 1 ? '' : 's'} to Cloudinary.`)
+    setTimeout(() => setMediaMigrationStatus(''), 8000)
+  }
+
   function handleExport() {
     const rows = questions.map(q => {
       let options = ''
@@ -1240,6 +1299,7 @@ function ManageQuestions() {
     archiveFilter === 'active' ? !q.archived : archiveFilter === 'archived' ? !!q.archived : true
   ))
   const archivedCount = questions.filter((q) => !!q.archived).length
+  const legacySupabaseMediaCount = questions.filter((q) => isLegacySupabaseMedia(q.image_url)).length
 
   return (
     <div style={{
@@ -1286,6 +1346,26 @@ function ManageQuestions() {
             }}
           >
             Archived Library
+          </button>
+          <button
+            onClick={handleMigrateSupabaseMedia}
+            disabled={migratingMedia || legacySupabaseMediaCount === 0}
+            title="Move old Supabase media URLs to Cloudinary"
+            style={{
+              background: migratingMedia ? 'rgba(76,201,168,0.1)' : 'none',
+              border: '1px solid rgba(76,201,168,0.35)',
+              color: legacySupabaseMediaCount === 0 ? 'var(--text-dim)' : 'var(--teal)',
+              padding: '5px 14px',
+              borderRadius: 8,
+              fontSize: 12,
+              fontWeight: 600,
+              cursor: migratingMedia || legacySupabaseMediaCount === 0 ? 'not-allowed' : 'pointer',
+              opacity: migratingMedia || legacySupabaseMediaCount === 0 ? 0.55 : 1,
+              transition: 'var(--transition)',
+              fontFamily: 'var(--font-ui)',
+            }}
+          >
+            {migratingMedia ? 'Migrating...' : `Move Media${legacySupabaseMediaCount ? ` (${legacySupabaseMediaCount})` : ''}`}
           </button>
           <button
             onClick={handleExport}
@@ -1362,6 +1442,25 @@ function ManageQuestions() {
           fontSize: 13, color: 'var(--red)',
         }}>
           ⚠ Import failed: {importError}
+        </div>
+      )}
+
+      {mediaMigrationStatus && (
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+          background: 'var(--teal-dim)', border: '1px solid var(--teal-border)',
+          fontSize: 13, color: 'var(--teal)',
+        }}>
+          {mediaMigrationStatus}
+        </div>
+      )}
+      {mediaMigrationError && (
+        <div style={{
+          marginBottom: 16, padding: '10px 14px', borderRadius: 'var(--radius-sm)',
+          background: 'var(--red-dim)', border: '1px solid var(--red-border)',
+          fontSize: 13, color: 'var(--red)',
+        }}>
+          âš  Media migration issue: {mediaMigrationError}
         </div>
       )}
 

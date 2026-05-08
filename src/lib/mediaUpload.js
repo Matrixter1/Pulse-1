@@ -16,6 +16,14 @@ export async function uploadQuestionMedia(file) {
   return uploadToSupabase(file)
 }
 
+export async function uploadRemoteQuestionMedia(url) {
+  const safeUrl = String(url || '').trim()
+  if (!safeUrl) throw new Error('Missing remote media URL.')
+  if (!isCloudinaryConfigured()) throw new Error('Cloudinary is not configured for this deployment.')
+
+  return uploadToCloudinary(safeUrl)
+}
+
 async function uploadToCloudinary(file) {
   const formData = new FormData()
   formData.append('file', file)
