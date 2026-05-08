@@ -350,69 +350,58 @@ export default function Vote() {
 }
 
 function SignalAnalysisVote({ question, tier, brief, canVote, submitting, onSubmit, onRequireAuth }) {
-  const [selectedSignal, setSelectedSignal] = useState(null)
+  const [value, setValue] = useState(50)
   const [reason, setReason] = useState(null)
-  const signalOptions = [
-    {
-      key: 'disagree',
-      label: 'Disagree',
-      eyebrow: 'Counter signal',
-      value: 0,
-      copy: 'This does not match how I see it right now.',
-      color: '#ff6b6b',
-    },
-    {
-      key: 'neutral',
-      label: 'Neutral',
-      eyebrow: 'Still weighing it',
-      value: 50,
-      copy: 'I can see both sides, or I need more time to decide.',
-      color: 'var(--gold)',
-    },
-    {
-      key: 'agree',
-      label: 'Agree',
-      eyebrow: 'Aligned signal',
-      value: 100,
-      copy: 'This reflects my view or instinct today.',
-      color: 'var(--teal)',
-    },
-  ]
 
   function handleReveal() {
-    if (!selectedSignal) return
     if (!canVote) {
       onRequireAuth()
       return
     }
-    onSubmit({ spectrumValue: selectedSignal.value, reason })
+    onSubmit({ spectrumValue: value, reason })
   }
 
   return (
     <>
       <style>{`
-        .signal-vote-grid {
-          display: grid;
-          grid-template-columns: minmax(320px, 0.92fr) minmax(0, 1.18fr);
-          gap: 32px;
-          align-items: stretch;
-          max-width: 1180px;
+        .signal-mobile-flow {
+          max-width: 860px;
           margin: 0 auto;
         }
-        .signal-choice-grid {
+        .signal-slider-input {
+          -webkit-appearance: none;
+          appearance: none;
+          width: 100%;
+          height: 16px;
+          border-radius: 999px;
+          background: linear-gradient(90deg, #ffa49d 0%, #d8b84f 50%, #63dcbc 100%);
+          outline: none;
+          cursor: pointer;
+          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+        }
+        .signal-slider-input::-webkit-slider-thumb {
+          -webkit-appearance: none;
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          background: var(--gold);
+          border: 8px solid rgba(201,168,76,0.22);
+          box-shadow: 0 12px 28px rgba(0,0,0,0.42), 0 0 0 1px rgba(201,168,76,0.55);
+        }
+        .signal-slider-input::-moz-range-thumb {
+          width: 42px;
+          height: 42px;
+          border-radius: 50%;
+          background: var(--gold);
+          border: 8px solid rgba(201,168,76,0.22);
+          box-shadow: 0 12px 28px rgba(0,0,0,0.42), 0 0 0 1px rgba(201,168,76,0.55);
+        }
+        .signal-driver-grid {
           display: grid;
-          gap: 16px;
+          grid-template-columns: repeat(5, minmax(0, 1fr));
+          gap: 10px;
         }
         @media (max-width: 960px) {
-          .signal-vote-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .signal-choice-panel {
-            padding: 24px 18px !important;
-          }
-          .signal-choice-card {
-            min-height: 0 !important;
-          }
           .vote-reference-frame {
             min-height: 0 !important;
             aspect-ratio: auto !important;
@@ -428,11 +417,14 @@ function SignalAnalysisVote({ question, tier, brief, canVote, submitting, onSubm
             padding: 14px 16px 16px !important;
             background: rgba(5, 7, 16, 0.78) !important;
           }
+          .signal-driver-grid {
+            grid-template-columns: 1fr 1fr !important;
+          }
         }
       `}</style>
 
-      <div>
-        <div style={{ textAlign: 'center', marginBottom: 34, maxWidth: 980, marginInline: 'auto' }}>
+      <div className="signal-mobile-flow">
+        <div style={{ textAlign: 'center', marginBottom: 28 }}>
           <div style={{
             fontSize: 12,
             letterSpacing: '0.26em',
@@ -445,10 +437,11 @@ function SignalAnalysisVote({ question, tier, brief, canVote, submitting, onSubm
           </div>
           <h1 style={{
             fontFamily: 'var(--font-ui, inherit)',
-            fontSize: 'clamp(34px, 4.2vw, 58px)',
+            fontSize: 'clamp(38px, 6vw, 72px)',
             lineHeight: 1.08,
             letterSpacing: '-0.02em',
-            fontWeight: 700,
+            fontWeight: 500,
+            fontStyle: 'italic',
             color: 'var(--text)',
             marginBottom: 18,
           }}>
@@ -461,243 +454,172 @@ function SignalAnalysisVote({ question, tier, brief, canVote, submitting, onSubm
             maxWidth: 820,
             margin: '0 auto',
           }}>
-            {brief?.plainEnglish || 'Choose the response that best reflects your current stance. The reveal compares your signal with the wider Pulse.'}
+            {brief?.plainEnglish || 'Move the signal between disagree and agree, then cast your Pulse.'}
           </p>
         </div>
 
-        <div className="signal-vote-grid">
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-            <div className="vote-reference-frame" style={{
-              position: 'relative',
-              minHeight: 520,
-              borderRadius: '34px',
-              overflow: 'hidden',
-              border: '1px solid rgba(255,255,255,0.06)',
-              background: question.image_url
-                ? 'rgba(5,7,16,0.82)'
-                : 'radial-gradient(circle at center, rgba(76,201,168,0.18), rgba(10,12,26,0.96) 62%)',
-            }}>
-              {question.image_url && (
-                <>
-                  <QuestionMedia
-                    src={question.image_url}
-                    alt={question.text}
-                    variant="reference"
-                    controls
-                    style={{ minHeight: 520, height: '100%', padding: 12, boxSizing: 'border-box' }}
-                  />
-                  <div style={{
-                    position: 'absolute',
-                    inset: 0,
-                    pointerEvents: 'none',
-                    background: 'linear-gradient(180deg, rgba(5,7,16,0.02), transparent 46%, rgba(5,7,16,0.42))',
-                  }} />
-                </>
-              )}
-              <div className="vote-reference-caption" style={{ position: 'absolute', left: 24, right: 24, bottom: 24 }}>
-                <div style={{
-                  fontSize: 12,
-                  letterSpacing: '0.18em',
-                  textTransform: 'uppercase',
-                  color: 'var(--text-muted)',
-                  marginBottom: 10,
-                }}>
-                  Prompt Reference
-                </div>
-                <div style={{ color: 'var(--gold)', fontSize: 14, fontWeight: 700 }}>
-                  Live signal detected
-                </div>
-              </div>
-            </div>
-
-            <div>
-              <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-                <CategoryBadge category={question.category} />
-                <TypeBadge type={question.type} />
-              </div>
-              <h2 style={{
-                fontFamily: 'var(--font-ui, inherit)',
-                color: 'var(--text)',
-                fontSize: 'clamp(30px, 4vw, 44px)',
-                lineHeight: 1.05,
-                letterSpacing: '-0.02em',
-                marginBottom: 12,
-              }}>
-                Define your signal.
-              </h2>
-              <p style={{ color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.7 }}>
-                Pick one clear stance, then see how the wider signal forms around it.
-              </p>
+        <div className="vote-reference-frame" style={{
+          position: 'relative',
+          minHeight: 480,
+          borderRadius: '34px',
+          overflow: 'hidden',
+          border: '1px solid rgba(255,255,255,0.06)',
+          background: question.image_url
+            ? 'rgba(5,7,16,0.82)'
+            : 'radial-gradient(circle at center, rgba(76,201,168,0.18), rgba(10,12,26,0.96) 62%)',
+          marginBottom: 38,
+          boxShadow: '0 20px 54px rgba(0,0,0,0.34)',
+        }}>
+          {question.image_url && (
+            <QuestionMedia
+              src={question.image_url}
+              alt={question.text}
+              variant="reference"
+              controls
+              style={{ minHeight: 480, height: '100%', padding: 0, boxSizing: 'border-box' }}
+            />
+          )}
+          <div className="vote-reference-caption" style={{ position: 'absolute', left: 24, right: 24, bottom: 24, pointerEvents: 'none' }}>
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <CategoryBadge category={question.category} />
+              <TypeBadge type={question.type} />
             </div>
           </div>
+        </div>
 
-          <div className="signal-choice-panel" style={{
-            background: 'linear-gradient(180deg, rgba(12,15,30,0.96), rgba(7,9,18,0.98))',
-            border: '1px solid rgba(76,201,168,0.16)',
-            borderRadius: '34px',
-            padding: 30,
-            boxShadow: '0 18px 48px rgba(0,0,0,0.22)',
+        <div style={{ marginBottom: 34 }}>
+          <div style={{
+            display: 'flex',
+            justifyContent: 'space-between',
+            alignItems: 'center',
+            marginBottom: 28,
+            color: 'var(--text-muted)',
+            fontSize: 18,
+            letterSpacing: '0.12em',
+            textTransform: 'uppercase',
           }}>
-            <div style={{
-              display: 'flex',
-              justifyContent: 'space-between',
-              gap: 18,
-              alignItems: 'baseline',
-              marginBottom: 22,
-            }}>
-              <div style={{
-                color: 'var(--teal)',
-                fontSize: 12,
-                fontWeight: 800,
-                letterSpacing: '0.22em',
-                textTransform: 'uppercase',
-              }}>
-                Choose your stance
-              </div>
-              <div style={{ color: 'var(--text-muted)', fontSize: 13 }}>
-                One signal. No middle noise.
-              </div>
-            </div>
+            <span style={{ color: '#ffa49d' }}>Disagree</span>
+            <span style={{ color: 'var(--teal)' }}>Agree</span>
+          </div>
+          <input
+            className="signal-slider-input"
+            type="range"
+            min={0}
+            max={100}
+            value={value}
+            onChange={(event) => setValue(Number(event.target.value))}
+          />
+          <div style={{
+            color: 'var(--text-muted)',
+            fontSize: 22,
+            letterSpacing: '0.22em',
+            textAlign: 'center',
+            marginTop: 24,
+          }}>
+            {value}/100
+          </div>
+        </div>
 
-            <div className="signal-choice-grid">
-              {signalOptions.map((option) => {
-                const isSelected = selectedSignal?.key === option.key
-                return (
-                  <button
-                    key={option.key}
-                    type="button"
-                    className="signal-choice-card"
-                    onClick={() => setSelectedSignal(option)}
-                    style={{
-                      minHeight: 138,
-                      width: '100%',
-                      borderRadius: 28,
-                      border: `1px solid ${isSelected ? option.color : 'rgba(255,255,255,0.08)'}`,
-                      background: isSelected
-                        ? 'linear-gradient(135deg, rgba(76,201,168,0.16), rgba(201,168,76,0.08))'
-                        : 'rgba(255,255,255,0.025)',
-                      color: 'inherit',
-                      cursor: 'pointer',
-                      textAlign: 'left',
-                      padding: '24px 28px',
-                      display: 'grid',
-                      gridTemplateColumns: '1fr auto',
-                      gap: 18,
-                      transition: 'var(--transition)',
-                      boxShadow: isSelected ? '0 18px 40px rgba(0,0,0,0.22)' : 'none',
-                    }}
-                  >
-                    <span>
-                      <span style={{
-                        display: 'block',
-                        color: option.color,
-                        fontSize: 11,
-                        fontWeight: 800,
-                        letterSpacing: '0.18em',
-                        textTransform: 'uppercase',
-                        marginBottom: 10,
-                      }}>
-                        {option.eyebrow}
-                      </span>
-                      <span style={{
-                        display: 'block',
-                        color: 'var(--text)',
-                        fontSize: 'clamp(26px, 3vw, 38px)',
-                        fontWeight: 700,
-                        letterSpacing: '-0.02em',
-                        lineHeight: 1.05,
-                        marginBottom: 10,
-                      }}>
-                        {option.label}
-                      </span>
-                      <span style={{
-                        display: 'block',
-                        color: 'var(--text-muted)',
-                        fontSize: 15,
-                        lineHeight: 1.55,
-                      }}>
-                        {option.copy}
-                      </span>
-                    </span>
-                    <span style={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: '50%',
-                      border: `2px solid ${isSelected ? option.color : 'rgba(255,255,255,0.12)'}`,
-                      background: isSelected ? option.color : 'transparent',
-                      boxShadow: isSelected ? `0 0 24px ${option.color}` : 'none',
-                      display: 'grid',
-                      placeItems: 'center',
-                      color: '#05060F',
-                      fontWeight: 900,
-                    }}>
-                      {isSelected ? 'OK' : ''}
-                    </span>
-                  </button>
-                )
-              })}
-            </div>
-
-            <div style={{ marginTop: 24 }}>
-              <p style={{
-                fontSize: 12,
-                color: 'var(--text-muted)',
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                marginBottom: 12,
-              }}>
-                Optional: Primary reason
-              </p>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-                {['Personal Experience', 'Evidence', 'Moral Instinct', 'Pattern Recognition', 'Gut Feel'].map(chip => (
-                  <button
-                    key={chip}
-                    type="button"
-                    onClick={() => setReason(reason === chip ? null : chip)}
-                    style={{
-                      padding: '7px 14px',
-                      borderRadius: 20,
-                      border: `1px solid ${reason === chip ? 'var(--teal)' : 'rgba(76,201,168,0.12)'}`,
-                      background: reason === chip ? 'rgba(76,201,168,0.12)' : 'transparent',
-                      color: reason === chip ? 'var(--teal)' : 'var(--text-muted)',
-                      fontSize: 12,
-                      cursor: 'pointer',
-                      transition: 'var(--transition)',
-                    }}
-                  >
-                    {chip}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div style={{ marginTop: 28 }}>
-              <Button
-                size="xl"
-                variant={selectedSignal && canVote ? 'teal' : 'secondary'}
-                loading={submitting}
-                onClick={handleReveal}
-                disabled={!selectedSignal || submitting}
-                style={selectedSignal && canVote ? {
-                  background: 'linear-gradient(135deg, var(--teal), #2fa886)',
-                  color: '#05060F',
-                  border: 'none',
+        <div style={{ marginBottom: 34 }}>
+          <p style={{
+            color: 'var(--text-muted)',
+            fontSize: 18,
+            letterSpacing: '0.16em',
+            textAlign: 'center',
+            textTransform: 'uppercase',
+            marginBottom: 18,
+          }}>
+            Primary sentiment driver
+          </p>
+          <div className="signal-driver-grid">
+            {['Experience', 'Evidence', 'Instinct', 'Pattern', 'Belief'].map(chip => (
+              <button
+                key={chip}
+                type="button"
+                onClick={() => setReason(reason === chip ? null : chip)}
+                style={{
+                  padding: '12px 10px',
                   borderRadius: 999,
-                  width: '100%',
-                  letterSpacing: '0.16em',
+                  border: `1px solid ${reason === chip ? 'var(--gold)' : 'rgba(201,168,76,0.16)'}`,
+                  background: reason === chip ? 'rgba(201,168,76,0.16)' : 'rgba(255,255,255,0.02)',
+                  color: reason === chip ? 'var(--gold)' : 'var(--text-muted)',
+                  fontSize: 12,
+                  fontWeight: 700,
+                  letterSpacing: '0.08em',
+                  cursor: 'pointer',
                   textTransform: 'uppercase',
-                } : {
-                  borderRadius: 999,
-                  width: '100%',
+                  transition: 'var(--transition)',
                 }}
               >
-                {!canVote ? 'Sign in to reveal' : selectedSignal ? 'Reveal the Signal' : 'Select a stance'}
-              </Button>
-            </div>
+                {chip}
+              </button>
+            ))}
+          </div>
+        </div>
 
-            <div style={{ textAlign: 'center', color: 'var(--text-dim)', fontSize: 13, marginTop: 16 }}>
-              Your vote stays anonymous.
-            </div>
+        <div style={{ display: 'grid', gap: 14 }}>
+          <Button
+            size="xl"
+            variant={canVote ? 'primary' : 'secondary'}
+            loading={submitting}
+            onClick={handleReveal}
+            style={canVote ? {
+              background: 'linear-gradient(135deg, #f0cf67, #8b6d05)',
+              color: '#05060F',
+              border: 'none',
+              borderRadius: 999,
+              width: '100%',
+              minHeight: 72,
+              fontSize: 22,
+              letterSpacing: '0.02em',
+            } : {
+              borderRadius: 999,
+              width: '100%',
+              minHeight: 72,
+              fontSize: 18,
+            }}
+          >
+            {!canVote ? 'Sign in to Cast My Pulse' : 'Cast My Pulse ->'}
+          </Button>
+
+          <a
+            href="/feed"
+            style={{
+              display: 'grid',
+              placeItems: 'center',
+              minHeight: 58,
+              borderRadius: 999,
+              border: '1px solid rgba(255,255,255,0.06)',
+              color: 'var(--gold)',
+              textDecoration: 'none',
+              fontSize: 18,
+            }}
+          >
+            Back to Feed
+          </a>
+
+          <a
+            href={`/results/${question.id}`}
+            style={{
+              color: 'var(--gold)',
+              textAlign: 'center',
+              textDecoration: 'none',
+              fontSize: 18,
+              padding: '14px 0',
+            }}
+          >
+            See the Truth Gap -&gt;
+          </a>
+
+          <div style={{
+            color: 'var(--text-muted)',
+            fontSize: 13,
+            letterSpacing: '0.18em',
+            textAlign: 'center',
+            textTransform: 'uppercase',
+            marginTop: 20,
+          }}>
+            Your vote is anonymous - your identity is never linked to your response.
           </div>
         </div>
 
