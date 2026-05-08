@@ -47,3 +47,6 @@ When not set, Admin falls back to the current Supabase Storage upload path.
 
 Feed surfaces should never load full MP4s. They should show thumbnail/poster media only,
 then load full media after the user opens the question.
+
+For the current production policy and transformation list, see
+[`CLOUDINARY_MEDIA_POLICY.md`](./CLOUDINARY_MEDIA_POLICY.md).

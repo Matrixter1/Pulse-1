@@ -715,6 +715,9 @@ function ImagePicker({ mode, file, preview, urlInput, uploading, onModeSwitch, o
                 <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4 }}>
                   JPG, PNG, GIF, WEBP, MP4, MOV, M4V, WEBM
                 </div>
+                <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 4, lineHeight: 1.45 }}>
+                  Best results: images under 10 MB, short videos under 100 MB. Cloudinary will create the feed poster and optimized delivery URLs.
+                </div>
                 <div style={{
                   marginTop: 8, fontSize: 11, color: 'var(--text-dim)',
                   display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6,
@@ -1753,6 +1756,9 @@ function QuestionRow({
                   <div>
                     <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
                       Click to select · or paste from clipboard (Ctrl+V)
+                    </div>
+                    <div style={{ fontSize: 11, color: 'var(--text-dim)', marginTop: 5, lineHeight: 1.45 }}>
+                      Images should stay under 10 MB. Videos should stay under 100 MB and work best as short MP4 or WEBM clips.
                     </div>
                     <div style={{
                       marginTop: 8, fontSize: 11, color: 'var(--text-dim)',
