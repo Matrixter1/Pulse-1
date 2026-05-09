@@ -12,13 +12,8 @@ import Upcoming from './pages/Upcoming'
 import Suggestions from './pages/Suggestions'
 import Profile from './pages/Profile'
 import MyPulses from './pages/MyPulses'
-import Maintenance, { hasPulseMaintenanceBypass, isPulseMaintenanceActive } from './pages/Maintenance'
 
 export default function App() {
-  if (isPulseMaintenanceActive() && !hasPulseMaintenanceBypass()) {
-    return <Maintenance />
-  }
-
   return (
     <AuthProvider>
       <BrowserRouter>
