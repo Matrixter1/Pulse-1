@@ -8,6 +8,7 @@ function inferMediaKind(src) {
   if (!hasQuestionMedia(src)) return null
 
   const value = src.split('?')[0].split('#')[0].toLowerCase()
+  if (/\.(jpg|jpeg|png|webp|gif|avif|svg)$/.test(value)) return 'image'
   if (value.includes('res.cloudinary.com') && value.includes('/video/upload/')) return 'video'
   if (/\.(mp4|mov|m4v|webm)$/.test(value)) return 'video'
   return 'image'
