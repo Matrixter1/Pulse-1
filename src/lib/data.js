@@ -101,16 +101,8 @@ export function calcRankedResults(votes, options) {
 }
 
 export async function fetchQuestions(category = null) {
-  // Auto-archive questions older than 30 days that aren't featured — fire-and-forget
-  const cutoff = new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString()
-  supabase
-    .from('questions')
-    .update({ archived: true })
-    .lt('created_at', cutoff)
-    .eq('featured', false)
-    .eq('archived', false)
-    .then(() => {})
-
+  // Archival is an explicit admin action. Restored questions may be older than 30 days,
+  // so the feed must not silently re-archive them on read.
   let query = supabase
     .from('questions')
     .select('*')
