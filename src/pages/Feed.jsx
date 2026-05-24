@@ -1,17 +1,32 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import QuestionMedia from '../components/QuestionMedia'
-import { CategoryBadge, TypeBadge, PageLoading, EmptyState } from '../components/ui'
-import { fetchQuestions, fetchVotesForQuestion, calcResults, calcChoiceResults, calcRankedResults } from '../lib/data'
+import { EmptyState, PageLoading } from '../components/ui'
+import {
+  calcChoiceResults,
+  calcRankedResults,
+  calcResults,
+  fetchQuestions,
+  fetchVotesForQuestion,
+} from '../lib/data'
 import { supabase } from '../lib/supabase'
-import { CATEGORIES, CATEGORY_COLORS } from '../constants'
+import { CATEGORIES, CATEGORY_COLORS, QUESTION_TYPE_META } from '../constants'
 import { useAuth } from '../lib/auth'
 import { isAdminUser } from '../lib/adminAccess'
 import { getOptimizedFeedMediaUrl } from '../lib/mediaUrls'
 
-function hexToRgb(hex) {
-  return `${parseInt(hex.slice(1, 3), 16)},${parseInt(hex.slice(3, 5), 16)},${parseInt(hex.slice(5, 7), 16)}`
+const TOP_TABS = [
+  { key: 'all', label: 'Feed' },
+  { key: 'statement', label: 'Signals' },
+  { key: 'choice', label: 'Decisions' },
+  { key: 'ranked', label: 'Rankings' },
+]
+
+const CARD_ACTION = {
+  statement: 'Explore Signals',
+  choice: 'Explore Decisions',
+  ranked: 'Explore Rankings',
 }
 
 function parseOptions(raw) {
@@ -20,26 +35,101 @@ function parseOptions(raw) {
   return raw
 }
 
-function getActionLabel(type) {
-  if (type === 'choice') return 'Open Decision'
-  if (type === 'ranked') return 'Open Ranking'
-  return 'Open Signal'
+function hexToRgb(hex) {
+  return `${parseInt(hex.slice(1, 3), 16)}, ${parseInt(hex.slice(3, 5), 16)}, ${parseInt(hex.slice(5, 7), 16)}`
 }
 
-function getSectionSubtitle(type) {
-  if (type === 'choice') return 'One choice. No middle ground.'
-  if (type === 'ranked') return 'Arrange what matters most.'
-  return 'Where instinct, doubt, and conviction meet.'
+function formatCount(value) {
+  if (!value) return '0'
+  if (value < 1000) return `${value}`
+  const shortValue = value / 1000
+  return `${shortValue.toFixed(shortValue < 10 ? 1 : 0).replace('.0', '')}k`
+}
+
+function titleCase(value) {
+  return value
+    .toLowerCase()
+    .split(/[\s_-]+/)
+    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function typeMatches(question, activeType) {
+  if (activeType === 'all') return true
+  return (question.type || 'statement') === activeType
+}
+
+function categoryMatches(question, activeCategory) {
+  if (activeCategory === 'All') return true
+  return titleCase(question.category || '') === activeCategory
+}
+
+function getQuestionAccent(type) {
+  return QUESTION_TYPE_META[type || 'statement']?.color || 'var(--gold)'
+}
+
+function getQuestionLabel(type) {
+  return QUESTION_TYPE_META[type || 'statement']?.label || 'Signal'
 }
 
 function getFeedMediaUrl(question) {
   return getOptimizedFeedMediaUrl(question)
 }
 
+function formatQuestionText(question) {
+  if ((question.type || 'statement') === 'statement') {
+    return `"${question.text}"`
+  }
+
+  return question.text
+}
+
+function getQuestionSummary(question, counts) {
+  const type = question.type || 'statement'
+  const totalVotes = counts?.all?.total || 0
+
+  if (!counts || totalVotes === 0) {
+    return 'Enter the question, cast anonymously, and shape the live signal.'
+  }
+
+  if (question.reveal_mode && question.reveal_mode !== 'instant') {
+    if (question.reveal_mode === 'threshold') {
+      return `Results stay locked until ${question.reveal_threshold || 'the threshold'} total votes are reached.`
+    }
+    return 'Results stay locked until the reveal window opens.'
+  }
+
+  if (type === 'statement') {
+    return `${counts.all.Agree}% agree, ${counts.all.Neutral}% neutral, ${counts.all.Disagree}% disagree so far.`
+  }
+
+  if (type === 'choice' && counts.all?.winner) {
+    return `${counts.all.winner} is leading the decision right now.`
+  }
+
+  if (type === 'ranked' && counts.all?.options?.[0]?.label) {
+    return `${counts.all.options[0].label} currently sits at the top of the ranking.`
+  }
+
+  return 'Open the question to see how the signal is taking shape.'
+}
+
+function getQuestionFootnote(question, counts) {
+  const totalVotes = counts?.all?.total || 0
+  const verifiedVotes = counts?.verified?.total || 0
+
+  if (!totalVotes) return 'Be the first to respond.'
+  if (!verifiedVotes) return `${formatCount(totalVotes)} votes captured.`
+  return `${formatCount(totalVotes)} votes captured, ${formatCount(verifiedVotes)} from verified members.`
+}
+
 export default function Feed() {
   const { user } = useAuth()
   const isAdmin = isAdminUser(user)
   const [searchParams, setSearchParams] = useSearchParams()
+  const navigate = useNavigate()
+  const contentRef = useRef(null)
+
   const [activeCategory, setActiveCategory] = useState('All')
   const requestedType = ['statement', 'choice', 'ranked'].includes(searchParams.get('type'))
     ? searchParams.get('type')
@@ -49,85 +139,42 @@ export default function Feed() {
   const [featuredQuestion, setFeaturedQuestion] = useState(null)
   const [voteCounts, setVoteCounts] = useState({})
   const [loading, setLoading] = useState(true)
-  const [featuredBeat, setFeaturedBeat] = useState(false)
-  const [ripple, setRipple] = useState(null)
   const [categories, setCategories] = useState(CATEGORIES)
-  const navigate = useNavigate()
-  const contentRef = useRef(null)
-  const featuredCardRef = useRef(null)
-  const totalQuestions = questions.length + (featuredQuestion && !questions.find(q => q.id === featuredQuestion.id) ? 1 : 0)
-  const categoryCount = Math.max(categories.filter(cat => cat !== 'All').length, 0)
-  const typeCounts = {
-    statement: questions.filter(q => (q.type || 'statement') === 'statement' && !q.featured).length,
-    choice: questions.filter(q => q.type === 'choice' && !q.featured).length,
-    ranked: questions.filter(q => q.type === 'ranked' && !q.featured).length,
-  }
-  const categoryCounts = Object.fromEntries(
-    categories
-      .filter(cat => cat !== 'All')
-      .map(cat => [cat, questions.filter(q => q.category === cat).length])
-  )
 
   useEffect(() => {
     setActiveType(requestedType)
   }, [requestedType])
 
   useEffect(() => {
-    supabase
-      .from('questions')
-      .select('category')
-      .then(({ data, error }) => {
-        if (error || !data) return
-        const distinct = [...new Set(data.map(r => r.category).filter(Boolean))].sort()
-        if (distinct.length > 0) setCategories(['All', ...distinct])
-      })
+    void loadQuestions()
   }, [])
-
-  function handleFilterAndScroll(typeId) {
-    const nextType = activeType === typeId ? 'all' : typeId
-    setActiveType(nextType)
-    const nextParams = new URLSearchParams(searchParams)
-    if (nextType === 'all') {
-      nextParams.delete('type')
-    } else {
-      nextParams.set('type', nextType)
-    }
-    setSearchParams(nextParams, { replace: true })
-    if (nextType === 'all') {
-      setActiveType('all')
-      return
-    }
-    setTimeout(() => {
-      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 50)
-  }
-
-  useEffect(() => { loadQuestions() }, [activeCategory])
 
   useEffect(() => {
     const handleScroll = () => {
       sessionStorage.setItem('feed_scroll', window.scrollY)
     }
+
     window.addEventListener('scroll', handleScroll, { passive: true })
     return () => window.removeEventListener('scroll', handleScroll)
   }, [])
 
   useEffect(() => {
-    if (!loading && questions.length > 0) {
+    if (!loading && (questions.length > 0 || featuredQuestion)) {
       const saved = sessionStorage.getItem('feed_scroll')
-      if (saved) {
-        setTimeout(() => {
-          window.scrollTo({ top: parseInt(saved), behavior: 'instant' })
-          sessionStorage.removeItem('feed_scroll')
-        }, 80)
-      }
+      if (!saved) return
+
+      setTimeout(() => {
+        window.scrollTo(0, parseInt(saved, 10))
+        sessionStorage.removeItem('feed_scroll')
+      }, 80)
     }
-  }, [loading, questions])
+  }, [featuredQuestion, loading, questions])
 
   async function loadQuestions() {
     setLoading(true)
 
     let featuredData = null
+
     try {
       const { data, error } = await supabase
         .from('questions')
@@ -135,1069 +182,1223 @@ export default function Feed() {
         .eq('featured', true)
         .eq('archived', false)
         .maybeSingle()
-      if (!error) featuredData = data || null
-    } catch (_) {}
+
+      if (!error) {
+        featuredData = data || null
+      }
+    } catch (_) {
+      featuredData = null
+    }
+
     setFeaturedQuestion(featuredData)
 
     try {
-      const data = await fetchQuestions(activeCategory)
+      const data = await fetchQuestions('All')
       setQuestions(data)
 
-      const toFetch = [...data]
-      if (featuredData && !data.find(q => q.id === featuredData.id)) {
-        toFetch.push(featuredData)
+      const discoveredCategories = [...new Set(
+        data
+          .map(question => titleCase(question.category || ''))
+          .filter(Boolean),
+      )].sort()
+
+      setCategories(discoveredCategories.length > 0 ? ['All', ...discoveredCategories] : CATEGORIES)
+
+      const queue = [...data]
+      if (featuredData && !queue.find(question => question.id === featuredData.id)) {
+        queue.unshift(featuredData)
       }
 
       const counts = {}
-      await Promise.all(toFetch.map(async q => {
-        const votes = await fetchVotesForQuestion(q.id)
-        const type = q.type || 'statement'
-        const options = parseOptions(q.options)
-        let all, verified
-        if (type === 'statement') {
-          all = calcResults(votes)
-          verified = calcResults(votes.filter(v => v.is_verified))
-        } else if (type === 'choice') {
-          all = calcChoiceResults(votes, options)
-          verified = calcChoiceResults(votes.filter(v => v.is_verified), options)
-        } else {
-          all = calcRankedResults(votes, options)
-          verified = calcRankedResults(votes.filter(v => v.is_verified), options)
-        }
-        counts[q.id] = { all, verified, type }
-      }))
+      await Promise.all(
+        queue.map(async question => {
+          const votes = await fetchVotesForQuestion(question.id)
+          const type = question.type || 'statement'
+          const options = parseOptions(question.options)
+
+          if (type === 'statement') {
+            counts[question.id] = {
+              all: calcResults(votes),
+              verified: calcResults(votes.filter(vote => vote.is_verified)),
+              type,
+            }
+            return
+          }
+
+          if (type === 'choice') {
+            counts[question.id] = {
+              all: calcChoiceResults(votes, options),
+              verified: calcChoiceResults(votes.filter(vote => vote.is_verified), options),
+              type,
+            }
+            return
+          }
+
+          counts[question.id] = {
+            all: calcRankedResults(votes, options),
+            verified: calcRankedResults(votes.filter(vote => vote.is_verified), options),
+            type,
+          }
+        }),
+      )
+
       setVoteCounts(counts)
-    } catch (err) {
-      console.error(err)
+    } catch (error) {
+      console.error(error)
     } finally {
       setLoading(false)
     }
   }
 
+  function handleOpenQuestion(questionId) {
+    sessionStorage.setItem('feed_scroll', window.scrollY)
+    navigate(`/vote/${questionId}`)
+  }
+
+  function handleTypeChange(nextType) {
+    const resolvedType = activeType === nextType ? 'all' : nextType
+    setActiveType(resolvedType)
+
+    const nextParams = new URLSearchParams(searchParams)
+    if (resolvedType === 'all') {
+      nextParams.delete('type')
+    } else {
+      nextParams.set('type', resolvedType)
+    }
+    setSearchParams(nextParams, { replace: true })
+
+    setTimeout(() => {
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
+
+  const allQuestions = useMemo(() => {
+    const list = [...questions]
+    if (featuredQuestion && !list.find(question => question.id === featuredQuestion.id)) {
+      list.unshift(featuredQuestion)
+    }
+    return list
+  }, [featuredQuestion, questions])
+
+  const filteredQuestions = useMemo(
+    () => allQuestions
+      .filter(question => typeMatches(question, activeType))
+      .filter(question => categoryMatches(question, activeCategory)),
+    [activeCategory, activeType, allQuestions],
+  )
+
+  const heroQuestion =
+    filteredQuestions.find(question => featuredQuestion && question.id === featuredQuestion.id) ||
+    filteredQuestions[0] ||
+    null
+
+  const gridQuestions = heroQuestion
+    ? filteredQuestions.filter(question => question.id !== heroQuestion.id)
+    : filteredQuestions
+
+  const allVisibleVotes = filteredQuestions.reduce(
+    (sum, question) => sum + (voteCounts[question.id]?.all?.total || 0),
+    0,
+  )
+  const allVisibleVerifiedVotes = filteredQuestions.reduce(
+    (sum, question) => sum + (voteCounts[question.id]?.verified?.total || 0),
+    0,
+  )
+  const activeQuestionCount = filteredQuestions.length
+  const totalQuestions = allQuestions.length
+  const visibleTypeLabel =
+    activeType === 'all'
+      ? 'Recent Signals'
+      : `${QUESTION_TYPE_META[activeType]?.label || 'Signal'} Stream`
+
+  const categoryCounts = useMemo(
+    () => categories.reduce((accumulator, category) => {
+      if (category === 'All') {
+        accumulator.All = allQuestions.length
+        return accumulator
+      }
+
+      accumulator[category] = allQuestions.filter(
+        question => titleCase(question.category || '') === category,
+      ).length
+      return accumulator
+    }, {}),
+    [allQuestions, categories],
+  )
+
+  const laneCounts = {
+    statement: allQuestions.filter(question => (question.type || 'statement') === 'statement').length,
+    choice: allQuestions.filter(question => question.type === 'choice').length,
+    ranked: allQuestions.filter(question => question.type === 'ranked').length,
+  }
+
   return (
-    <div className="page">
+    <div className="page pulse-feed-page">
       <NavBar />
-      <style>{`
-        @media (max-width: 1120px) {
-          .feed-shell {
-            grid-template-columns: 1fr !important;
-          }
-          .feed-sidebar {
-            display: none !important;
-          }
-        }
-        @media (min-width: 1121px) {
-          .feed-chip-row {
-            display: none !important;
-          }
-        }
-      `}</style>
-      <div style={{ maxWidth: 1380, margin: '0 auto', padding: '36px 20px 96px' }}>
-        <div className="feed-shell" style={{ display: 'grid', gridTemplateColumns: '248px minmax(0, 1fr)', gap: 36, alignItems: 'start' }}>
-          <aside className="feed-sidebar" style={{ position: 'sticky', top: 90 }}>
-            <div style={{
-              background: 'rgba(8,10,22,0.88)',
-              border: '1px solid rgba(201,168,76,0.12)',
-              borderRadius: 'var(--radius-xl)',
-              overflow: 'hidden',
-              boxShadow: '0 18px 40px rgba(0,0,0,0.18)',
-              backdropFilter: 'blur(18px)',
-            }}>
-              <div style={{ padding: '24px 22px 18px', borderBottom: '1px solid rgba(201,168,76,0.08)' }}>
-                <div style={{ fontFamily: 'var(--font-display)', fontSize: 28, color: 'var(--text)', marginBottom: 8 }}>
-                  Pulse Feed
-                </div>
-                <div style={{ fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase', color: 'var(--text-dim)', marginBottom: 10 }}>
-                  Intellectual rigor
-                </div>
-                <p style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 18,
-                  fontStyle: 'italic',
-                  color: 'var(--text-muted)',
-                  lineHeight: 1.3,
-                }}>
-                  Curated signals with room to think.
-                </p>
-              </div>
+      <style>{feedStyles}</style>
 
-              <div style={{ padding: '18px 12px 14px' }}>
-                <div style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-dim)', padding: '0 10px 10px' }}>
-                  Browse
-                </div>
-                <div style={{ display: 'grid', gap: 4 }}>
-                  {categories.map((cat) => (
-                    <button
-                      key={cat}
-                      onClick={() => setActiveCategory(cat)}
-                      style={{
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        width: '100%',
-                        background: activeCategory === cat ? 'rgba(255,255,255,0.05)' : 'transparent',
-                        border: 'none',
-                        borderLeft: activeCategory === cat ? '2px solid var(--gold)' : '2px solid transparent',
-                        color: activeCategory === cat ? 'var(--text)' : 'var(--text-muted)',
-                        padding: '12px 12px',
-                        cursor: 'pointer',
-                        textAlign: 'left',
-                        transition: 'var(--transition)',
-                        borderRadius: 14,
-                      }}
-                    >
-                      <span style={{ display: 'flex', alignItems: 'center', gap: 10, fontSize: 15 }}>
-                        {cat !== 'All' && (categoryCounts[cat] || 0) > 0 && (
-                          <span style={{
-                            width: 7,
-                            height: 7,
-                            borderRadius: '50%',
-                            background: activeCategory === cat ? 'var(--gold)' : 'var(--teal)',
-                            boxShadow: activeCategory === cat ? '0 0 14px rgba(201,168,76,0.35)' : '0 0 12px rgba(76,201,168,0.26)',
-                            flexShrink: 0,
-                          }} />
-                        )}
-                        {cat}
-                      </span>
-                      <span style={{ fontSize: 11, color: activeCategory === cat ? 'var(--gold)' : 'var(--text-dim)' }}>
-                        {cat === 'All'
-                          ? totalQuestions
-                          : categoryCounts[cat] || 0}
-                      </span>
-                    </button>
-                  ))}
-                </div>
-              </div>
-
-              <div style={{ padding: '10px 12px 18px', borderTop: '1px solid rgba(201,168,76,0.08)' }}>
-                <div style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: 'var(--text-dim)', padding: '0 10px 10px' }}>
-                  Your space
-                </div>
-                <div style={{ display: 'grid', gap: 8 }}>
-                  <SidebarNavLink to="/my-pulses" label="My Pulses" meta="What you've opened and answered" />
-                  <SidebarNavLink to="/suggestions" label="Suggestions" meta="Shape what Pulse asks next" />
-                  <SidebarNavLink to="/upcoming" label="Upcoming" meta="See the roadmap ahead" />
-                  <SidebarNavLink to="/profile" label="Profile" meta="Identity, recovery, and settings" />
-                  {isAdmin ? <SidebarNavLink to="/admin" label="Admin" meta="Manage questions and reviews" accent="var(--gold)" /> : null}
-                </div>
-              </div>
-
-              <div style={{ padding: '0 12px 18px' }}>
-                <Link
-                  to={isAdmin ? '/admin' : '/suggestions'}
-                  style={{
-                    display: 'block',
-                    width: '100%',
-                    textAlign: 'center',
-                    padding: '13px 14px',
-                    borderRadius: 16,
-                    border: '1px solid rgba(201,168,76,0.22)',
-                    background: 'linear-gradient(180deg, rgba(201,168,76,0.12), rgba(201,168,76,0.04))',
-                    color: 'var(--gold)',
-                    fontSize: 12,
-                    fontWeight: 700,
-                    letterSpacing: '0.14em',
-                    textTransform: 'uppercase',
-                    boxShadow: '0 10px 22px rgba(0,0,0,0.18)',
-                  }}
-                >
-                  {isAdmin ? 'New Signal' : 'Suggest a Signal'}
-                </Link>
-              </div>
-            </div>
-          </aside>
-
-          <div>
-        <div style={{ marginBottom: 28, maxWidth: 760 }}>
-          <div style={{ fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', color: 'var(--text-muted)', marginBottom: 10 }}>
-            Live Feed
+      <div className="feed-shell">
+        <aside className="feed-sidebar">
+          <div className="sidebar-brand">
+            <p className="sidebar-kicker">Signal Curator</p>
+            <h1>Pulse</h1>
+            <p className="sidebar-copy">
+              A sharper home for Signal, Decide, and Rank. Browse by lane or move
+              straight to the question pulling you in.
+            </p>
           </div>
-          <h1 style={{
-            fontFamily: 'var(--font-display)',
-            fontSize: 'clamp(34px, 5vw, 62px)',
-            fontWeight: 600,
-            color: 'var(--text)',
-            lineHeight: 1.02,
-            marginBottom: 14,
-            maxWidth: 760,
-          }}>
-            A cinematic stream of active questions.
-          </h1>
-          <p style={{ color: 'var(--text-dim)', fontSize: 15, letterSpacing: '0.01em', lineHeight: 1.7, maxWidth: 640 }}>
-            Browse the current signal stream, open the questions that pull you in, and watch the Truth Gap form in real time.
-          </p>
-        </div>
 
-        <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap', marginBottom: 36 }}>
-          <FeedMetricChip label="Questions" value={String(totalQuestions)} />
-          <FeedMetricChip label="Categories" value={String(categoryCount)} />
-          <FeedMetricChip label="Source" value="Live backend aligned" accent="var(--teal)" />
-          <FeedMetricChip label="Signals" value={String(typeCounts.statement)} accent="var(--gold)" />
-          <FeedMetricChip label="Decisions" value={String(typeCounts.choice)} accent="var(--teal)" />
-          <FeedMetricChip label="Rankings" value={String(typeCounts.ranked)} accent="#9B6FD8" />
-        </div>
-
-        {featuredQuestion && (
-          <div
-            ref={featuredCardRef}
-            className={`pulse-card${featuredBeat ? ' beat' : ''}`}
-            onClick={() => {
-              setFeaturedBeat(true)
-              setTimeout(() => setFeaturedBeat(false), 400)
-              sessionStorage.setItem('feed_scroll', window.scrollY)
-              setTimeout(() => navigate(`/vote/${featuredQuestion.id}`), 280)
-            }}
-            style={{
-              position: 'relative',
-              background: 'linear-gradient(135deg, rgba(201,168,76,0.08), rgba(10,12,26,0.95))',
-              border: '1px solid rgba(201,168,76,0.42)',
-              borderRadius: 'var(--radius-xl)',
-              padding: '36px',
-              marginBottom: 44,
-              cursor: 'pointer',
-              overflow: 'hidden',
-            }}
-          >
-            <div className="featured-grid" style={{ display: 'grid', gridTemplateColumns: 'minmax(0, 1.3fr) minmax(320px, 0.9fr)', gap: 28, alignItems: 'stretch', position: 'relative', zIndex: 1 }}>
-              <div style={{ minWidth: 0 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginBottom: 18 }}>
-                  <div style={{
-                    width: 10, height: 10, borderRadius: '50%',
-                    background: 'var(--gold)',
-                    animation: 'pulse-dot 1.5s ease-in-out infinite',
-                  }} />
-                  <span style={{
-                    fontSize: 13, letterSpacing: '0.25em', textTransform: 'uppercase',
-                    color: 'var(--gold)', fontWeight: 800,
-                    textShadow: '0 0 20px rgba(201,168,76,0.4)',
-                  }}>
-                    Pulse of the Day
-                  </span>
-                  <CategoryBadge category={featuredQuestion.category} />
-                  <TypeBadge type={featuredQuestion.type || 'statement'} />
-                </div>
-
-                <p style={{
-                  fontFamily: 'var(--font-ui, inherit)',
-                  fontSize: 'clamp(26px, 3.6vw, 42px)',
-                  fontWeight: 700,
-                  color: '#FFFFFF',
-                  lineHeight: 1.14,
-                  letterSpacing: '-0.01em',
-                  marginBottom: 18,
-                  maxWidth: 760,
-                }}>
-                  {(featuredQuestion.type || 'statement') === 'statement'
-                    ? `"${featuredQuestion.text}"`
-                    : featuredQuestion.text}
-                </p>
-
-                <p style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.65, maxWidth: 600, marginBottom: 0 }}>
-                  Enter the question, cast anonymously, and see whether verified truth converges with popular instinct.
-                </p>
-              </div>
-
-              <div style={{
-                background: 'rgba(6, 10, 22, 0.72)',
-                border: '1px solid rgba(201,168,76,0.18)',
-                borderRadius: 'var(--radius-xl)',
-                padding: 22,
-                display: 'flex',
-                flexDirection: 'column',
-                justifyContent: 'space-between',
-                gap: 18,
-                backdropFilter: 'blur(10px)',
-              }}>
-                <div style={{
-                  minHeight: 240,
-                  borderRadius: 'var(--radius-lg)',
-                  position: 'relative',
-                  background: getFeedMediaUrl(featuredQuestion)
-                    ? 'rgba(5,7,16,0.82)'
-                    : 'radial-gradient(circle at center, rgba(201,168,76,0.16), rgba(10,12,26,0.98) 62%)',
-                  border: '1px solid rgba(201,168,76,0.14)',
-                  overflow: 'hidden',
-                }}>
-                  {getFeedMediaUrl(featuredQuestion) && (
-                    <>
-                      <QuestionMedia
-                        src={getFeedMediaUrl(featuredQuestion)}
-                        alt={featuredQuestion.text}
-                        variant="hero"
-                        style={{ minHeight: 240, height: '100%' }}
-                      />
-                      <div style={{
-                        position: 'absolute',
-                        inset: 0,
-                        background: 'linear-gradient(180deg, rgba(5,7,16,0.08), rgba(5,7,16,0.5) 78%, rgba(5,7,16,0.72))',
-                      }} />
-                    </>
-                  )}
-                  <div style={{
-                    position: 'absolute',
-                    left: 18,
-                    bottom: 18,
-                    fontSize: 11,
-                    letterSpacing: '0.16em',
-                    textTransform: 'uppercase',
-                    color: 'var(--text-muted)',
-                  }}>
-                    Featured Signal
-                  </div>
-                </div>
-
-                <div style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  flexWrap: 'wrap',
-                  gap: 12,
-                }}>
-                  <span style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-                    {(() => {
-                      const n = voteCounts[featuredQuestion.id]?.all?.total || 0
-                      return n < 10 ? 'Be among the first to signal' : `${n} voices heard`
-                    })()}
-                  </span>
-                  <span
-                    className="reveal-btn"
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      const card = featuredCardRef.current
-                      if (card) {
-                        const cardRect = card.getBoundingClientRect()
-                        const btnRect = e.currentTarget.getBoundingClientRect()
-                        setRipple({
-                          x: btnRect.left - cardRect.left + btnRect.width / 2,
-                          y: btnRect.top - cardRect.top + btnRect.height / 2,
-                          key: Date.now(),
-                        })
-                      }
-                      sessionStorage.setItem('feed_scroll', window.scrollY)
-                      setTimeout(() => navigate(`/vote/${featuredQuestion.id}`), 420)
+          <div className="sidebar-section">
+            <p className="sidebar-label">Discovery</p>
+            <div className="sidebar-category-list">
+              {categories.map(category => {
+                const isActive = category === activeCategory
+                const color = category === 'All' ? 'var(--gold)' : (CATEGORY_COLORS[category] || 'var(--gold)')
+                return (
+                  <button
+                    key={category}
+                    type="button"
+                    className={`sidebar-category ${isActive ? 'active' : ''}`}
+                    onClick={() => setActiveCategory(category)}
+                    style={{
+                      '--category-accent': color,
+                      '--category-accent-rgb':
+                        category === 'All'
+                          ? '201, 168, 76'
+                          : hexToRgb(CATEGORY_COLORS[category] || '#C9A84C'),
                     }}
                   >
-                    Reveal the Signal →
-                  </span>
-                </div>
-              </div>
+                    <span>{category}</span>
+                    <span className="sidebar-count">{categoryCounts[category] || 0}</span>
+                  </button>
+                )
+              })}
             </div>
-
-            {ripple && (
-              <div
-                key={ripple.key}
-                style={{
-                  position: 'absolute',
-                  left: ripple.x,
-                  top: ripple.y,
-                  pointerEvents: 'none',
-                  transform: 'translate(-50%, -50%)',
-                  zIndex: 5,
-                }}
-              >
-                <span className="ripple-ring" style={{ animationDelay: '0ms' }} />
-                <span className="ripple-ring" style={{ animationDelay: '80ms' }} />
-                <span className="ripple-ring" style={{ animationDelay: '160ms' }} />
-              </div>
-            )}
-
-            <div style={{
-              position: 'absolute', top: -60, right: -60,
-              width: 200, height: 200, borderRadius: '50%',
-              background: 'radial-gradient(circle, rgba(201,168,76,0.08) 0%, transparent 70%)',
-              pointerEvents: 'none',
-            }} />
           </div>
-        )}
 
-        <style>{`
-          @media (max-width: 1024px) {
-            .featured-grid {
-              grid-template-columns: 1fr !important;
-            }
-          }
-          @media (max-width: 768px) {
-            .featured-grid {
-              gap: 18px !important;
-            }
-            .pulse-card {
-              padding: 20px !important;
-            }
-          }
-          @media (max-width: 900px) {
-            .feed-grid {
-              grid-template-columns: 1fr !important;
-            }
-          }
-          @media (max-width: 768px) {
-            .preview-grid {
-              grid-template-columns: 1fr !important;
-            }
-          }
-          @keyframes fadeSlideUp {
-            from { opacity: 0; transform: translateY(20px); }
-            to   { opacity: 1; transform: translateY(0); }
-          }
-          @keyframes heartbeat-calm {
-            0%, 100% {
-              box-shadow:
-                0 0 20px rgba(201,168,76,0.12),
-                0 0 0 1px rgba(201,168,76,0.35),
-                inset 0 0 40px rgba(201,168,76,0.02);
-            }
-            50% {
-              box-shadow:
-                0 0 50px rgba(201,168,76,0.32),
-                0 0 0 1px rgba(201,168,76,0.75),
-                inset 0 0 60px rgba(201,168,76,0.04);
-            }
-          }
-          @keyframes heartbeat-intense {
-            0%, 100% {
-              box-shadow:
-                0 0 30px rgba(201,168,76,0.20),
-                0 0 0 1px rgba(201,168,76,0.55),
-                inset 0 0 50px rgba(201,168,76,0.03);
-            }
-            50% {
-              box-shadow:
-                0 0 70px rgba(201,168,76,0.60),
-                0 0 0 1px rgba(201,168,76,0.95),
-                inset 0 0 80px rgba(201,168,76,0.08);
-            }
-          }
-          @keyframes heartbeat-spike {
-            0% {
-              box-shadow:
-                0 0 20px rgba(201,168,76,0.12),
-                0 0 0 1px rgba(201,168,76,0.35);
-            }
-            25% {
-              box-shadow:
-                0 0 90px rgba(201,168,76,0.85),
-                0 0 0 2px rgba(201,168,76,1),
-                inset 0 0 90px rgba(201,168,76,0.14);
-            }
-            100% {
-              box-shadow:
-                0 0 20px rgba(201,168,76,0.12),
-                0 0 0 1px rgba(201,168,76,0.35);
-            }
-          }
-          .pulse-card {
-            animation: heartbeat-calm 2.5s ease-in-out infinite;
-          }
-          .pulse-card:hover {
-            animation: heartbeat-intense 1.2s ease-in-out infinite;
-          }
-          .pulse-card.beat,
-          .pulse-card:hover.beat {
-            animation: heartbeat-spike 0.4s ease-out;
-          }
-          .reveal-btn {
-            display: inline-block;
-            padding: 10px 22px;
-            border: 1px solid #C9A84C;
-            border-radius: 999px;
-            color: #C9A84C;
-            font-size: 12px;
-            font-weight: 700;
-            letter-spacing: 0.12em;
-            text-transform: uppercase;
-            transition: all 0.2s ease;
-          }
-          .reveal-btn:hover {
-            background: rgba(201,168,76,0.15);
-            box-shadow: 0 0 20px rgba(201,168,76,0.35);
-          }
-          @keyframes ripple-expand {
-            0%   { transform: translate(-50%, -50%) scale(1);   opacity: 0.85; }
-            100% { transform: translate(-50%, -50%) scale(3.2); opacity: 0;    }
-          }
-          .ripple-ring {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 180px;
-            height: 36px;
-            border: 2px solid #C9A84C;
-            border-radius: 999px;
-            opacity: 0;
-            pointer-events: none;
-            animation: ripple-expand 0.5s ease-out forwards;
-          }
-        `}</style>
-
-        {!loading && questions.length > 0 && (() => {
-          const statements = questions.filter(q => (q.type || 'statement') === 'statement' && !q.featured)
-          const choices = questions.filter(q => q.type === 'choice' && !q.featured)
-          const ranked = questions.filter(q => q.type === 'ranked' && !q.featured)
-          const signalPreview = statements[0] || null
-          const decidePreview = choices[0] || null
-          const rankPreview = ranked[0] || null
-          return (
-            <div style={{ marginBottom: 40 }}>
-              <p style={{
-                fontFamily: 'var(--font-ui, inherit)',
-                fontSize: 15,
-                color: 'var(--text-muted)',
-                textAlign: 'center',
-                marginBottom: 18,
-                lineHeight: 1.6,
-              }}>
-                Explore how people think, choose, and prioritize.
-              </p>
-              <div className="preview-grid" style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
-                gap: 18,
-              }}>
-                <PreviewCard
-                  type="statement"
-                  label="Signal"
-                  icon="◈"
-                  color="#C9A84C"
-                  tagline="Where do you stand?"
-                  viewAllLabel="Explore Signals →"
-                  question={signalPreview}
-                  count={statements.length}
-                  onClick={() => handleFilterAndScroll('statement')}
-                  isActive={activeType === 'statement'}
-                  isDimmed={activeType !== 'all' && activeType !== 'statement'}
-                />
-                <PreviewCard
-                  type="choice"
-                  label="Decide"
-                  icon="◎"
-                  color="#4CC9A8"
-                  tagline="One choice. No middle ground."
-                  viewAllLabel="Explore Decisions →"
-                  question={decidePreview}
-                  count={choices.length}
-                  onClick={() => handleFilterAndScroll('choice')}
-                  isActive={activeType === 'choice'}
-                  isDimmed={activeType !== 'all' && activeType !== 'choice'}
-                />
-                <PreviewCard
-                  type="ranked"
-                  label="Rank"
-                  icon="◆"
-                  color="#9B6FD8"
-                  tagline="Your order. Your truth."
-                  viewAllLabel="Explore Rankings →"
-                  question={rankPreview}
-                  count={ranked.length}
-                  onClick={() => handleFilterAndScroll('ranked')}
-                  isActive={activeType === 'ranked'}
-                  isDimmed={activeType !== 'all' && activeType !== 'ranked'}
-                />
-              </div>
+          <div className="sidebar-section">
+            <p className="sidebar-label">Your space</p>
+            <div className="sidebar-link-list">
+              <SidebarNavLink to="/my-pulses" label="My Pulses" meta="What you opened and answered" />
+              <SidebarNavLink to="/suggestions" label="Suggestions" meta="Shape what Pulse asks next" />
+              <SidebarNavLink to="/upcoming" label="Upcoming" meta="See the roadmap ahead" />
+              <SidebarNavLink to="/profile" label="Profile" meta="Identity, recovery, and settings" />
+              {isAdmin ? (
+                <SidebarNavLink to="/admin" label="Admin" meta="Manage questions and reviews" accent="var(--gold)" />
+              ) : null}
             </div>
-          )
-        })()}
+          </div>
 
-        <div className="feed-chip-row" ref={contentRef} style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 28, scrollMarginTop: 80 }}>
-          {categories.map(cat => {
-            const isActive = activeCategory === cat
-            const catColor = cat === 'All' ? 'var(--gold)' : (CATEGORY_COLORS[cat] || 'var(--gold)')
-            const rgb = cat === 'All' ? '201,168,76' : hexToRgb(CATEGORY_COLORS[cat] || '#C9A84C')
-            return (
-              <button key={cat} onClick={() => setActiveCategory(cat)} style={{
-                padding: '7px 18px',
-                borderRadius: 999,
-                border: `1px solid ${isActive ? catColor : 'rgba(201,168,76,0.15)'}`,
-                background: isActive ? `rgba(${rgb},0.12)` : 'transparent',
-                color: isActive ? catColor : 'var(--text-muted)',
-                fontSize: 13,
-                fontWeight: 500,
-                cursor: 'pointer',
-                transition: 'var(--transition)',
-              }}>
-                {cat}
+          <div className="sidebar-actions">
+            <button
+              type="button"
+              className="sidebar-primary-action"
+              onClick={() => navigate(isAdmin ? '/admin' : '/suggestions')}
+            >
+              {isAdmin ? '+ New Signal' : 'Suggest a Signal'}
+            </button>
+            <button type="button" className="sidebar-secondary-action" onClick={() => navigate('/profile')}>
+              Settings
+            </button>
+            <button type="button" className="sidebar-secondary-action" onClick={() => navigate('/upcoming')}>
+              Support
+            </button>
+          </div>
+
+          <div className="sidebar-footer">
+            <p className="sidebar-footnote">Verified layer active</p>
+            <strong>{formatCount(allVisibleVerifiedVotes)} verified votes in view</strong>
+          </div>
+        </aside>
+
+        <div className="feed-main-column">
+          <header className="feed-topbar">
+            <div className="feed-tabs" role="tablist" aria-label="Feed lanes">
+              {TOP_TABS.map(tab => {
+                const isActive = activeType === tab.key
+                return (
+                  <button
+                    key={tab.key}
+                    type="button"
+                    className={`feed-tab ${isActive ? 'active' : ''}`}
+                    onClick={() => handleTypeChange(tab.key)}
+                  >
+                    {tab.label}
+                  </button>
+                )
+              })}
+              <button type="button" className="feed-tab utility" onClick={() => navigate('/upcoming')}>
+                Upcoming
               </button>
-            )
-          })}
-        </div>
+            </div>
 
-        {loading
-          ? <PageLoading />
-          : questions.length === 0
-            ? <EmptyState message="Nothing here yet." />
-            : (() => {
-                const statements = questions.filter(q => (q.type || 'statement') === 'statement' && !q.featured)
-                const choices = questions.filter(q => q.type === 'choice' && !q.featured)
-                const ranked = questions.filter(q => q.type === 'ranked' && !q.featured)
-                const allSections = [
-                  { key: 'statement', icon: '◈', color: 'var(--gold)', title: 'Signals', items: statements },
-                  { key: 'choice', icon: '◎', color: 'var(--teal)', title: 'Decisions', items: choices },
-                  { key: 'ranked', icon: '◆', color: '#9B6FD8', title: 'Rankings', items: ranked },
-                ]
-                const sections = activeType === 'all'
-                  ? allSections
-                  : allSections.filter(s => s.key === activeType)
-                return sections
-                  .filter(s => s.items.length > 0)
-                  .map(s => (
-                    <div key={s.key} style={{ marginBottom: 54 }}>
-                      <div style={{
-                        marginBottom: 20,
-                        paddingBottom: 16,
-                        borderBottom: '1px solid rgba(201,168,76,0.12)',
-                      }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-                          <span style={{ fontSize: 20 }}>{s.icon}</span>
-                          <h2 style={{
-                            fontFamily: 'var(--font-display)',
-                            fontSize: 28,
-                            fontWeight: 600,
-                            color: s.color,
-                          }}>
-                            {s.title}
-                          </h2>
-                          <span style={{ fontSize: 12, color: 'var(--text-dim)', marginLeft: 'auto' }}>
-                            {s.items.length} {s.items.length === 1 ? 'item' : 'items'}
-                          </span>
-                        </div>
-                        <p style={{
-                          fontFamily: 'var(--font-display)',
-                          fontSize: 17,
-                          fontStyle: 'italic',
-                          color: 'var(--text-muted)',
-                          marginTop: 8,
-                          marginLeft: 32,
-                          lineHeight: 1.45,
-                        }}>
-                          {getSectionSubtitle(s.key)}
-                        </p>
-                      </div>
-                      <div className="feed-grid" style={{ display: 'grid', gridTemplateColumns: 'repeat(2, minmax(0, 1fr))', columnGap: 34, rowGap: 40 }}>
-                        {s.items.map((q, i) => (
-                          <div
-                            key={q.id}
-                            style={{
-                              animation: 'fadeSlideUp 0.3s ease-out both',
-                              animationDelay: `${i * 50}ms`,
-                            }}
-                          >
-                            <StatementCard
-                              question={q}
-                              counts={voteCounts[q.id]}
-                              onClick={() => {
-                                sessionStorage.setItem('feed_scroll', window.scrollY)
-                                navigate(`/vote/${q.id}`)
-                              }}
-                            />
-                          </div>
-                        ))}
-                      </div>
+            <div className="feed-topbar-actions">
+              <div className="feed-search-shell">
+                <span className="feed-search-icon">Search</span>
+                <input
+                  className="feed-search"
+                  type="text"
+                  value=""
+                  readOnly
+                  aria-label="Search signals"
+                  placeholder="Search signals..."
+                />
+              </div>
+              <button
+                type="button"
+                className="topbar-primary-action"
+                onClick={() => navigate(isAdmin ? '/admin' : '/suggestions')}
+              >
+                {isAdmin ? 'New Signal' : 'Suggest'}
+              </button>
+            </div>
+          </header>
+
+          <main className="feed-content">
+            <div className="feed-mobile-categories">
+              {categories.map(category => (
+                <button
+                  key={category}
+                  type="button"
+                  className={`mobile-category-chip ${category === activeCategory ? 'active' : ''}`}
+                  onClick={() => setActiveCategory(category)}
+                >
+                  {category}
+                </button>
+              ))}
+            </div>
+
+            <section className="feed-intro">
+              <p className="feed-kicker">Live Feed</p>
+              <h2>
+                A cinematic stream of <span>active questions.</span>
+              </h2>
+              <p className="feed-intro-copy">
+                Browse the current signal stream, open the questions that pull you in,
+                and watch verified truth separate from ambient opinion in real time.
+              </p>
+            </section>
+
+            {loading ? (
+              <PageLoading />
+            ) : (
+              <>
+                {heroQuestion ? (
+                  <FeaturedQuestionCard
+                    question={heroQuestion}
+                    counts={voteCounts[heroQuestion.id]}
+                    onOpen={() => handleOpenQuestion(heroQuestion.id)}
+                  />
+                ) : (
+                  <EmptyState message="No live questions match this lane yet." />
+                )}
+
+                <section className="feed-section" ref={contentRef}>
+                  <div className="feed-section-heading">
+                    <div>
+                      <p className="feed-section-kicker">
+                        {activeCategory === 'All' ? 'Across the feed' : activeCategory}
+                      </p>
+                      <h3>{visibleTypeLabel}</h3>
                     </div>
-                  ))
-              })()
-        }
-          </div>
+                    <p className="feed-section-meta">{activeQuestionCount} active questions</p>
+                  </div>
+
+                  {gridQuestions.length === 0 ? (
+                    <EmptyState message="The featured card is carrying this lane for now." />
+                  ) : (
+                    <div className="feed-card-grid">
+                      {gridQuestions.map(question => (
+                        <FeedQuestionCard
+                          key={question.id}
+                          question={question}
+                          counts={voteCounts[question.id]}
+                          onOpen={() => handleOpenQuestion(question.id)}
+                        />
+                      ))}
+                    </div>
+                  )}
+                </section>
+
+                <section className="feed-metrics">
+                  <MetricCard
+                    label="Active Questions"
+                    value={formatCount(totalQuestions)}
+                    body="Questions currently available across the live feed."
+                  />
+                  <MetricCard
+                    label="Signals Captured"
+                    value={formatCount(allVisibleVotes)}
+                    body={`Signal ${laneCounts.statement} · Decide ${laneCounts.choice} · Rank ${laneCounts.ranked}`}
+                  />
+                  <MetricCard
+                    label="Verified Layer"
+                    value={formatCount(allVisibleVerifiedVotes)}
+                    body="Verified participation stays visible without overpowering the question itself."
+                    accent="teal"
+                  />
+                </section>
+              </>
+            )}
+          </main>
         </div>
       </div>
     </div>
   )
 }
 
-function FeedMetricChip({ label, value, accent = 'var(--gold)' }) {
+function FeaturedQuestionCard({ question, counts, onOpen }) {
+  const type = question.type || 'statement'
+  const accent = getQuestionAccent(type)
+  const mediaUrl = getFeedMediaUrl(question)
+  const verifiedVotes = counts?.verified?.total || 0
+
   return (
-    <div style={{
-      padding: '10px 14px',
-      borderRadius: 999,
-      background: 'rgba(10,12,26,0.74)',
-      border: `1px solid ${accent === 'var(--teal)' ? 'rgba(76,201,168,0.22)' : 'rgba(201,168,76,0.22)'}`,
-      display: 'flex',
-      flexDirection: 'column',
-      gap: 2,
-    }}>
-      <div style={{ fontSize: 10, letterSpacing: '0.14em', textTransform: 'uppercase', color: accent, fontWeight: 700 }}>
-        {label}
+    <section className="featured-card" style={{ '--featured-accent': accent }}>
+      <div className="featured-copy">
+        <div className="featured-meta">
+          <span className="featured-pill">Pulse of the Day</span>
+          <span className="featured-tag">{titleCase(question.category || 'General')}</span>
+          <span className="featured-tag subtle">{getQuestionLabel(type)}</span>
+        </div>
+
+        <h3>{formatQuestionText(question)}</h3>
+        <p>{getQuestionSummary(question, counts)}</p>
+
+        <div className="featured-actions">
+          <button type="button" className="featured-cta" onClick={onOpen}>
+            Reveal the Signal
+          </button>
+          <div className="featured-stats">
+            <span>{getQuestionFootnote(question, counts)}</span>
+            {verifiedVotes > 0 ? <strong>{formatCount(verifiedVotes)} verified</strong> : null}
+          </div>
+        </div>
       </div>
-      <div style={{ fontSize: 13, color: 'var(--text)' }}>
-        {value}
-      </div>
-    </div>
+
+      <button type="button" className="featured-media-shell" onClick={onOpen}>
+        {mediaUrl ? (
+          <QuestionMedia
+            src={mediaUrl}
+            alt={question.text}
+            variant="hero"
+            style={{ width: '100%', height: '100%', minHeight: 320 }}
+          />
+        ) : (
+          <div className="featured-media placeholder">
+            <span>Signal Preview</span>
+          </div>
+        )}
+        <div className="featured-media-overlay" />
+      </button>
+    </section>
+  )
+}
+
+function FeedQuestionCard({ question, counts, onOpen }) {
+  const type = question.type || 'statement'
+  const accent = getQuestionAccent(type)
+  const mediaUrl = getFeedMediaUrl(question)
+
+  return (
+    <article className="feed-card" style={{ '--card-accent': accent }}>
+      <button type="button" className="feed-card-button" onClick={onOpen}>
+        <div className="feed-card-header">
+          <div className="feed-card-meta">
+            <span className="feed-card-type">{getQuestionLabel(type)}</span>
+            <span className="feed-card-category">{titleCase(question.category || 'General')}</span>
+          </div>
+          <span className="feed-card-votes">
+            {formatCount(counts?.all?.total || 0)} votes
+          </span>
+        </div>
+
+        <div className="feed-card-media-shell">
+          {mediaUrl ? (
+            <QuestionMedia
+              src={mediaUrl}
+              alt={question.text}
+              variant="card"
+              style={{ width: '100%', height: '100%' }}
+            />
+          ) : (
+            <div className="feed-card-media placeholder">
+              <span>{getQuestionLabel(type)}</span>
+            </div>
+          )}
+        </div>
+
+        <div className="feed-card-body">
+          <h4>{formatQuestionText(question)}</h4>
+          <p>{getQuestionSummary(question, counts)}</p>
+        </div>
+
+        <div className="feed-card-footer">
+          <span className="feed-card-action">{`${CARD_ACTION[type] || 'Open Question'} ->`}</span>
+          <span className="feed-card-footnote">{getQuestionFootnote(question, counts)}</span>
+        </div>
+      </button>
+    </article>
+  )
+}
+
+function MetricCard({ label, value, body, accent = 'gold' }) {
+  return (
+    <article className={`metric-card ${accent}`}>
+      <p>{label}</p>
+      <strong>{value}</strong>
+      <span>{body}</span>
+    </article>
   )
 }
 
 function SidebarNavLink({ to, label, meta, accent = 'var(--teal)' }) {
   return (
-    <Link
-      to={to}
-      style={{
-        display: 'block',
-        padding: '12px 12px',
-        borderRadius: 14,
-        background: 'rgba(255,255,255,0.025)',
-        border: '1px solid rgba(255,255,255,0.05)',
-        textDecoration: 'none',
-        transition: 'var(--transition)',
-      }}
-    >
-      <div style={{ color: accent, fontSize: 13, fontWeight: 700, marginBottom: 4, letterSpacing: '0.04em' }}>
+    <Link to={to} className="sidebar-link">
+      <div className="sidebar-link-label" style={{ '--sidebar-link-accent': accent }}>
         {label}
       </div>
-      <div style={{ color: 'var(--text-dim)', fontSize: 12, lineHeight: 1.45 }}>
-        {meta}
-      </div>
+      <div className="sidebar-link-meta">{meta}</div>
     </Link>
   )
 }
 
-function PreviewCard({ type, label, icon, color, tagline, viewAllLabel, question, count, onClick, isActive, isDimmed }) {
-  const [hovered, setHovered] = useState(false)
-  const elevated = isActive || (!isDimmed && hovered)
-  const previewText = question
-    ? (type === 'statement' ? `"${question.text}"` : question.text)
-    : tagline
-
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onClick}
-      style={{
-        position: 'relative',
-        overflow: 'hidden',
-        minHeight: 336,
-        background: elevated
-          ? `linear-gradient(135deg, rgba(15,18,35,0.98), ${color}22)`
-          : 'linear-gradient(180deg, rgba(10,12,26,0.92), rgba(10,12,26,0.74))',
-        border: `1px solid ${isActive ? color : elevated ? `${color}99` : `${color}1A`}`,
-        borderRadius: 'var(--radius-xl)',
-        padding: '22px',
-        cursor: 'pointer',
-        transition: 'all 0.25s ease',
-        transform: isDimmed
-          ? 'scale(0.97)'
-          : elevated
-            ? 'translateY(-5px) scale(1.02)'
-            : 'none',
-        opacity: isDimmed ? 0.5 : 1,
-        boxShadow: isActive
-          ? `0 16px 48px ${color}66, 0 0 0 1px ${color}, 0 0 24px ${color}44`
-          : elevated
-            ? `0 12px 40px ${color}33, 0 0 0 1px ${color}44`
-            : 'none',
-        display: 'flex',
-        flexDirection: 'column',
-      }}
-    >
-      <div style={{
-        position: 'absolute', inset: 0,
-        background: 'linear-gradient(180deg, rgba(3,4,11,0.08) 0%, rgba(3,4,11,0.2) 36%, rgba(3,4,11,0.92) 100%)',
-        pointerEvents: 'none',
-      }} />
-
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12, position: 'relative', zIndex: 1 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span style={{ color, fontSize: 14 }}>{icon}</span>
-          <span style={{ fontSize: 13, fontWeight: 700, color, letterSpacing: '0.05em' }}>{label}</span>
-        </div>
-        <span style={{
-          fontSize: 11,
-          color: 'var(--text-dim)',
-          background: 'rgba(255,255,255,0.04)',
-          padding: '2px 8px',
-          borderRadius: 999,
-        }}>
-          {count}
-        </span>
-      </div>
-
-      <div style={{ marginTop: 'auto', position: 'relative', zIndex: 1 }}>
-        {getFeedMediaUrl(question) && (
-          <div style={{
-            position: 'relative',
-            borderRadius: 22,
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.08)',
-            marginBottom: 18,
-            minHeight: 176,
-            background: 'rgba(5,7,16,0.72)',
-          }}>
-            <QuestionMedia
-              src={getFeedMediaUrl(question)}
-              alt={question.text}
-              variant="card"
-              style={{ minHeight: 176, height: '100%' }}
-            />
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg, rgba(3,4,11,0.04), rgba(3,4,11,0.18) 48%, rgba(3,4,11,0.52))',
-            }} />
-          </div>
-        )}
-        <p style={{
-          fontFamily: 'var(--font-ui, inherit)',
-          fontSize: 21,
-          color: 'var(--text)',
-          lineHeight: 1.26,
-          fontWeight: 700,
-          marginBottom: 12,
-          display: '-webkit-box',
-          WebkitLineClamp: 3,
-          WebkitBoxOrient: 'vertical',
-          overflow: 'hidden',
-        }}>
-          {previewText}
-        </p>
-
-        <p style={{
-          fontSize: 12,
-          color: 'var(--text-muted)',
-          marginBottom: 14,
-          lineHeight: 1.55,
-          maxWidth: 280,
-        }}>
-          {tagline}
-        </p>
-
-        <div style={{
-          fontSize: 13,
-          color,
-          fontWeight: 600,
-          letterSpacing: '0.05em',
-          opacity: elevated ? 1 : 0.75,
-          transform: elevated ? 'translateX(6px)' : 'none',
-          transition: 'all 0.25s ease',
-        }}>
-          {isActive ? '← Back to All' : viewAllLabel}
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function StatementCard({ question, counts, onClick }) {
-  const [hovered, setHovered] = useState(false)
-  const type = question.type || 'statement'
-  const total = counts?.all?.total || 0
-  const verCount = counts?.verified?.total || 0
-
-  function getSummary() {
-    if (!counts || total === 0) return null
-
-    const isLocked = question.reveal_mode && question.reveal_mode !== 'instant'
-    if (isLocked) {
-      return (
-        <div style={{
-          display: 'flex',
-          alignItems: 'center',
-          gap: 8,
-          fontSize: 12,
-          color: 'var(--text-dim)',
-          lineHeight: 1.45,
-        }}>
-          <span style={{ opacity: 0.5 }}>◈</span>
-          <span>
-            {question.reveal_mode === 'threshold'
-              ? `${total} voted · results reveal at ${question.reveal_threshold}`
-              : `${total} voted · results locked until reveal date`}
-          </span>
-        </div>
-      )
-    }
-
-    if (type === 'statement') {
-      const { Disagree, Neutral, Agree } = counts.all
-      return (
-        <>
-          <div style={{ display: 'flex', gap: 2, height: 5, borderRadius: 3, overflow: 'hidden', marginBottom: 6 }}>
-            <div style={{ width: `${Disagree}%`, background: '#C94C4C' }} />
-            <div style={{ width: `${Neutral}%`, background: 'var(--gold)' }} />
-            <div style={{ width: `${Agree}%`, background: 'var(--teal)' }} />
-          </div>
-          <div style={{ display: 'flex', gap: 14, fontSize: 11, color: 'var(--text-muted)', flexWrap: 'wrap' }}>
-            <span><span style={{ color: '#C94C4C', fontWeight: 600 }}>{Disagree}%</span> Disagree</span>
-            <span><span style={{ color: 'var(--gold)', fontWeight: 600 }}>{Neutral}%</span> Neutral</span>
-            <span><span style={{ color: 'var(--teal)', fontWeight: 600 }}>{Agree}%</span> Agree</span>
-          </div>
-        </>
-      )
-    }
-
-    if (type === 'choice') {
-      const winner = counts.all?.winner
-      return winner ? <div style={{ fontSize: 12, color: 'var(--teal)' }}>Leading: <strong>{winner}</strong></div> : null
-    }
-
-    if (type === 'ranked') {
-      const top = counts.all?.options?.[0]?.label
-      return top ? <div style={{ fontSize: 12, color: '#9B6FD8' }}>Top ranked: <strong>{top}</strong></div> : null
-    }
-
-    return null
+const feedStyles = `
+  .pulse-feed-page {
+    min-height: 100vh;
+    background:
+      radial-gradient(circle at top right, rgba(76, 201, 168, 0.12), transparent 24%),
+      radial-gradient(circle at top left, rgba(201, 168, 76, 0.14), transparent 30%),
+      linear-gradient(180deg, #05060f 0%, #070910 100%);
   }
 
-  return (
-    <div
-      onMouseEnter={() => setHovered(true)}
-      onMouseLeave={() => setHovered(false)}
-      onClick={onClick}
-      style={{
-        position: 'relative',
-        minHeight: 520,
-        background: 'linear-gradient(180deg, rgba(15,18,34,0.96), rgba(8,10,22,0.98))',
-        border: `1px solid ${hovered ? 'rgba(201,168,76,0.4)' : 'rgba(201,168,76,0.15)'}`,
-        borderRadius: 'var(--radius-xl)',
-        padding: '22px 22px 24px',
-        cursor: 'pointer',
-        transition: 'all var(--transition)',
-        transform: hovered ? 'translateY(-4px)' : 'none',
-        boxShadow: hovered ? '0 18px 42px rgba(0,0,0,0.26)' : 'none',
-        overflow: 'hidden',
-        display: 'flex',
-        flexDirection: 'column',
-        justifyContent: 'space-between',
-      }}
-    >
-      <div style={{
-        position: 'absolute',
-        left: 0,
-        top: 0,
-        right: 0,
-        height: 1,
-        background: type === 'choice'
-          ? 'linear-gradient(90deg, transparent, rgba(76,201,168,0.75), transparent)'
-          : type === 'ranked'
-            ? 'linear-gradient(90deg, transparent, rgba(155,111,216,0.75), transparent)'
-            : 'linear-gradient(90deg, transparent, rgba(201,168,76,0.75), transparent)',
-        opacity: hovered ? 1 : 0.55,
-        transition: 'var(--transition)',
-      }} />
+  .feed-shell {
+    min-height: calc(100vh - 60px);
+    display: grid;
+    grid-template-columns: 280px minmax(0, 1fr);
+  }
 
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, marginBottom: 18 }}>
-        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
-          <CategoryBadge category={question.category} />
-          <TypeBadge type={type} />
-        </div>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 3,
-          textAlign: 'right',
-          flexShrink: 0,
-          background: 'rgba(7,10,22,0.72)',
-          padding: '10px 12px',
-          borderRadius: 16,
-          border: '1px solid rgba(255,255,255,0.06)',
-        }}>
-          <div style={{ fontSize: 12, color: 'var(--text-muted)' }}>
-            <span style={{ color: 'var(--text)', fontWeight: 600 }}>{total}</span> {total === 1 ? 'vote' : 'votes'}
-          </div>
-          {verCount > 0 && (
-            <div style={{ fontSize: 12, color: 'var(--teal)' }}>
-              <span style={{ fontWeight: 600 }}>{verCount}</span> verified
-            </div>
-          )}
-        </div>
-      </div>
+  .feed-sidebar {
+    position: sticky;
+    top: 60px;
+    height: calc(100vh - 60px);
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    padding: 28px 20px 24px;
+    background: rgba(13, 16, 27, 0.92);
+    border-right: 1px solid rgba(201, 168, 76, 0.08);
+    backdrop-filter: blur(18px);
+  }
 
-      <div style={{
-        minHeight: 180,
-        borderRadius: '26px',
-        overflow: 'hidden',
-        position: 'relative',
-        background: getFeedMediaUrl(question)
-          ? 'rgba(5,7,16,0.82)'
-          : 'radial-gradient(circle at center, rgba(76,201,168,0.1), rgba(18,22,42,0.98) 62%)',
-        border: '1px solid rgba(255,255,255,0.06)',
-        marginBottom: 20,
-      }}>
-        {getFeedMediaUrl(question) && (
-          <>
-            <QuestionMedia
-              src={getFeedMediaUrl(question)}
-              alt={question.text}
-              variant="card"
-              style={{ minHeight: 180, height: '100%' }}
-            />
-            <div style={{
-              position: 'absolute',
-              inset: 0,
-              background: 'linear-gradient(180deg, rgba(5,7,16,0.05), rgba(5,7,16,0.18) 55%, rgba(5,7,16,0.32))',
-            }} />
-          </>
-        )}
-        {!getFeedMediaUrl(question) && (
-          <div style={{
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            color: 'rgba(255,255,255,0.14)',
-            fontSize: 34,
-            letterSpacing: '0.2em',
-          }}>
-            {type === 'choice' ? '◎' : type === 'ranked' ? '◆' : '◈'}
-          </div>
-        )}
-      </div>
+  .sidebar-brand h1 {
+    font-family: var(--font-display);
+    font-size: 54px;
+    line-height: 0.95;
+    color: var(--text);
+    margin-bottom: 12px;
+  }
 
-      <div style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
-        <p style={{
-          fontFamily: 'var(--font-ui, inherit)',
-          fontSize: 'clamp(22px, 2vw, 31px)',
-          lineHeight: 1.22,
-          color: '#FFFFFF',
-          fontWeight: 700,
-          letterSpacing: '-0.01em',
-          marginTop: 0,
-          marginBottom: 12,
-        }}>
-          {type === 'statement' ? `"${question.text}"` : question.text}
-        </p>
-        <p style={{
-          fontSize: 14,
-          color: 'var(--text-muted)',
-          lineHeight: 1.65,
-          marginTop: 0,
-          marginBottom: 22,
-          maxWidth: 520,
-        }}>
-          {type === 'choice'
-            ? 'Choose one side and reveal where the collective is leaning.'
-            : type === 'ranked'
-              ? 'Arrange the options in order of intensity, importance, or risk.'
-              : 'Place yourself on the spectrum and see how the wider signal responds.'}
-        </p>
-      </div>
+  .sidebar-kicker,
+  .sidebar-label,
+  .feed-kicker,
+  .feed-section-kicker {
+    font-size: 11px;
+    letter-spacing: 0.24em;
+    text-transform: uppercase;
+    color: var(--gold);
+    margin-bottom: 12px;
+  }
 
-      <div style={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 18, marginTop: 'auto' }}>
-        <div style={{ flex: 1, minWidth: 0 }}>
-          {total > 0
-            ? getSummary()
-            : <div style={{ fontSize: 12, color: 'var(--text-dim)', fontStyle: 'italic' }}>Be the first to signal →</div>
-          }
-          {hovered && (
-            <div style={{
-              marginTop: 12,
-              display: 'flex',
-              gap: 14,
-              flexWrap: 'wrap',
-              fontSize: 11,
-              color: 'var(--text-dim)',
-            }}>
-              <span>Verified Truth: <span style={{ color: 'var(--teal)' }}>{verCount}</span></span>
-              <span>Layer: <span style={{ color: 'var(--text-muted)' }}>{type === 'ranked' ? 'Priority' : type === 'choice' ? 'Decision' : 'Signal'}</span></span>
-            </div>
-          )}
-        </div>
-        <div style={{
-          fontSize: 12,
-          color: hovered ? 'var(--gold)' : 'var(--text-dim)',
-          letterSpacing: '0.12em',
-          textTransform: 'uppercase',
-          transition: 'var(--transition)',
-          flexShrink: 0,
-        }}>
-          {getActionLabel(type)} →
-        </div>
-      </div>
-    </div>
-  )
-}
+  .sidebar-copy {
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.7;
+    max-width: 220px;
+  }
+
+  .sidebar-section {
+    display: grid;
+    gap: 16px;
+  }
+
+  .sidebar-category-list,
+  .sidebar-link-list {
+    display: grid;
+    gap: 8px;
+  }
+
+  .sidebar-category {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 14px 16px;
+    border-radius: 18px;
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.01);
+    color: var(--text-muted);
+    transition: var(--transition);
+    text-align: left;
+  }
+
+  .sidebar-category.active {
+    color: var(--category-accent);
+    border-color: rgba(var(--category-accent-rgb), 0.32);
+    background: rgba(var(--category-accent-rgb), 0.1);
+  }
+
+  .sidebar-category:hover {
+    border-color: rgba(var(--category-accent-rgb), 0.2);
+    color: var(--text);
+  }
+
+  .sidebar-count {
+    min-width: 28px;
+    padding: 4px 8px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.04);
+    font-size: 11px;
+    text-align: center;
+  }
+
+  .sidebar-link {
+    display: block;
+    padding: 12px 14px;
+    border-radius: 16px;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background: rgba(255, 255, 255, 0.02);
+    transition: var(--transition);
+  }
+
+  .sidebar-link:hover {
+    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .sidebar-link-label {
+    color: var(--sidebar-link-accent);
+    font-size: 13px;
+    font-weight: 700;
+    margin-bottom: 4px;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+  }
+
+  .sidebar-link-meta {
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.45;
+  }
+
+  .sidebar-actions {
+    margin-top: auto;
+    display: grid;
+    gap: 10px;
+  }
+
+  .sidebar-primary-action,
+  .topbar-primary-action,
+  .featured-cta {
+    border: 1px solid rgba(201, 168, 76, 0.42);
+    background: linear-gradient(135deg, rgba(201, 168, 76, 0.18), rgba(201, 168, 76, 0.06));
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    border-radius: 16px;
+    transition: var(--transition);
+  }
+
+  .sidebar-primary-action {
+    padding: 16px 18px;
+  }
+
+  .topbar-primary-action {
+    padding: 14px 18px;
+  }
+
+  .featured-cta {
+    padding: 18px 26px;
+  }
+
+  .sidebar-primary-action:hover,
+  .topbar-primary-action:hover,
+  .featured-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 30px rgba(201, 168, 76, 0.12);
+  }
+
+  .sidebar-secondary-action {
+    padding: 12px 0;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    text-align: left;
+  }
+
+  .sidebar-footer {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+    padding-top: 18px;
+    display: grid;
+    gap: 6px;
+  }
+
+  .sidebar-footnote {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .sidebar-footer strong {
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .feed-main-column {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .feed-topbar {
+    position: sticky;
+    top: 60px;
+    z-index: 20;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 24px;
+    padding: 18px 40px;
+    background: rgba(9, 11, 19, 0.86);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+    backdrop-filter: blur(18px);
+  }
+
+  .feed-tabs {
+    display: flex;
+    align-items: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .feed-tab {
+    position: relative;
+    border: 0;
+    background: none;
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding: 10px 0;
+  }
+
+  .feed-tab.active,
+  .feed-tab:hover {
+    color: var(--text);
+  }
+
+  .feed-tab.active::after {
+    content: '';
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: -1px;
+    height: 2px;
+    border-radius: 999px;
+    background: var(--gold);
+  }
+
+  .feed-tab.utility {
+    color: var(--text-dim);
+  }
+
+  .feed-topbar-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .feed-search-shell {
+    min-width: min(320px, 40vw);
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 0 16px;
+    height: 46px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+  }
+
+  .feed-search-icon {
+    color: var(--text-dim);
+    font-size: 12px;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .feed-search {
+    width: 100%;
+    border: 0;
+    background: transparent;
+    color: var(--text-muted);
+    outline: none;
+    font-size: 14px;
+  }
+
+  .feed-content {
+    padding: 40px;
+    display: grid;
+    gap: 34px;
+  }
+
+  .feed-mobile-categories {
+    display: none;
+    gap: 10px;
+    overflow-x: auto;
+    padding-bottom: 6px;
+  }
+
+  .mobile-category-chip {
+    flex: 0 0 auto;
+    padding: 10px 14px;
+    border-radius: 999px;
+    border: 1px solid rgba(201, 168, 76, 0.15);
+    background: rgba(255, 255, 255, 0.03);
+    color: var(--text-muted);
+    font-size: 12px;
+  }
+
+  .mobile-category-chip.active {
+    color: var(--gold);
+    background: rgba(201, 168, 76, 0.12);
+    border-color: rgba(201, 168, 76, 0.3);
+  }
+
+  .feed-intro {
+    max-width: 780px;
+  }
+
+  .feed-intro h2 {
+    font-family: var(--font-display);
+    font-size: clamp(44px, 6vw, 70px);
+    line-height: 0.98;
+    color: var(--text);
+    margin-bottom: 20px;
+  }
+
+  .feed-intro h2 span {
+    color: var(--gold);
+    font-style: italic;
+  }
+
+  .feed-intro-copy {
+    max-width: 700px;
+    color: rgba(232, 230, 240, 0.72);
+    font-size: 22px;
+    line-height: 1.6;
+  }
+
+  .featured-card {
+    display: grid;
+    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 360px);
+    gap: 28px;
+    padding: 28px;
+    border-radius: 28px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background:
+      linear-gradient(180deg, rgba(12, 15, 24, 0.98), rgba(10, 12, 19, 0.96)),
+      radial-gradient(circle at top right, rgba(201, 168, 76, 0.14), transparent 44%);
+    box-shadow: inset 0 0 0 1px rgba(201, 168, 76, 0.04);
+  }
+
+  .featured-copy {
+    display: grid;
+    gap: 22px;
+    align-content: start;
+  }
+
+  .featured-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .featured-pill,
+  .featured-tag,
+  .feed-card-type,
+  .feed-card-category {
+    padding: 6px 10px;
+    border-radius: 999px;
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .featured-pill {
+    color: var(--gold);
+    background: rgba(201, 168, 76, 0.16);
+    border: 1px solid rgba(201, 168, 76, 0.28);
+  }
+
+  .featured-tag {
+    color: rgba(232, 230, 240, 0.72);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .featured-tag.subtle {
+    color: rgba(232, 230, 240, 0.52);
+  }
+
+  .featured-copy h3 {
+    font-family: var(--font-display);
+    font-size: clamp(34px, 4vw, 56px);
+    line-height: 1.02;
+    color: #ffffff;
+  }
+
+  .featured-copy p {
+    max-width: 640px;
+    color: rgba(232, 230, 240, 0.76);
+    font-size: 20px;
+    line-height: 1.65;
+  }
+
+  .featured-actions {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 18px;
+  }
+
+  .featured-stats {
+    display: grid;
+    gap: 6px;
+    color: var(--text-muted);
+    font-size: 13px;
+    line-height: 1.5;
+  }
+
+  .featured-stats strong {
+    color: var(--text);
+    font-size: 15px;
+    font-weight: 600;
+  }
+
+  .featured-media-shell {
+    position: relative;
+    border: 0;
+    border-radius: 24px;
+    overflow: hidden;
+    min-height: 320px;
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .featured-media,
+  .feed-card-media {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .featured-media.placeholder,
+  .feed-card-media.placeholder {
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at top, rgba(201, 168, 76, 0.18), transparent 42%),
+      linear-gradient(180deg, rgba(16, 19, 30, 1), rgba(10, 12, 19, 1));
+    color: rgba(232, 230, 240, 0.62);
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+  }
+
+  .featured-media-overlay {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(5, 6, 15, 0.02), rgba(5, 6, 15, 0.26));
+    pointer-events: none;
+  }
+
+  .feed-section {
+    display: grid;
+    gap: 22px;
+    scroll-margin-top: 140px;
+  }
+
+  .feed-section-heading {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 6px;
+  }
+
+  .feed-section-heading h3 {
+    font-family: var(--font-display);
+    font-size: clamp(32px, 4vw, 44px);
+    line-height: 1.02;
+    color: var(--text);
+  }
+
+  .feed-section-meta {
+    color: var(--text-muted);
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    padding-bottom: 8px;
+  }
+
+  .feed-card-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 22px;
+  }
+
+  .feed-card {
+    min-width: 0;
+  }
+
+  .feed-card-button {
+    width: 100%;
+    height: 100%;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    border-radius: 24px;
+    background: rgba(12, 15, 24, 0.92);
+    padding: 16px;
+    display: grid;
+    gap: 16px;
+    text-align: left;
+    transition: var(--transition);
+  }
+
+  .feed-card-button:hover {
+    transform: translateY(-3px);
+    border-color: color-mix(in srgb, var(--card-accent) 50%, rgba(255, 255, 255, 0.08));
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
+  }
+
+  .feed-card-header {
+    display: flex;
+    align-items: start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+
+  .feed-card-meta {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .feed-card-type {
+    color: var(--card-accent);
+    background: color-mix(in srgb, var(--card-accent) 14%, transparent);
+  }
+
+  .feed-card-category {
+    color: rgba(232, 230, 240, 0.56);
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .feed-card-votes {
+    color: rgba(232, 230, 240, 0.62);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.14em;
+    text-transform: uppercase;
+    padding-top: 6px;
+  }
+
+  .feed-card-media-shell {
+    aspect-ratio: 16 / 10;
+    border-radius: 18px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+  }
+
+  .feed-card-body {
+    display: grid;
+    gap: 10px;
+  }
+
+  .feed-card-body h4 {
+    font-family: var(--font-display);
+    font-size: clamp(28px, 2.2vw, 38px);
+    line-height: 1.04;
+    color: #ffffff;
+  }
+
+  .feed-card-body p {
+    color: rgba(232, 230, 240, 0.72);
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  .feed-card-footer {
+    display: grid;
+    gap: 8px;
+    padding-top: 2px;
+  }
+
+  .feed-card-action {
+    color: var(--card-accent);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+  }
+
+  .feed-card-footnote {
+    color: var(--text-dim);
+    font-size: 12px;
+    line-height: 1.5;
+  }
+
+  .feed-metrics {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 20px;
+  }
+
+  .metric-card {
+    padding: 22px 24px;
+    border-radius: 24px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(12, 15, 24, 0.72);
+    display: grid;
+    gap: 10px;
+  }
+
+  .metric-card p {
+    color: var(--text-dim);
+    font-size: 11px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .metric-card strong {
+    font-family: var(--font-display);
+    font-size: 48px;
+    line-height: 1;
+    color: var(--gold);
+    font-weight: 600;
+  }
+
+  .metric-card span {
+    color: rgba(232, 230, 240, 0.68);
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  .metric-card.teal strong {
+    color: var(--teal);
+  }
+
+  @media (max-width: 1240px) {
+    .feed-card-grid {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+  }
+
+  @media (max-width: 980px) {
+    .feed-shell {
+      grid-template-columns: 1fr;
+    }
+
+    .feed-sidebar {
+      display: none;
+    }
+
+    .feed-topbar {
+      top: 60px;
+      padding: 16px 20px;
+      flex-direction: column;
+      align-items: stretch;
+    }
+
+    .feed-tabs {
+      overflow-x: auto;
+      flex-wrap: nowrap;
+      padding-bottom: 2px;
+    }
+
+    .feed-topbar-actions {
+      justify-content: space-between;
+    }
+
+    .feed-search-shell {
+      min-width: 0;
+      flex: 1;
+    }
+
+    .feed-content {
+      padding: 24px 20px 40px;
+    }
+
+    .feed-mobile-categories {
+      display: flex;
+    }
+
+    .featured-card {
+      grid-template-columns: 1fr;
+    }
+
+    .featured-media-shell {
+      order: -1;
+      min-height: 240px;
+    }
+
+    .feed-section-heading {
+      flex-direction: column;
+      align-items: start;
+    }
+
+    .feed-metrics {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  @media (max-width: 720px) {
+    .feed-search-shell {
+      display: none;
+    }
+
+    .topbar-primary-action {
+      width: 100%;
+    }
+
+    .feed-intro h2 {
+      font-size: 42px;
+    }
+
+    .feed-intro-copy {
+      font-size: 17px;
+    }
+
+    .featured-copy h3,
+    .feed-card-body h4 {
+      font-size: 34px;
+    }
+
+    .featured-copy p {
+      font-size: 17px;
+    }
+
+    .feed-card-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+`
