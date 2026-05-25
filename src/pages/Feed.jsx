@@ -143,6 +143,105 @@ function getInitials(name) {
     .join('') || 'P'
 }
 
+function CategoryGlyph({ category, active }) {
+  const stroke = active ? 'var(--gold)' : 'rgba(232, 230, 240, 0.78)'
+  const commonProps = {
+    width: 18,
+    height: 18,
+    viewBox: '0 0 18 18',
+    fill: 'none',
+    xmlns: 'http://www.w3.org/2000/svg',
+    'aria-hidden': 'true',
+  }
+
+  switch (category) {
+    case 'Consumer':
+      return (
+        <svg {...commonProps}>
+          <path d="M3.5 5.5H14.5L13.4 13.5H4.6L3.5 5.5Z" stroke={stroke} strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M6.5 7V5.8C6.5 4.25 7.62 3 9 3C10.38 3 11.5 4.25 11.5 5.8V7" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      )
+    case 'Entertainment':
+      return (
+        <svg {...commonProps}>
+          <rect x="2.8" y="4" width="12.4" height="10" rx="1.8" stroke={stroke} strokeWidth="1.6" />
+          <path d="M7.2 7.1L11.7 9L7.2 10.9V7.1Z" stroke={stroke} strokeWidth="1.2" fill={stroke} />
+        </svg>
+      )
+    case 'Food':
+      return (
+        <svg {...commonProps}>
+          <path d="M5 3.2V8.8" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M3.4 3.2V6.6C3.4 7.5 4.13 8.22 5.02 8.22C5.9 8.22 6.62 7.5 6.62 6.6V3.2" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" />
+          <path d="M11.8 3.2C10.64 3.2 9.7 4.47 9.7 6.02V8.2C9.7 9.06 10.4 9.76 11.26 9.76H12.4V14.8" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'Health':
+      return (
+        <svg {...commonProps}>
+          <path d="M9 14.4C12.6 11.4 14.8 9.3 14.8 6.8C14.8 5.2 13.58 4 12.05 4C10.92 4 9.84 4.65 9.37 5.64C8.9 4.65 7.82 4 6.69 4C5.16 4 3.94 5.2 3.94 6.8C3.94 9.3 6.14 11.4 9 14.4Z" stroke={stroke} strokeWidth="1.6" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'Lifestyle':
+      return (
+        <svg {...commonProps}>
+          <circle cx="9" cy="6" r="2.1" stroke={stroke} strokeWidth="1.6" />
+          <path d="M9 8.5V13.8" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M5.9 10.2L9 8.7L12.1 10.2" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'Personality':
+      return (
+        <svg {...commonProps}>
+          <path d="M5.2 5.7C5.2 3.95 6.91 2.6 9.02 2.6C11.13 2.6 12.84 3.95 12.84 5.7C12.84 7.1 11.82 8.28 10.38 8.68V10.1L8.44 9.08" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round" />
+          <path d="M6.1 11.05C6.1 9.95 7.4 9.06 9 9.06C10.6 9.06 11.9 9.95 11.9 11.05C11.9 12.15 10.6 13.04 9 13.04C8.45 13.04 7.94 12.94 7.5 12.77L5.8 13.55L6.22 12.02C6.14 11.72 6.1 11.39 6.1 11.05Z" stroke={stroke} strokeWidth="1.4" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'Politics':
+      return (
+        <svg {...commonProps}>
+          <circle cx="9" cy="9" r="5.8" stroke={stroke} strokeWidth="1.6" />
+          <path d="M3.9 9H14.1" stroke={stroke} strokeWidth="1.4" strokeLinecap="round" />
+          <path d="M9 3.3C10.58 4.78 11.48 6.82 11.48 9C11.48 11.18 10.58 13.22 9 14.7C7.42 13.22 6.52 11.18 6.52 9C6.52 6.82 7.42 4.78 9 3.3Z" stroke={stroke} strokeWidth="1.4" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'Relationships':
+      return (
+        <svg {...commonProps}>
+          <path d="M9 14.4C12.6 11.4 14.8 9.3 14.8 6.8C14.8 5.2 13.58 4 12.05 4C10.92 4 9.84 4.65 9.37 5.64C8.9 4.65 7.82 4 6.69 4C5.16 4 3.94 5.2 3.94 6.8C3.94 9.3 6.14 11.4 9 14.4Z" stroke={stroke} strokeWidth="1.6" strokeLinejoin="round" />
+        </svg>
+      )
+    case 'Spirituality':
+      return (
+        <svg {...commonProps}>
+          <path d="M9 2.9C10.78 5.26 12.8 6.83 12.8 9.14C12.8 11.32 11.08 13.1 9 13.1C6.92 13.1 5.2 11.32 5.2 9.14C5.2 6.83 7.22 5.26 9 2.9Z" stroke={stroke} strokeWidth="1.6" strokeLinejoin="round" />
+          <path d="M9 13.1V15" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" />
+          <path d="M6.8 15H11.2" stroke={stroke} strokeWidth="1.6" strokeLinecap="round" />
+        </svg>
+      )
+    case 'Technology':
+      return (
+        <svg {...commonProps}>
+          <rect x="4.1" y="4.1" width="9.8" height="9.8" rx="1.8" stroke={stroke} strokeWidth="1.6" />
+          <path d="M9 1.9V4.1M9 13.9V16.1M1.9 9H4.1M13.9 9H16.1M4.35 4.35L2.8 2.8M13.65 13.65L15.2 15.2M13.65 4.35L15.2 2.8M4.35 13.65L2.8 15.2" stroke={stroke} strokeWidth="1.3" strokeLinecap="round" />
+        </svg>
+      )
+    case 'Travel':
+      return (
+        <svg {...commonProps}>
+          <path d="M9 2.5L11.05 6.6L15.6 7.25L12.3 10.4L13.08 14.9L9 12.8L4.92 14.9L5.7 10.4L2.4 7.25L6.95 6.6L9 2.5Z" stroke={stroke} strokeWidth="1.4" strokeLinejoin="round" />
+        </svg>
+      )
+    default:
+      return (
+        <svg {...commonProps}>
+          <circle cx="9" cy="9" r="5.4" stroke={stroke} strokeWidth="1.6" />
+        </svg>
+      )
+  }
+}
+
 export default function Feed() {
   const { user, profile, tier } = useAuth()
   const isAdmin = isAdminUser(user)
@@ -360,7 +459,7 @@ export default function Feed() {
         <aside className="feed-sidebar">
           <div className="sidebar-brand">
             <p className="sidebar-kicker">Signal Curator</p>
-            <h1>Pulse</h1>
+            <h1>Intellect</h1>
             <p className="sidebar-copy">
               A sharper home for Signal, Decide, and Rank. Browse by lane or move
               straight to the question pulling you in.
@@ -387,24 +486,16 @@ export default function Feed() {
                           : hexToRgb(CATEGORY_COLORS[category] || '#C9A84C'),
                     }}
                   >
-                    <span className="sidebar-category-name">{category}</span>
+                    <span className="sidebar-category-content">
+                      <span className="sidebar-category-icon">
+                        <CategoryGlyph category={category} active={isActive} />
+                      </span>
+                      <span className="sidebar-category-name">{category}</span>
+                    </span>
                     <span className="sidebar-count">{categoryCounts[category] || 0}</span>
                   </button>
                 )
               })}
-            </div>
-          </div>
-
-          <div className="sidebar-section sidebar-links-section">
-            <p className="sidebar-label">Workspace</p>
-            <div className="sidebar-link-list">
-              <SidebarNavLink to="/my-pulses" label="My Pulses" meta="Opened, answered, and saved." />
-              <SidebarNavLink to="/suggestions" label="Suggestions" meta="Shape what Pulse asks next." />
-              <SidebarNavLink to="/upcoming" label="Upcoming" meta="See the roadmap ahead." />
-              <SidebarNavLink to="/profile" label="Profile" meta="Identity, recovery, and settings." />
-              {isAdmin ? (
-                <SidebarNavLink to="/admin" label="Admin" meta="Manage questions and reviews." accent="var(--gold)" />
-              ) : null}
             </div>
           </div>
 
@@ -416,12 +507,26 @@ export default function Feed() {
             >
               {isAdmin ? '+ New Signal' : 'Suggest a Signal'}
             </button>
+          </div>
+
+          <div className="sidebar-utility-links">
             <button type="button" className="sidebar-secondary-action" onClick={() => navigate('/profile')}>
               Settings
             </button>
             <button type="button" className="sidebar-secondary-action" onClick={() => navigate('/upcoming')}>
               Support
             </button>
+            <button type="button" className="sidebar-secondary-action" onClick={() => navigate('/my-pulses')}>
+              My Pulses
+            </button>
+            <button type="button" className="sidebar-secondary-action" onClick={() => navigate('/suggestions')}>
+              Suggestions
+            </button>
+            {isAdmin ? (
+              <button type="button" className="sidebar-secondary-action admin" onClick={() => navigate('/admin')}>
+                Admin
+              </button>
+            ) : null}
           </div>
 
           <div className="sidebar-profile-card">
@@ -690,17 +795,6 @@ function MetricCard({ label, value, body, accent = 'gold' }) {
   )
 }
 
-function SidebarNavLink({ to, label, meta, accent = 'var(--teal)' }) {
-  return (
-    <Link to={to} className="sidebar-link">
-      <div className="sidebar-link-label" style={{ '--sidebar-link-accent': accent }}>
-        {label}
-      </div>
-      <div className="sidebar-link-meta">{meta}</div>
-    </Link>
-  )
-}
-
 const feedStyles = `
   .pulse-feed-page {
     min-height: 100vh;
@@ -722,19 +816,20 @@ const feedStyles = `
     height: calc(100vh - 60px);
     display: flex;
     flex-direction: column;
-    gap: 26px;
-    padding: 26px 16px 18px;
+    gap: 24px;
+    padding: 20px 0 18px;
     background: #14181f;
     border-right: 1px solid rgba(255, 255, 255, 0.05);
+    overflow-y: auto;
   }
 
   .sidebar-brand h1 {
     font-family: var(--font-display);
-    font-size: 56px;
+    font-size: 54px;
     line-height: 0.88;
     font-weight: 600;
-    color: #f3eef9;
-    margin-bottom: 12px;
+    color: var(--gold);
+    margin-bottom: 10px;
   }
 
   .sidebar-kicker,
@@ -757,17 +852,21 @@ const feedStyles = `
 
   .sidebar-section {
     display: grid;
-    gap: 12px;
+    gap: 14px;
   }
 
-  .sidebar-links-section {
-    margin-top: 2px;
+  .sidebar-brand,
+  .sidebar-section,
+  .sidebar-actions,
+  .sidebar-utility-links,
+  .sidebar-profile-card {
+    padding-left: 18px;
+    padding-right: 18px;
   }
 
-  .sidebar-category-list,
-  .sidebar-link-list {
+  .sidebar-category-list {
     display: grid;
-    gap: 8px;
+    gap: 4px;
   }
 
   .sidebar-category {
@@ -776,11 +875,12 @@ const feedStyles = `
     align-items: center;
     justify-content: space-between;
     gap: 12px;
-    padding: 14px 16px;
-    border-radius: 18px;
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    background: rgba(255, 255, 255, 0.02);
-    color: rgba(232, 230, 240, 0.72);
+    min-height: 52px;
+    padding: 12px 14px 12px 18px;
+    border-radius: 0;
+    border: 0;
+    background: transparent;
+    color: rgba(232, 230, 240, 0.82);
     transition: var(--transition);
     text-align: left;
   }
@@ -788,10 +888,10 @@ const feedStyles = `
   .sidebar-category::before {
     content: '';
     position: absolute;
-    left: -1px;
-    top: 12px;
-    bottom: 12px;
-    width: 2px;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 3px;
     border-radius: 999px;
     background: transparent;
     transition: var(--transition);
@@ -799,8 +899,7 @@ const feedStyles = `
 
   .sidebar-category.active {
     color: var(--text);
-    background: rgba(255, 255, 255, 0.05);
-    border-color: rgba(var(--category-accent-rgb), 0.18);
+    background: rgba(255, 255, 255, 0.07);
   }
 
   .sidebar-category.active::before {
@@ -809,56 +908,44 @@ const feedStyles = `
 
   .sidebar-category:hover {
     color: var(--text);
-    border-color: rgba(255, 255, 255, 0.08);
+    background: rgba(255, 255, 255, 0.04);
+  }
+
+  .sidebar-category-content {
+    display: inline-flex;
+    align-items: center;
+    gap: 14px;
+    min-width: 0;
+  }
+
+  .sidebar-category-icon {
+    width: 22px;
+    height: 22px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
   }
 
   .sidebar-category-name {
-    font-size: 15px;
+    font-size: 16px;
+    font-weight: 500;
   }
 
   .sidebar-count {
     min-width: 30px;
     padding: 4px 8px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.05);
-    color: rgba(232, 230, 240, 0.72);
+    background: rgba(255, 255, 255, 0.04);
+    color: rgba(232, 230, 240, 0.58);
     font-size: 11px;
     text-align: center;
   }
 
-  .sidebar-link {
-    display: block;
-    padding: 12px 14px;
-    border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.04);
-    background: rgba(255, 255, 255, 0.015);
-    transition: var(--transition);
-  }
-
-  .sidebar-link:hover {
-    background: rgba(255, 255, 255, 0.035);
-    border-color: rgba(255, 255, 255, 0.08);
-  }
-
-  .sidebar-link-label {
-    color: var(--sidebar-link-accent);
-    font-size: 12px;
-    font-weight: 700;
-    margin-bottom: 4px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .sidebar-link-meta {
-    color: var(--text-dim);
-    font-size: 12px;
-    line-height: 1.45;
-  }
-
   .sidebar-actions {
-    margin-top: auto;
     display: grid;
-    gap: 8px;
+    gap: 10px;
+    padding-top: 8px;
   }
 
   .sidebar-primary-action,
@@ -877,6 +964,7 @@ const feedStyles = `
 
   .sidebar-primary-action {
     padding: 16px 18px;
+    background: rgba(201, 168, 76, 0.04);
   }
 
   .topbar-primary-action {
@@ -894,8 +982,15 @@ const feedStyles = `
     box-shadow: 0 12px 30px rgba(201, 168, 76, 0.12);
   }
 
+  .sidebar-utility-links {
+    margin-top: auto;
+    display: grid;
+    gap: 2px;
+    padding-top: 6px;
+  }
+
   .sidebar-secondary-action {
-    padding: 10px 0;
+    padding: 9px 0;
     border: 0;
     background: none;
     color: rgba(232, 230, 240, 0.6);
@@ -903,6 +998,10 @@ const feedStyles = `
     letter-spacing: 0.14em;
     text-transform: uppercase;
     text-align: left;
+  }
+
+  .sidebar-secondary-action.admin {
+    color: var(--gold);
   }
 
   .sidebar-profile-card {
