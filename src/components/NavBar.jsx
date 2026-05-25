@@ -33,19 +33,69 @@ export default function NavBar() {
           width: 100%;
           gap: 18px;
         }
+        .pulse-nav-brand {
+          display: flex;
+          align-items: center;
+          gap: 12px;
+          min-width: 0;
+          flex-wrap: wrap;
+        }
+        .pulse-nav-logo {
+          display: inline-flex;
+          align-items: center;
+          gap: 10px;
+          min-width: 0;
+        }
+        .pulse-nav-wordmark {
+          font-family: var(--font-display);
+          font-size: 22px;
+          font-weight: 600;
+          letter-spacing: 0.04em;
+          color: var(--gold);
+        }
+        .pulse-nav-subbrand {
+          font-size: 11px;
+          color: rgba(232, 230, 240, 0.5);
+          letter-spacing: 0.18em;
+          text-transform: uppercase;
+        }
+        .pulse-nav-tagline {
+          font-size: 10px;
+          color: rgba(201, 168, 76, 0.82);
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+        .pulse-nav-anon {
+          font-size: 10px;
+          color: rgba(76, 201, 168, 0.82);
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+        }
+        .pulse-nav-admin-badge {
+          font-size: 10px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
+          text-transform: uppercase;
+          color: var(--gold);
+          background: rgba(201, 168, 76, 0.08);
+          border: 1px solid var(--gold-border);
+          border-radius: 999px;
+          padding: 4px 10px;
+        }
         .pulse-nav-sections {
           display: flex;
           justify-content: center;
-          gap: 24px;
+          gap: 26px;
           flex-wrap: wrap;
         }
         .pulse-nav-section-link {
           position: relative;
           padding: 18px 0 14px;
-          font-size: 13px;
-          letter-spacing: 0.08em;
+          font-size: 12px;
+          font-weight: 700;
+          letter-spacing: 0.14em;
           text-transform: uppercase;
-          color: var(--text-muted);
+          color: rgba(232, 230, 240, 0.56);
           text-decoration: none;
           transition: color var(--transition);
         }
@@ -66,7 +116,37 @@ export default function NavBar() {
         }
         .pulse-nav-section-link.active::after {
           background: var(--teal);
-          box-shadow: 0 0 18px rgba(76,201,168,0.28);
+          box-shadow: 0 0 16px rgba(76, 201, 168, 0.24);
+        }
+        .pulse-nav-actions {
+          display: flex;
+          align-items: center;
+          justify-content: flex-end;
+          gap: 12px;
+          flex-wrap: wrap;
+        }
+        .pulse-nav-verify {
+          font-size: 12px;
+          color: var(--teal);
+          font-weight: 600;
+          letter-spacing: 0.05em;
+        }
+        .pulse-nav-status {
+          font-size: 11px;
+          font-weight: 700;
+          letter-spacing: 0.12em;
+          text-transform: uppercase;
+          padding: 6px 12px;
+          border-radius: 999px;
+          white-space: nowrap;
+        }
+        .pulse-nav-signin {
+          background: none;
+          border: 1px solid rgba(201, 168, 76, 0.25);
+          color: var(--text-muted);
+          padding: 6px 12px;
+          border-radius: 999px;
+          font-size: 12px;
         }
         @media (max-width: 1120px) {
           .pulse-nav-shell {
@@ -80,7 +160,7 @@ export default function NavBar() {
             padding-top: 2px;
           }
         }
-        @media (max-width: 820px) {
+        @media (max-width: 860px) {
           .pulse-nav {
             padding: 10px 14px !important;
             align-items: flex-start !important;
@@ -89,17 +169,9 @@ export default function NavBar() {
             grid-template-columns: 1fr !important;
           }
           .pulse-nav-brand {
-            width: 100%;
-            gap: 8px !important;
+            gap: 8px;
           }
-          .pulse-nav-link {
-            flex-wrap: wrap;
-            row-gap: 4px;
-          }
-          .pulse-nav-subbrand {
-            font-size: 10px !important;
-            letter-spacing: 0.1em !important;
-          }
+          .pulse-nav-subbrand,
           .pulse-nav-tagline,
           .pulse-nav-anon,
           .pulse-nav-sections {
@@ -107,8 +179,7 @@ export default function NavBar() {
           }
           .pulse-nav-actions {
             width: 100%;
-            justify-content: flex-start !important;
-            gap: 10px !important;
+            justify-content: flex-start;
           }
         }
       `}</style>
@@ -119,9 +190,9 @@ export default function NavBar() {
           position: 'sticky',
           top: 0,
           zIndex: 100,
-          background: 'rgba(5,6,15,0.88)',
+          background: 'rgba(4, 6, 10, 0.9)',
           backdropFilter: 'blur(20px)',
-          borderBottom: '1px solid rgba(201,168,76,0.12)',
+          borderBottom: '1px solid rgba(255, 255, 255, 0.06)',
           padding: '0 24px',
           minHeight: 60,
           display: 'flex',
@@ -131,155 +202,59 @@ export default function NavBar() {
         }}
       >
         <div className="pulse-nav-shell">
-          <div className="pulse-nav-brand" style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            <Link
-              className="pulse-nav-link"
-              to="/feed"
-              style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-            >
-              <SacredMark size={32} showRings={false} />
-              <span
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 20,
-                  fontWeight: 600,
-                  letterSpacing: '0.05em',
-                  color: 'var(--gold)',
-                }}
-              >
-                Pulse
-              </span>
+          <div className="pulse-nav-brand">
+            <Link className="pulse-nav-logo" to="/feed">
+              <SacredMark size={28} showRings={false} />
+              <span className="pulse-nav-wordmark">Pulse</span>
             </Link>
 
-            <a
-              className="pulse-nav-subbrand"
-              href="https://www.matrixter.com"
-              style={{
-                fontFamily: 'var(--font-ui)',
-                fontSize: 11,
-                color: 'var(--text-muted)',
-                letterSpacing: '0.15em',
-                textTransform: 'uppercase',
-                marginTop: 2,
-              }}
-            >
-              by Matrixter
+            <a className="pulse-nav-subbrand" href="https://www.matrixter.com">
+              By Matrixter
             </a>
 
-            <Link
-              className="pulse-nav-link"
-              to="/feed"
-              style={{ display: 'flex', alignItems: 'center', gap: 10 }}
-            >
-              <span
-                className="pulse-nav-tagline"
-                style={{
-                  fontFamily: 'var(--font-display)',
-                  fontSize: 11,
-                  fontStyle: 'italic',
-                  color: 'var(--gold)',
-                  letterSpacing: '0.12em',
-                  marginTop: 2,
-                  fontWeight: 400,
-                }}
-              >
-                • early access · truth in progress •
-              </span>
-              <span
-                className="pulse-nav-anon"
-                style={{
-                  fontFamily: 'var(--font-ui)',
-                  fontSize: 10,
-                  color: 'var(--teal)',
-                  letterSpacing: '0.1em',
-                  marginTop: 2,
-                  opacity: 0.7,
-                }}
-              >
-                • votes anonymous
-              </span>
-            </Link>
+            <span className="pulse-nav-tagline">early access</span>
+            <span className="pulse-nav-tagline">truth in progress</span>
+            <span className="pulse-nav-anon">votes anonymous</span>
 
-            {isAdmin && (
-              <Link
-                to="/admin"
-                style={{
-                  fontSize: 10,
-                  fontWeight: 700,
-                  letterSpacing: '0.15em',
-                  textTransform: 'uppercase',
-                  color: 'var(--gold)',
-                  background: 'rgba(201,168,76,0.1)',
-                  border: '1px solid var(--gold-border)',
-                  borderRadius: 20,
-                  padding: '2px 8px',
-                  marginLeft: 2,
-                  textDecoration: 'none',
-                }}
-              >
+            {isAdmin ? (
+              <Link to="/admin" className="pulse-nav-admin-badge">
                 Admin
               </Link>
-            )}
+            ) : null}
           </div>
 
           <div className="pulse-nav-sections">
             {topSections.map((section) => (
-              <a
+              <Link
                 key={section.label}
-                href={section.href}
+                to={section.href}
                 className={`pulse-nav-section-link${section.active ? ' active' : ''}`}
               >
                 {section.label}
-              </a>
+              </Link>
             ))}
           </div>
 
-          <div className="pulse-nav-actions" style={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 12, flexWrap: 'wrap' }}>
-            {tier === 'registered' && (
-              <Link
-                to="/verify"
-                style={{
-                  fontSize: 12,
-                  color: 'var(--teal)',
-                  fontWeight: 600,
-                  letterSpacing: '0.05em',
-                }}
-              >
-                Get Verified →
+          <div className="pulse-nav-actions">
+            {tier === 'registered' ? (
+              <Link to="/verify" className="pulse-nav-verify">
+                Get Verified
               </Link>
-            )}
+            ) : null}
 
-            {user && (
+            {user ? (
               <span
+                className="pulse-nav-status"
                 style={{
-                  fontSize: 11,
-                  fontWeight: 700,
-                  letterSpacing: '0.12em',
-                  textTransform: 'uppercase',
                   color: statusColor,
-                  padding: '5px 12px',
-                  borderRadius: 999,
                   border: `1px solid ${statusColor}`,
-                  background: statusColor === 'var(--teal)' ? 'rgba(76,201,168,0.08)' : 'rgba(201,168,76,0.08)',
-                  whiteSpace: 'nowrap',
+                  background: statusColor === 'var(--teal)' ? 'rgba(76, 201, 168, 0.08)' : 'rgba(201, 168, 76, 0.08)',
                 }}
               >
-                {(tier === 'verified' || isAdmin) ? '✓ ' : ''}{statusLabel}
+                {statusLabel}
               </span>
-            )}
-
-            {!user && (
-              <Link
-                to="/splash"
-                style={{
-                  background: 'none',
-                  border: '1px solid rgba(201,168,76,0.25)',
-                  color: 'var(--text-muted)',
-                  padding: '5px 12px',
-                  borderRadius: 8,
-                  fontSize: 12,
-                }}
-              >
+            ) : (
+              <Link to="/splash" className="pulse-nav-signin">
                 Sign in
               </Link>
             )}

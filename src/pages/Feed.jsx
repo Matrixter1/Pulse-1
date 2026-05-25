@@ -50,7 +50,7 @@ function titleCase(value) {
   return value
     .toLowerCase()
     .split(/[\s_-]+/)
-    .map(part => part.charAt(0).toUpperCase() + part.slice(1))
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
     .join(' ')
 }
 
@@ -123,8 +123,28 @@ function getQuestionFootnote(question, counts) {
   return `${formatCount(totalVotes)} votes captured, ${formatCount(verifiedVotes)} from verified members.`
 }
 
+function getCuratorName(profile, user) {
+  return profile?.display_name || profile?.nickname || user?.email?.split('@')[0] || 'Signal Curator'
+}
+
+function getCuratorMeta({ tier, isAdmin }) {
+  if (isAdmin) return 'Admin Curator'
+  if (tier === 'verified') return 'Verified Curator'
+  if (tier === 'registered') return 'Member Curator'
+  return 'Guest Access'
+}
+
+function getInitials(name) {
+  return name
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || '')
+    .join('') || 'P'
+}
+
 export default function Feed() {
-  const { user } = useAuth()
+  const { user, profile, tier } = useAuth()
   const isAdmin = isAdminUser(user)
   const [searchParams, setSearchParams] = useSearchParams()
   const navigate = useNavigate()
@@ -198,20 +218,20 @@ export default function Feed() {
 
       const discoveredCategories = [...new Set(
         data
-          .map(question => titleCase(question.category || ''))
+          .map((question) => titleCase(question.category || ''))
           .filter(Boolean),
       )].sort()
 
       setCategories(discoveredCategories.length > 0 ? ['All', ...discoveredCategories] : CATEGORIES)
 
       const queue = [...data]
-      if (featuredData && !queue.find(question => question.id === featuredData.id)) {
+      if (featuredData && !queue.find((question) => question.id === featuredData.id)) {
         queue.unshift(featuredData)
       }
 
       const counts = {}
       await Promise.all(
-        queue.map(async question => {
+        queue.map(async (question) => {
           const votes = await fetchVotesForQuestion(question.id)
           const type = question.type || 'statement'
           const options = parseOptions(question.options)
@@ -219,7 +239,7 @@ export default function Feed() {
           if (type === 'statement') {
             counts[question.id] = {
               all: calcResults(votes),
-              verified: calcResults(votes.filter(vote => vote.is_verified)),
+              verified: calcResults(votes.filter((vote) => vote.is_verified)),
               type,
             }
             return
@@ -228,7 +248,7 @@ export default function Feed() {
           if (type === 'choice') {
             counts[question.id] = {
               all: calcChoiceResults(votes, options),
-              verified: calcChoiceResults(votes.filter(vote => vote.is_verified), options),
+              verified: calcChoiceResults(votes.filter((vote) => vote.is_verified), options),
               type,
             }
             return
@@ -236,7 +256,7 @@ export default function Feed() {
 
           counts[question.id] = {
             all: calcRankedResults(votes, options),
-            verified: calcRankedResults(votes.filter(vote => vote.is_verified), options),
+            verified: calcRankedResults(votes.filter((vote) => vote.is_verified), options),
             type,
           }
         }),
@@ -274,7 +294,7 @@ export default function Feed() {
 
   const allQuestions = useMemo(() => {
     const list = [...questions]
-    if (featuredQuestion && !list.find(question => question.id === featuredQuestion.id)) {
+    if (featuredQuestion && !list.find((question) => question.id === featuredQuestion.id)) {
       list.unshift(featuredQuestion)
     }
     return list
@@ -282,18 +302,18 @@ export default function Feed() {
 
   const filteredQuestions = useMemo(
     () => allQuestions
-      .filter(question => typeMatches(question, activeType))
-      .filter(question => categoryMatches(question, activeCategory)),
+      .filter((question) => typeMatches(question, activeType))
+      .filter((question) => categoryMatches(question, activeCategory)),
     [activeCategory, activeType, allQuestions],
   )
 
   const heroQuestion =
-    filteredQuestions.find(question => featuredQuestion && question.id === featuredQuestion.id) ||
+    filteredQuestions.find((question) => featuredQuestion && question.id === featuredQuestion.id) ||
     filteredQuestions[0] ||
     null
 
   const gridQuestions = heroQuestion
-    ? filteredQuestions.filter(question => question.id !== heroQuestion.id)
+    ? filteredQuestions.filter((question) => question.id !== heroQuestion.id)
     : filteredQuestions
 
   const allVisibleVotes = filteredQuestions.reduce(
@@ -306,6 +326,7 @@ export default function Feed() {
   )
   const activeQuestionCount = filteredQuestions.length
   const totalQuestions = allQuestions.length
+  const liveCategoryCount = Math.max(categories.length - 1, 0)
   const visibleTypeLabel =
     activeType === 'all'
       ? 'Recent Signals'
@@ -319,18 +340,16 @@ export default function Feed() {
       }
 
       accumulator[category] = allQuestions.filter(
-        question => titleCase(question.category || '') === category,
+        (question) => titleCase(question.category || '') === category,
       ).length
       return accumulator
     }, {}),
     [allQuestions, categories],
   )
 
-  const laneCounts = {
-    statement: allQuestions.filter(question => (question.type || 'statement') === 'statement').length,
-    choice: allQuestions.filter(question => question.type === 'choice').length,
-    ranked: allQuestions.filter(question => question.type === 'ranked').length,
-  }
+  const curatorName = getCuratorName(profile, user)
+  const curatorMeta = getCuratorMeta({ tier, isAdmin })
+  const curatorInitials = getInitials(curatorName)
 
   return (
     <div className="page pulse-feed-page">
@@ -351,7 +370,7 @@ export default function Feed() {
           <div className="sidebar-section">
             <p className="sidebar-label">Discovery</p>
             <div className="sidebar-category-list">
-              {categories.map(category => {
+              {categories.map((category) => {
                 const isActive = category === activeCategory
                 const color = category === 'All' ? 'var(--gold)' : (CATEGORY_COLORS[category] || 'var(--gold)')
                 return (
@@ -368,7 +387,7 @@ export default function Feed() {
                           : hexToRgb(CATEGORY_COLORS[category] || '#C9A84C'),
                     }}
                   >
-                    <span>{category}</span>
+                    <span className="sidebar-category-name">{category}</span>
                     <span className="sidebar-count">{categoryCounts[category] || 0}</span>
                   </button>
                 )
@@ -376,15 +395,15 @@ export default function Feed() {
             </div>
           </div>
 
-          <div className="sidebar-section">
-            <p className="sidebar-label">Your space</p>
+          <div className="sidebar-section sidebar-links-section">
+            <p className="sidebar-label">Workspace</p>
             <div className="sidebar-link-list">
-              <SidebarNavLink to="/my-pulses" label="My Pulses" meta="What you opened and answered" />
-              <SidebarNavLink to="/suggestions" label="Suggestions" meta="Shape what Pulse asks next" />
-              <SidebarNavLink to="/upcoming" label="Upcoming" meta="See the roadmap ahead" />
-              <SidebarNavLink to="/profile" label="Profile" meta="Identity, recovery, and settings" />
+              <SidebarNavLink to="/my-pulses" label="My Pulses" meta="Opened, answered, and saved." />
+              <SidebarNavLink to="/suggestions" label="Suggestions" meta="Shape what Pulse asks next." />
+              <SidebarNavLink to="/upcoming" label="Upcoming" meta="See the roadmap ahead." />
+              <SidebarNavLink to="/profile" label="Profile" meta="Identity, recovery, and settings." />
               {isAdmin ? (
-                <SidebarNavLink to="/admin" label="Admin" meta="Manage questions and reviews" accent="var(--gold)" />
+                <SidebarNavLink to="/admin" label="Admin" meta="Manage questions and reviews." accent="var(--gold)" />
               ) : null}
             </div>
           </div>
@@ -405,16 +424,25 @@ export default function Feed() {
             </button>
           </div>
 
-          <div className="sidebar-footer">
-            <p className="sidebar-footnote">Verified layer active</p>
-            <strong>{formatCount(allVisibleVerifiedVotes)} verified votes in view</strong>
+          <div className="sidebar-profile-card">
+            <div className="sidebar-profile-avatar">
+              {profile?.avatar_url ? (
+                <img src={profile.avatar_url} alt={curatorName} className="sidebar-profile-avatar-image" />
+              ) : (
+                <span>{curatorInitials}</span>
+              )}
+            </div>
+            <div className="sidebar-profile-copy">
+              <strong>{curatorName}</strong>
+              <span>{curatorMeta}</span>
+            </div>
           </div>
         </aside>
 
         <div className="feed-main-column">
           <header className="feed-topbar">
             <div className="feed-tabs" role="tablist" aria-label="Feed lanes">
-              {TOP_TABS.map(tab => {
+              {TOP_TABS.map((tab) => {
                 const isActive = activeType === tab.key
                 return (
                   <button
@@ -427,14 +455,14 @@ export default function Feed() {
                   </button>
                 )
               })}
-              <button type="button" className="feed-tab utility" onClick={() => navigate('/upcoming')}>
+              <button type="button" className="feed-tab" onClick={() => navigate('/upcoming')}>
                 Upcoming
               </button>
             </div>
 
             <div className="feed-topbar-actions">
               <div className="feed-search-shell">
-                <span className="feed-search-icon">Search</span>
+                <span className="feed-search-icon" aria-hidden="true" />
                 <input
                   className="feed-search"
                   type="text"
@@ -456,7 +484,7 @@ export default function Feed() {
 
           <main className="feed-content">
             <div className="feed-mobile-categories">
-              {categories.map(category => (
+              {categories.map((category) => (
                 <button
                   key={category}
                   type="button"
@@ -501,14 +529,17 @@ export default function Feed() {
                       </p>
                       <h3>{visibleTypeLabel}</h3>
                     </div>
-                    <p className="feed-section-meta">{activeQuestionCount} active questions</p>
+                    <div className="feed-section-controls">
+                      <span>Sort by popularity</span>
+                      <span>Latest first</span>
+                    </div>
                   </div>
 
                   {gridQuestions.length === 0 ? (
                     <EmptyState message="The featured card is carrying this lane for now." />
                   ) : (
                     <div className="feed-card-grid">
-                      {gridQuestions.map(question => (
+                      {gridQuestions.map((question) => (
                         <FeedQuestionCard
                           key={question.id}
                           question={question}
@@ -524,18 +555,19 @@ export default function Feed() {
                   <MetricCard
                     label="Active Questions"
                     value={formatCount(totalQuestions)}
-                    body="Questions currently available across the live feed."
+                    body={`${activeQuestionCount} visible in this view right now.`}
                   />
                   <MetricCard
-                    label="Signals Captured"
-                    value={formatCount(allVisibleVotes)}
-                    body={`Signal ${laneCounts.statement} · Decide ${laneCounts.choice} · Rank ${laneCounts.ranked}`}
+                    label="Curated Topics"
+                    value={formatCount(liveCategoryCount)}
+                    body="Distinct categories currently represented in the live feed."
+                    accent="teal"
                   />
                   <MetricCard
                     label="Verified Layer"
                     value={formatCount(allVisibleVerifiedVotes)}
-                    body="Verified participation stays visible without overpowering the question itself."
-                    accent="teal"
+                    body={`${formatCount(allVisibleVotes)} total votes in view, with verified participation surfaced beside them.`}
+                    accent="wide"
                   />
                 </section>
               </>
@@ -549,12 +581,12 @@ export default function Feed() {
 
 function FeaturedQuestionCard({ question, counts, onOpen }) {
   const type = question.type || 'statement'
-  const accent = getQuestionAccent(type)
   const mediaUrl = getFeedMediaUrl(question)
+  const totalVotes = counts?.all?.total || 0
   const verifiedVotes = counts?.verified?.total || 0
 
   return (
-    <section className="featured-card" style={{ '--featured-accent': accent }}>
+    <section className="featured-card">
       <div className="featured-copy">
         <div className="featured-meta">
           <span className="featured-pill">Pulse of the Day</span>
@@ -569,9 +601,16 @@ function FeaturedQuestionCard({ question, counts, onOpen }) {
           <button type="button" className="featured-cta" onClick={onOpen}>
             Reveal the Signal
           </button>
-          <div className="featured-stats">
-            <span>{getQuestionFootnote(question, counts)}</span>
-            {verifiedVotes > 0 ? <strong>{formatCount(verifiedVotes)} verified</strong> : null}
+          <div className="featured-telemetry">
+            <div className="featured-telemetry-dots" aria-hidden="true">
+              <span />
+              <span />
+              <span />
+            </div>
+            <div className="featured-telemetry-copy">
+              <span>{totalVotes > 0 ? `${formatCount(totalVotes)} signaling` : 'Awaiting the first signal'}</span>
+              {verifiedVotes > 0 ? <strong>{formatCount(verifiedVotes)} verified</strong> : null}
+            </div>
           </div>
         </div>
       </div>
@@ -582,14 +621,15 @@ function FeaturedQuestionCard({ question, counts, onOpen }) {
             src={mediaUrl}
             alt={question.text}
             variant="hero"
-            style={{ width: '100%', height: '100%', minHeight: 320 }}
+            style={{ width: '100%', height: '100%' }}
           />
         ) : (
           <div className="featured-media placeholder">
-            <span>Signal Preview</span>
+            <span>Featured Signal</span>
           </div>
         )}
         <div className="featured-media-overlay" />
+        <span className="featured-media-caption">Featured Signal</span>
       </button>
     </section>
   )
@@ -608,9 +648,7 @@ function FeedQuestionCard({ question, counts, onOpen }) {
             <span className="feed-card-type">{getQuestionLabel(type)}</span>
             <span className="feed-card-category">{titleCase(question.category || 'General')}</span>
           </div>
-          <span className="feed-card-votes">
-            {formatCount(counts?.all?.total || 0)} votes
-          </span>
+          <span className="feed-card-votes">{formatCount(counts?.all?.total || 0)} votes</span>
         </div>
 
         <div className="feed-card-media-shell">
@@ -667,15 +705,15 @@ const feedStyles = `
   .pulse-feed-page {
     min-height: 100vh;
     background:
-      radial-gradient(circle at top right, rgba(76, 201, 168, 0.12), transparent 24%),
-      radial-gradient(circle at top left, rgba(201, 168, 76, 0.14), transparent 30%),
-      linear-gradient(180deg, #05060f 0%, #070910 100%);
+      radial-gradient(circle at 25% 0%, rgba(201, 168, 76, 0.08), transparent 22%),
+      radial-gradient(circle at 100% 0%, rgba(76, 201, 168, 0.08), transparent 28%),
+      linear-gradient(180deg, #040507 0%, #050608 100%);
   }
 
   .feed-shell {
     min-height: calc(100vh - 60px);
     display: grid;
-    grid-template-columns: 280px minmax(0, 1fr);
+    grid-template-columns: 260px minmax(0, 1fr);
   }
 
   .feed-sidebar {
@@ -684,18 +722,18 @@ const feedStyles = `
     height: calc(100vh - 60px);
     display: flex;
     flex-direction: column;
-    gap: 32px;
-    padding: 28px 20px 24px;
-    background: rgba(13, 16, 27, 0.92);
-    border-right: 1px solid rgba(201, 168, 76, 0.08);
-    backdrop-filter: blur(18px);
+    gap: 26px;
+    padding: 26px 16px 18px;
+    background: #14181f;
+    border-right: 1px solid rgba(255, 255, 255, 0.05);
   }
 
   .sidebar-brand h1 {
     font-family: var(--font-display);
-    font-size: 54px;
-    line-height: 0.95;
-    color: var(--text);
+    font-size: 56px;
+    line-height: 0.88;
+    font-weight: 600;
+    color: #f3eef9;
     margin-bottom: 12px;
   }
 
@@ -703,23 +741,27 @@ const feedStyles = `
   .sidebar-label,
   .feed-kicker,
   .feed-section-kicker {
-    font-size: 11px;
-    letter-spacing: 0.24em;
+    font-size: 10px;
+    letter-spacing: 0.28em;
     text-transform: uppercase;
     color: var(--gold);
     margin-bottom: 12px;
   }
 
   .sidebar-copy {
-    color: var(--text-muted);
-    font-size: 13px;
-    line-height: 1.7;
     max-width: 220px;
+    color: rgba(232, 230, 240, 0.62);
+    font-size: 13px;
+    line-height: 1.8;
   }
 
   .sidebar-section {
     display: grid;
-    gap: 16px;
+    gap: 12px;
+  }
+
+  .sidebar-links-section {
+    margin-top: 2px;
   }
 
   .sidebar-category-list,
@@ -729,6 +771,7 @@ const feedStyles = `
   }
 
   .sidebar-category {
+    position: relative;
     display: flex;
     align-items: center;
     justify-content: space-between;
@@ -736,28 +779,49 @@ const feedStyles = `
     padding: 14px 16px;
     border-radius: 18px;
     border: 1px solid rgba(255, 255, 255, 0.04);
-    background: rgba(255, 255, 255, 0.01);
-    color: var(--text-muted);
+    background: rgba(255, 255, 255, 0.02);
+    color: rgba(232, 230, 240, 0.72);
     transition: var(--transition);
     text-align: left;
   }
 
+  .sidebar-category::before {
+    content: '';
+    position: absolute;
+    left: -1px;
+    top: 12px;
+    bottom: 12px;
+    width: 2px;
+    border-radius: 999px;
+    background: transparent;
+    transition: var(--transition);
+  }
+
   .sidebar-category.active {
-    color: var(--category-accent);
-    border-color: rgba(var(--category-accent-rgb), 0.32);
-    background: rgba(var(--category-accent-rgb), 0.1);
+    color: var(--text);
+    background: rgba(255, 255, 255, 0.05);
+    border-color: rgba(var(--category-accent-rgb), 0.18);
+  }
+
+  .sidebar-category.active::before {
+    background: var(--category-accent);
   }
 
   .sidebar-category:hover {
-    border-color: rgba(var(--category-accent-rgb), 0.2);
     color: var(--text);
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+
+  .sidebar-category-name {
+    font-size: 15px;
   }
 
   .sidebar-count {
-    min-width: 28px;
+    min-width: 30px;
     padding: 4px 8px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.05);
+    color: rgba(232, 230, 240, 0.72);
     font-size: 11px;
     text-align: center;
   }
@@ -766,22 +830,22 @@ const feedStyles = `
     display: block;
     padding: 12px 14px;
     border-radius: 16px;
-    border: 1px solid rgba(255, 255, 255, 0.05);
-    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.04);
+    background: rgba(255, 255, 255, 0.015);
     transition: var(--transition);
   }
 
   .sidebar-link:hover {
+    background: rgba(255, 255, 255, 0.035);
     border-color: rgba(255, 255, 255, 0.08);
-    background: rgba(255, 255, 255, 0.04);
   }
 
   .sidebar-link-label {
     color: var(--sidebar-link-accent);
-    font-size: 13px;
+    font-size: 12px;
     font-weight: 700;
     margin-bottom: 4px;
-    letter-spacing: 0.05em;
+    letter-spacing: 0.08em;
     text-transform: uppercase;
   }
 
@@ -794,20 +858,20 @@ const feedStyles = `
   .sidebar-actions {
     margin-top: auto;
     display: grid;
-    gap: 10px;
+    gap: 8px;
   }
 
   .sidebar-primary-action,
   .topbar-primary-action,
   .featured-cta {
     border: 1px solid rgba(201, 168, 76, 0.42);
-    background: linear-gradient(135deg, rgba(201, 168, 76, 0.18), rgba(201, 168, 76, 0.06));
+    background: linear-gradient(180deg, rgba(201, 168, 76, 0.16), rgba(201, 168, 76, 0.06));
     color: var(--gold);
-    font-size: 12px;
+    font-size: 11px;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    border-radius: 16px;
+    border-radius: 14px;
     transition: var(--transition);
   }
 
@@ -816,11 +880,11 @@ const feedStyles = `
   }
 
   .topbar-primary-action {
-    padding: 14px 18px;
+    padding: 14px 20px;
   }
 
   .featured-cta {
-    padding: 18px 26px;
+    padding: 18px 24px;
   }
 
   .sidebar-primary-action:hover,
@@ -831,34 +895,61 @@ const feedStyles = `
   }
 
   .sidebar-secondary-action {
-    padding: 12px 0;
+    padding: 10px 0;
     border: 0;
     background: none;
-    color: var(--text-muted);
-    font-size: 12px;
-    letter-spacing: 0.08em;
+    color: rgba(232, 230, 240, 0.6);
+    font-size: 11px;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
     text-align: left;
   }
 
-  .sidebar-footer {
-    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  .sidebar-profile-card {
+    display: flex;
+    align-items: center;
+    gap: 12px;
     padding-top: 18px;
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .sidebar-profile-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    overflow: hidden;
     display: grid;
-    gap: 6px;
+    place-items: center;
+    background: linear-gradient(135deg, rgba(201, 168, 76, 0.22), rgba(76, 201, 168, 0.16));
+    color: #f7f1db;
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
   }
 
-  .sidebar-footnote {
-    color: var(--text-dim);
-    font-size: 11px;
-    letter-spacing: 0.12em;
-    text-transform: uppercase;
+  .sidebar-profile-avatar-image {
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: block;
   }
 
-  .sidebar-footer strong {
+  .sidebar-profile-copy {
+    display: grid;
+    gap: 2px;
+  }
+
+  .sidebar-profile-copy strong {
     color: var(--text);
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 600;
+  }
+
+  .sidebar-profile-copy span {
+    color: var(--gold);
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
   }
 
   .feed-main-column {
@@ -875,16 +966,15 @@ const feedStyles = `
     align-items: center;
     justify-content: space-between;
     gap: 24px;
-    padding: 18px 40px;
-    background: rgba(9, 11, 19, 0.86);
+    padding: 16px 34px;
+    background: rgba(10, 12, 18, 0.96);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
-    backdrop-filter: blur(18px);
   }
 
   .feed-tabs {
     display: flex;
     align-items: center;
-    gap: 18px;
+    gap: 22px;
     flex-wrap: wrap;
   }
 
@@ -892,17 +982,17 @@ const feedStyles = `
     position: relative;
     border: 0;
     background: none;
-    color: var(--text-muted);
+    color: rgba(232, 230, 240, 0.54);
     font-size: 12px;
     font-weight: 700;
     letter-spacing: 0.16em;
     text-transform: uppercase;
-    padding: 10px 0;
+    padding: 9px 0;
   }
 
   .feed-tab.active,
   .feed-tab:hover {
-    color: var(--text);
+    color: #f0edf8;
   }
 
   .feed-tab.active::after {
@@ -916,33 +1006,43 @@ const feedStyles = `
     background: var(--gold);
   }
 
-  .feed-tab.utility {
-    color: var(--text-dim);
-  }
-
   .feed-topbar-actions {
     display: flex;
     align-items: center;
-    gap: 14px;
+    gap: 12px;
   }
 
   .feed-search-shell {
-    min-width: min(320px, 40vw);
+    min-width: min(320px, 38vw);
     display: flex;
     align-items: center;
     gap: 12px;
     padding: 0 16px;
-    height: 46px;
+    height: 42px;
     border-radius: 999px;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.06);
   }
 
   .feed-search-icon {
-    color: var(--text-dim);
-    font-size: 12px;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    width: 12px;
+    height: 12px;
+    border: 1.5px solid rgba(232, 230, 240, 0.28);
+    border-radius: 999px;
+    position: relative;
+    flex: 0 0 auto;
+  }
+
+  .feed-search-icon::after {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 1.5px;
+    border-radius: 999px;
+    background: rgba(232, 230, 240, 0.28);
+    right: -5px;
+    bottom: -3px;
+    transform: rotate(45deg);
   }
 
   .feed-search {
@@ -955,9 +1055,12 @@ const feedStyles = `
   }
 
   .feed-content {
-    padding: 40px;
+    padding: 26px 34px 44px;
     display: grid;
     gap: 34px;
+    background:
+      radial-gradient(circle at top left, rgba(201, 168, 76, 0.08), transparent 26%),
+      radial-gradient(circle at top right, rgba(76, 201, 168, 0.06), transparent 28%);
   }
 
   .feed-mobile-categories {
@@ -984,15 +1087,17 @@ const feedStyles = `
   }
 
   .feed-intro {
-    max-width: 780px;
+    max-width: 820px;
+    padding-top: 12px;
   }
 
   .feed-intro h2 {
     font-family: var(--font-display);
-    font-size: clamp(44px, 6vw, 70px);
-    line-height: 0.98;
-    color: var(--text);
-    margin-bottom: 20px;
+    font-size: clamp(54px, 6vw, 76px);
+    line-height: 0.92;
+    font-weight: 600;
+    color: #f3eef9;
+    margin-bottom: 22px;
   }
 
   .feed-intro h2 span {
@@ -1001,28 +1106,27 @@ const feedStyles = `
   }
 
   .feed-intro-copy {
-    max-width: 700px;
+    max-width: 760px;
     color: rgba(232, 230, 240, 0.72);
-    font-size: 22px;
-    line-height: 1.6;
+    font-size: 19px;
+    line-height: 1.75;
   }
 
   .featured-card {
     display: grid;
-    grid-template-columns: minmax(0, 1.2fr) minmax(280px, 360px);
+    grid-template-columns: minmax(0, 1.32fr) minmax(240px, 320px);
     gap: 28px;
+    align-items: start;
     padding: 28px;
-    border-radius: 28px;
+    border-radius: 24px;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    background:
-      linear-gradient(180deg, rgba(12, 15, 24, 0.98), rgba(10, 12, 19, 0.96)),
-      radial-gradient(circle at top right, rgba(201, 168, 76, 0.14), transparent 44%);
-    box-shadow: inset 0 0 0 1px rgba(201, 168, 76, 0.04);
+    background: rgba(10, 13, 21, 0.96);
+    box-shadow: 0 16px 40px rgba(0, 0, 0, 0.24);
   }
 
   .featured-copy {
     display: grid;
-    gap: 22px;
+    gap: 20px;
     align-content: start;
   }
 
@@ -1030,14 +1134,14 @@ const feedStyles = `
     display: flex;
     align-items: center;
     flex-wrap: wrap;
-    gap: 10px;
+    gap: 8px;
   }
 
   .featured-pill,
   .featured-tag,
   .feed-card-type,
   .feed-card-category {
-    padding: 6px 10px;
+    padding: 5px 9px;
     border-radius: 999px;
     font-size: 10px;
     font-weight: 700;
@@ -1048,30 +1152,32 @@ const feedStyles = `
   .featured-pill {
     color: var(--gold);
     background: rgba(201, 168, 76, 0.16);
-    border: 1px solid rgba(201, 168, 76, 0.28);
+    border: 1px solid rgba(201, 168, 76, 0.26);
   }
 
   .featured-tag {
-    color: rgba(232, 230, 240, 0.72);
+    color: rgba(232, 230, 240, 0.74);
     background: rgba(255, 255, 255, 0.04);
   }
 
   .featured-tag.subtle {
-    color: rgba(232, 230, 240, 0.52);
+    color: rgba(232, 230, 240, 0.46);
   }
 
   .featured-copy h3 {
+    max-width: 680px;
     font-family: var(--font-display);
-    font-size: clamp(34px, 4vw, 56px);
-    line-height: 1.02;
-    color: #ffffff;
+    font-size: clamp(36px, 4.2vw, 62px);
+    line-height: 0.95;
+    font-weight: 600;
+    color: #f6f2fb;
   }
 
   .featured-copy p {
-    max-width: 640px;
-    color: rgba(232, 230, 240, 0.76);
-    font-size: 20px;
-    line-height: 1.65;
+    max-width: 580px;
+    color: rgba(232, 230, 240, 0.68);
+    font-size: 17px;
+    line-height: 1.7;
   }
 
   .featured-actions {
@@ -1079,29 +1185,56 @@ const feedStyles = `
     align-items: center;
     flex-wrap: wrap;
     gap: 18px;
+    padding-top: 8px;
   }
 
-  .featured-stats {
-    display: grid;
+  .featured-telemetry {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .featured-telemetry-dots {
+    display: flex;
+    align-items: center;
     gap: 6px;
-    color: var(--text-muted);
-    font-size: 13px;
-    line-height: 1.5;
   }
 
-  .featured-stats strong {
+  .featured-telemetry-dots span {
+    width: 18px;
+    height: 18px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.03);
+  }
+
+  .featured-telemetry-copy {
+    display: grid;
+    gap: 3px;
+  }
+
+  .featured-telemetry-copy span {
+    color: rgba(232, 230, 240, 0.44);
+    font-size: 11px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .featured-telemetry-copy strong {
     color: var(--text);
-    font-size: 15px;
+    font-size: 16px;
     font-weight: 600;
   }
 
   .featured-media-shell {
     position: relative;
     border: 0;
-    border-radius: 24px;
+    border-radius: 18px;
     overflow: hidden;
-    min-height: 320px;
-    background: rgba(255, 255, 255, 0.04);
+    min-height: 168px;
+    aspect-ratio: 1 / 0.84;
+    background: rgba(255, 255, 255, 0.03);
+    align-self: center;
   }
 
   .featured-media,
@@ -1127,13 +1260,24 @@ const feedStyles = `
   .featured-media-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(5, 6, 15, 0.02), rgba(5, 6, 15, 0.26));
+    background: linear-gradient(180deg, rgba(5, 6, 15, 0.02), rgba(5, 6, 15, 0.22));
     pointer-events: none;
+  }
+
+  .featured-media-caption {
+    position: absolute;
+    left: 14px;
+    bottom: 14px;
+    color: var(--gold);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
   }
 
   .feed-section {
     display: grid;
-    gap: 22px;
+    gap: 24px;
     scroll-margin-top: 140px;
   }
 
@@ -1142,28 +1286,36 @@ const feedStyles = `
     align-items: end;
     justify-content: space-between;
     gap: 16px;
-    padding-top: 6px;
+    padding-top: 8px;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.06);
+    padding-bottom: 18px;
   }
 
   .feed-section-heading h3 {
     font-family: var(--font-display);
-    font-size: clamp(32px, 4vw, 44px);
-    line-height: 1.02;
-    color: var(--text);
+    font-size: clamp(34px, 3.5vw, 50px);
+    line-height: 0.98;
+    font-weight: 600;
+    color: #f3eef9;
   }
 
-  .feed-section-meta {
-    color: var(--text-muted);
-    font-size: 12px;
-    letter-spacing: 0.16em;
+  .feed-section-controls {
+    display: flex;
+    align-items: center;
+    gap: 22px;
+    padding-bottom: 6px;
+    color: rgba(232, 230, 240, 0.58);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
-    padding-bottom: 8px;
+    white-space: nowrap;
   }
 
   .feed-card-grid {
     display: grid;
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    gap: 22px;
+    gap: 18px;
   }
 
   .feed-card {
@@ -1174,24 +1326,24 @@ const feedStyles = `
     width: 100%;
     height: 100%;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    border-radius: 24px;
-    background: rgba(12, 15, 24, 0.92);
-    padding: 16px;
+    border-radius: 22px;
+    background: rgba(10, 13, 21, 0.94);
+    padding: 14px;
     display: grid;
-    gap: 16px;
+    gap: 14px;
     text-align: left;
     transition: var(--transition);
   }
 
   .feed-card-button:hover {
     transform: translateY(-3px);
-    border-color: color-mix(in srgb, var(--card-accent) 50%, rgba(255, 255, 255, 0.08));
+    border-color: color-mix(in srgb, var(--card-accent) 45%, rgba(255, 255, 255, 0.08));
     box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
   }
 
   .feed-card-header {
     display: flex;
-    align-items: start;
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
   }
@@ -1209,7 +1361,7 @@ const feedStyles = `
   }
 
   .feed-card-category {
-    color: rgba(232, 230, 240, 0.56);
+    color: rgba(232, 230, 240, 0.52);
     background: rgba(255, 255, 255, 0.03);
   }
 
@@ -1217,9 +1369,9 @@ const feedStyles = `
     color: rgba(232, 230, 240, 0.62);
     font-size: 10px;
     font-weight: 700;
-    letter-spacing: 0.14em;
+    letter-spacing: 0.16em;
     text-transform: uppercase;
-    padding-top: 6px;
+    white-space: nowrap;
   }
 
   .feed-card-media-shell {
@@ -1236,15 +1388,16 @@ const feedStyles = `
 
   .feed-card-body h4 {
     font-family: var(--font-display);
-    font-size: clamp(28px, 2.2vw, 38px);
-    line-height: 1.04;
-    color: #ffffff;
+    font-size: clamp(28px, 2.1vw, 40px);
+    line-height: 0.98;
+    font-weight: 600;
+    color: #f5f1fa;
   }
 
   .feed-card-body p {
-    color: rgba(232, 230, 240, 0.72);
-    font-size: 16px;
-    line-height: 1.6;
+    color: rgba(232, 230, 240, 0.7);
+    font-size: 15px;
+    line-height: 1.68;
   }
 
   .feed-card-footer {
@@ -1269,47 +1422,62 @@ const feedStyles = `
 
   .feed-metrics {
     display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: 1fr 1fr minmax(280px, 1.6fr);
     gap: 20px;
   }
 
   .metric-card {
-    padding: 22px 24px;
-    border-radius: 24px;
+    padding: 26px 24px;
+    border-radius: 22px;
     border: 1px solid rgba(255, 255, 255, 0.06);
-    background: rgba(12, 15, 24, 0.72);
+    background: rgba(10, 13, 21, 0.88);
     display: grid;
+    align-content: start;
     gap: 10px;
+    min-height: 164px;
   }
 
   .metric-card p {
     color: var(--text-dim);
-    font-size: 11px;
-    letter-spacing: 0.16em;
+    font-size: 10px;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
   }
 
   .metric-card strong {
     font-family: var(--font-display);
-    font-size: 48px;
-    line-height: 1;
-    color: var(--gold);
+    font-size: 52px;
+    line-height: 0.95;
     font-weight: 600;
+    color: var(--gold);
   }
 
   .metric-card span {
     color: rgba(232, 230, 240, 0.68);
-    font-size: 14px;
-    line-height: 1.6;
+    font-size: 15px;
+    line-height: 1.7;
   }
 
   .metric-card.teal strong {
     color: var(--teal);
   }
 
+  .metric-card.wide strong {
+    color: #f3eef9;
+    font-size: 34px;
+  }
+
   @media (max-width: 1240px) {
     .feed-card-grid {
       grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .feed-metrics {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .metric-card.wide {
+      grid-column: 1 / -1;
     }
   }
 
@@ -1345,7 +1513,7 @@ const feedStyles = `
     }
 
     .feed-content {
-      padding: 24px 20px 40px;
+      padding: 22px 20px 40px;
     }
 
     .feed-mobile-categories {
@@ -1358,16 +1526,13 @@ const feedStyles = `
 
     .featured-media-shell {
       order: -1;
-      min-height: 240px;
+      max-width: 360px;
+      width: 100%;
     }
 
     .feed-section-heading {
       flex-direction: column;
       align-items: start;
-    }
-
-    .feed-metrics {
-      grid-template-columns: 1fr;
     }
   }
 
@@ -1385,7 +1550,7 @@ const feedStyles = `
     }
 
     .feed-intro-copy {
-      font-size: 17px;
+      font-size: 16px;
     }
 
     .featured-copy h3,
@@ -1394,10 +1559,11 @@ const feedStyles = `
     }
 
     .featured-copy p {
-      font-size: 17px;
+      font-size: 16px;
     }
 
-    .feed-card-grid {
+    .feed-card-grid,
+    .feed-metrics {
       grid-template-columns: 1fr;
     }
   }
