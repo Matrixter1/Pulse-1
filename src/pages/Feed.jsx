@@ -1433,12 +1433,12 @@ const feedStyles = `
   }
 
   .focus-feed-card {
+    position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 360px);
-    gap: 30px;
-    align-items: center;
+    grid-template-columns: 1fr;
     min-height: min(72vh, 860px);
     border-radius: 28px;
+    overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(8, 10, 16, 0.96);
     box-shadow: 0 22px 54px rgba(0, 0, 0, 0.24);
@@ -1456,14 +1456,15 @@ const feedStyles = `
   }
 
   .focus-feed-media-shell {
+    position: absolute;
+    top: 34px;
+    left: 34px;
+    bottom: 34px;
+    right: calc(360px + 64px);
     border: 0;
     background: none;
     padding: 0;
-    width: 100%;
-    display: grid;
-    gap: 12px;
-    align-content: start;
-    text-align: left;
+    z-index: 0;
   }
 
   .focus-feed-media,
@@ -1478,7 +1479,7 @@ const feedStyles = `
   .focus-feed-media-frame {
     position: relative;
     width: 100%;
-    aspect-ratio: 0.94 / 1.06;
+    height: 100%;
     border-radius: 24px;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.03);
@@ -1502,25 +1503,31 @@ const feedStyles = `
   .focus-feed-media-overlay {
     position: absolute;
     inset: 0;
-    background: linear-gradient(180deg, rgba(7, 9, 14, 0.04), rgba(7, 9, 14, 0.22));
+    background:
+      linear-gradient(90deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.48)),
+      linear-gradient(180deg, rgba(7, 9, 14, 0.12), rgba(7, 9, 14, 0.58));
     pointer-events: none;
   }
 
   .focus-feed-media-note {
-    color: rgba(232, 230, 240, 0.42);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
-    padding-left: 2px;
+    display: none;
   }
 
   .focus-feed-copy {
+    position: relative;
+    z-index: 1;
     display: grid;
-    align-content: space-between;
-    gap: 26px;
+    grid-template-columns: minmax(0, 1fr) 360px;
+    grid-template-areas:
+      'meta answers'
+      'title answers'
+      'summary answers'
+      'spacer answers'
+      'footer footer';
+    align-content: stretch;
+    gap: 18px 30px;
     min-height: 100%;
-    padding: 2px 0;
+    padding: 2px 0 0;
   }
 
   .focus-feed-meta {
@@ -1528,6 +1535,8 @@ const feedStyles = `
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
+    grid-area: meta;
+    align-self: start;
   }
 
   .focus-feed-pill {
@@ -1565,6 +1574,8 @@ const feedStyles = `
   }
 
   .focus-feed-copy h3 {
+    grid-area: title;
+    align-self: end;
     max-width: 760px;
     font-family: var(--font-display);
     font-size: clamp(48px, 5.7vw, 78px);
@@ -1580,6 +1591,8 @@ const feedStyles = `
   }
 
   .focus-feed-copy p {
+    grid-area: summary;
+    align-self: start;
     max-width: 620px;
     color: rgba(232, 230, 240, 0.76);
     font-size: 18px;
@@ -1587,15 +1600,17 @@ const feedStyles = `
   }
 
   .focus-answer-grid {
+    grid-area: answers;
+    align-self: start;
     display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-columns: 1fr;
     gap: 16px;
-    max-width: 760px;
+    width: 100%;
+    max-width: none;
   }
 
   .focus-answer-grid.type-statement {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-    max-width: 620px;
+    grid-template-columns: 1fr;
   }
 
   .focus-answer-card {
@@ -1630,6 +1645,7 @@ const feedStyles = `
   }
 
   .focus-feed-footer {
+    grid-area: footer;
     display: flex;
     align-items: end;
     justify-content: space-between;
@@ -1928,14 +1944,33 @@ const feedStyles = `
     }
 
     .focus-feed-card {
-      grid-template-columns: 1fr;
-      gap: 22px;
       min-height: auto;
       padding: 22px;
     }
 
+    .focus-feed-media-shell {
+      top: 22px;
+      left: 22px;
+      right: 22px;
+      bottom: auto;
+      height: 280px;
+    }
+
+    .focus-feed-media-frame {
+      height: 100%;
+      aspect-ratio: auto;
+    }
+
     .focus-feed-copy {
-      gap: 22px;
+      grid-template-columns: 1fr;
+      grid-template-areas:
+        'meta'
+        'title'
+        'summary'
+        'answers'
+        'footer';
+      gap: 18px;
+      padding-top: 300px;
     }
 
     .focus-feed-copy h3 {
@@ -1950,15 +1985,6 @@ const feedStyles = `
     .focus-answer-grid.type-statement {
       grid-template-columns: 1fr;
       max-width: none;
-    }
-
-    .focus-feed-media-shell {
-      order: -1;
-      max-width: 420px;
-    }
-
-    .focus-feed-media-frame {
-      aspect-ratio: 16 / 11;
     }
 
     .focus-answer-card {
