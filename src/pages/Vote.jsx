@@ -41,20 +41,22 @@ const QUESTION_DETAIL_STYLES = `
 
   .question-main-grid {
     display: grid;
-    grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.06fr);
-    gap: 24px;
+    grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.08fr);
+    gap: 28px;
     align-items: start;
   }
 
   .question-preview-stage {
     position: relative;
-    min-height: 320px;
-    height: clamp(300px, 42vh, 460px);
-    border-radius: 30px;
+    min-height: 280px;
+    height: clamp(280px, 38vh, 420px);
+    border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.08);
-    background: linear-gradient(180deg, rgba(13, 18, 33, 0.86), rgba(8, 10, 18, 0.96));
-    box-shadow: 0 24px 60px rgba(0,0,0,0.34);
+    background:
+      radial-gradient(circle at top, rgba(201, 168, 76, 0.08), transparent 42%),
+      linear-gradient(180deg, rgba(13, 18, 33, 0.9), rgba(8, 10, 18, 0.98));
+    box-shadow: 0 20px 48px rgba(0,0,0,0.28);
   }
 
   .question-preview-glow {
@@ -67,8 +69,8 @@ const QUESTION_DETAIL_STYLES = `
   .question-header {
     text-align: left;
     display: grid;
-    gap: 12px;
-    max-width: 960px;
+    gap: 10px;
+    max-width: 1040px;
   }
 
   .question-eyebrow {
@@ -96,8 +98,8 @@ const QUESTION_DETAIL_STYLES = `
     max-width: 760px;
     margin: 0;
     color: var(--text-muted);
-    font-size: 16px;
-    line-height: 1.64;
+    font-size: 15px;
+    line-height: 1.58;
   }
 
   .question-meta-strip {
@@ -109,20 +111,21 @@ const QUESTION_DETAIL_STYLES = `
   }
 
   .question-panel {
-    background: rgba(16, 22, 34, 0.88);
-    border: 1px solid rgba(255,255,255,0.08);
+    background:
+      linear-gradient(180deg, rgba(20, 27, 40, 0.9), rgba(16, 21, 33, 0.92));
+    border: 1px solid rgba(255,255,255,0.07);
     border-radius: 26px;
-    box-shadow: 0 18px 48px rgba(0,0,0,0.24);
+    box-shadow: 0 18px 48px rgba(0,0,0,0.22);
   }
 
   .question-footnote {
     display: flex;
     justify-content: center;
-    gap: 18px;
+    gap: 14px;
     flex-wrap: wrap;
     color: var(--text-muted);
-    font-size: 12px;
-    letter-spacing: 0.1em;
+    font-size: 11px;
+    letter-spacing: 0.14em;
     text-transform: uppercase;
   }
 
@@ -137,7 +140,7 @@ const QUESTION_DETAIL_STYLES = `
     color: var(--gold);
     text-decoration: none;
     font-size: 12px;
-    letter-spacing: 0.16em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
   }
 
@@ -148,7 +151,7 @@ const QUESTION_DETAIL_STYLES = `
   .question-option-grid,
   .question-stack {
     display: grid;
-    gap: 12px;
+    gap: 10px;
   }
 
   .question-option-card {
@@ -158,9 +161,9 @@ const QUESTION_DETAIL_STYLES = `
     justify-content: space-between;
     gap: 22px;
     text-align: left;
-    padding: 20px 20px 18px;
-    background: rgba(255,255,255,0.02);
-    border: 1px solid rgba(255,255,255,0.08);
+    padding: 18px 20px 16px;
+    background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.018));
+    border: 1px solid rgba(255,255,255,0.07);
     border-radius: 20px;
     color: inherit;
     cursor: pointer;
@@ -170,11 +173,12 @@ const QUESTION_DETAIL_STYLES = `
   .question-option-card:hover {
     transform: translateY(-2px);
     border-color: rgba(255,255,255,0.14);
+    background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.024));
   }
 
   .question-option-card.is-selected {
-    background: rgba(255,255,255,0.05);
-    box-shadow: inset 0 0 0 1px currentColor;
+    background: linear-gradient(180deg, rgba(76,201,168,0.09), rgba(76,201,168,0.03));
+    box-shadow: inset 0 0 0 1px currentColor, 0 10px 26px rgba(76,201,168,0.08);
   }
 
   .question-option-letter {
@@ -196,14 +200,14 @@ const QUESTION_DETAIL_STYLES = `
   .question-option-description {
     margin: 0;
     color: var(--text-muted);
-    font-size: 14px;
-    line-height: 1.56;
+    font-size: 13px;
+    line-height: 1.5;
     max-width: 620px;
   }
 
   .question-option-mark {
-    width: 38px;
-    height: 38px;
+    width: 36px;
+    height: 36px;
     border-radius: 50%;
     border: 1.5px solid rgba(255,255,255,0.14);
     flex-shrink: 0;
@@ -215,7 +219,9 @@ const QUESTION_DETAIL_STYLES = `
     display: grid;
     gap: 14px;
     justify-items: center;
-    margin-top: 4px;
+    margin-top: 6px;
+    padding-top: 16px;
+    border-top: 1px solid rgba(255,255,255,0.06);
   }
 
   .question-slider {
@@ -276,12 +282,12 @@ const QUESTION_DETAIL_STYLES = `
   }
 
   .question-panel-compact {
-    padding: 22px 22px 24px;
+    padding: 20px 20px 22px;
   }
 
   .question-side-card {
     display: grid;
-    gap: 16px;
+    gap: 14px;
   }
 
   @media (max-width: 960px) {
@@ -759,7 +765,13 @@ function QuestionPreview({ question, tone }) {
           src={question.image_url}
           alt={question.text}
           variant="reference"
-          style={{ height: '100%', minHeight: 260, padding: 0, boxSizing: 'border-box' }}
+          style={{
+            height: '100%',
+            minHeight: 260,
+            padding: 0,
+            boxSizing: 'border-box',
+            objectFit: 'cover',
+          }}
         />
       ) : (
         <div
@@ -792,6 +804,15 @@ function ChoiceQuestionVote({ question, brief, options, tier, canVote, submittin
   return (
     <QuestionShell question={question} brief={brief} tier={tier}>
       <div className="question-panel question-panel-compact">
+        <div style={{ display: 'grid', gap: 6, marginBottom: 14 }}>
+          <div style={{ color: 'var(--teal)', fontSize: 11, fontWeight: 800, letterSpacing: '0.2em', textTransform: 'uppercase' }}>
+            Choose one answer
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>
+            Select the destination that feels truest, then reveal the live signal.
+          </div>
+        </div>
+
         <div className="question-option-grid">
           {options.map((option, index) => {
             const isSelected = selected === option
@@ -815,8 +836,8 @@ function ChoiceQuestionVote({ question, brief, options, tier, canVote, submittin
                   className="question-option-mark"
                   style={{
                     borderColor: isSelected ? 'var(--teal)' : 'rgba(255,255,255,0.14)',
-                    background: isSelected ? 'rgba(76,201,168,0.16)' : 'transparent',
-                    boxShadow: isSelected ? 'inset 0 0 0 7px var(--teal)' : 'none',
+                    background: isSelected ? 'rgba(76,201,168,0.18)' : 'transparent',
+                    boxShadow: isSelected ? 'inset 0 0 0 8px var(--teal), 0 0 0 5px rgba(76,201,168,0.12)' : 'none',
                   }}
                 />
               </button>
@@ -834,12 +855,13 @@ function ChoiceQuestionVote({ question, brief, options, tier, canVote, submittin
             style={canVote && selected ? {
               background: 'linear-gradient(135deg, #f2cf5a, #b68e18)',
               borderRadius: 999,
-              minWidth: 320,
+              minWidth: 360,
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
+              boxShadow: '0 12px 30px rgba(201,168,76,0.18)',
             } : {
               borderRadius: 999,
-              minWidth: 320,
+              minWidth: 360,
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
             }}
