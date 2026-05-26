@@ -85,13 +85,13 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
   }
 
   return (
-    <div style={{ display: 'grid', gap: 18 }}>
+    <div style={{ display: 'grid', gap: 14 }}>
       <p
         style={{
           margin: 0,
           textAlign: 'center',
           color: 'var(--text-muted)',
-          fontSize: 11,
+          fontSize: 10,
           letterSpacing: '0.18em',
           textTransform: 'uppercase',
         }}
@@ -99,7 +99,7 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
         Drag to reorder or use arrows. Position #1 carries the most weight.
       </p>
 
-      <div style={{ display: 'grid', gap: 12 }}>
+      <div style={{ display: 'grid', gap: 10 }}>
         {items.map((item, index) => {
           const isTouchDragging = touchDrag.current?.from === index
           const rankColor = RANK_COLORS[index] || 'var(--text-muted)'
@@ -119,8 +119,8 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 16,
-                padding: '18px 18px 18px 16px',
+                gap: 14,
+                padding: '14px 16px 14px 14px',
                 borderRadius: 20,
                 border: `1px solid ${isTouchDragging ? `${rankColor}66` : 'rgba(255,255,255,0.08)'}`,
                 background: isTouchDragging ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
@@ -160,7 +160,7 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
                 >
                   Rank position
                 </div>
-                <div style={{ color: 'var(--text)', fontFamily: 'var(--font-display)', fontSize: 28, lineHeight: 1.08 }}>
+                <div style={{ color: 'var(--text)', fontFamily: 'var(--font-display)', fontSize: 22, lineHeight: 1.06 }}>
                   {item}
                 </div>
               </div>
@@ -194,7 +194,7 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
         })}
       </div>
 
-      <div style={{ display: 'grid', gap: 14, justifyItems: 'center', marginTop: 6 }}>
+      <div style={{ display: 'grid', gap: 10, justifyItems: 'center', marginTop: 2 }}>
         <Button
           size="xl"
           variant={canVote ? 'primary' : 'secondary'}
@@ -202,13 +202,13 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
           onClick={() => onSubmit({ rankedValues: items })}
           style={canVote ? {
             borderRadius: 999,
-            minWidth: 320,
+            minWidth: 280,
             letterSpacing: '0.18em',
             textTransform: 'uppercase',
             background: 'linear-gradient(135deg, #f2cf5a, #b58b14)',
           } : {
             borderRadius: 999,
-            minWidth: 320,
+            minWidth: 280,
             letterSpacing: '0.18em',
             textTransform: 'uppercase',
           }}

@@ -33,15 +33,23 @@ const SIGNAL_DRIVER_OPTIONS = ['Experience', 'Evidence', 'Instinct', 'Pattern', 
 
 const QUESTION_DETAIL_STYLES = `
   .question-detail-shell {
-    max-width: 980px;
+    max-width: 1260px;
     margin: 0 auto;
     display: grid;
-    gap: 34px;
+    gap: 24px;
+  }
+
+  .question-main-grid {
+    display: grid;
+    grid-template-columns: minmax(320px, 0.78fr) minmax(0, 1.06fr);
+    gap: 24px;
+    align-items: start;
   }
 
   .question-preview-stage {
     position: relative;
-    min-height: 260px;
+    min-height: 320px;
+    height: clamp(300px, 42vh, 460px);
     border-radius: 30px;
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.08);
@@ -57,9 +65,10 @@ const QUESTION_DETAIL_STYLES = `
   }
 
   .question-header {
-    text-align: center;
+    text-align: left;
     display: grid;
-    gap: 14px;
+    gap: 12px;
+    max-width: 960px;
   }
 
   .question-eyebrow {
@@ -72,8 +81,8 @@ const QUESTION_DETAIL_STYLES = `
   .question-heading {
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(42px, 5.4vw, 66px);
-    line-height: 1.07;
+    font-size: clamp(34px, 4.2vw, 56px);
+    line-height: 1.03;
     letter-spacing: -0.03em;
     color: var(--text);
   }
@@ -84,16 +93,16 @@ const QUESTION_DETAIL_STYLES = `
   }
 
   .question-subcopy {
-    max-width: 780px;
-    margin: 0 auto;
+    max-width: 760px;
+    margin: 0;
     color: var(--text-muted);
-    font-size: 18px;
-    line-height: 1.72;
+    font-size: 16px;
+    line-height: 1.64;
   }
 
   .question-meta-strip {
     display: flex;
-    justify-content: center;
+    justify-content: flex-start;
     align-items: center;
     gap: 10px;
     flex-wrap: wrap;
@@ -139,7 +148,7 @@ const QUESTION_DETAIL_STYLES = `
   .question-option-grid,
   .question-stack {
     display: grid;
-    gap: 14px;
+    gap: 12px;
   }
 
   .question-option-card {
@@ -149,7 +158,7 @@ const QUESTION_DETAIL_STYLES = `
     justify-content: space-between;
     gap: 22px;
     text-align: left;
-    padding: 24px 24px 22px;
+    padding: 20px 20px 18px;
     background: rgba(255,255,255,0.02);
     border: 1px solid rgba(255,255,255,0.08);
     border-radius: 20px;
@@ -173,22 +182,22 @@ const QUESTION_DETAIL_STYLES = `
     letter-spacing: 0.18em;
     text-transform: uppercase;
     color: var(--text-muted);
-    margin-bottom: 10px;
+    margin-bottom: 8px;
   }
 
   .question-option-title {
-    margin: 0 0 10px;
+    margin: 0 0 8px;
     font-family: var(--font-display);
-    font-size: clamp(28px, 3.2vw, 38px);
-    line-height: 1.08;
+    font-size: clamp(24px, 2.4vw, 34px);
+    line-height: 1.04;
     color: var(--text);
   }
 
   .question-option-description {
     margin: 0;
     color: var(--text-muted);
-    font-size: 15px;
-    line-height: 1.64;
+    font-size: 14px;
+    line-height: 1.56;
     max-width: 620px;
   }
 
@@ -204,9 +213,9 @@ const QUESTION_DETAIL_STYLES = `
 
   .question-cta-wrap {
     display: grid;
-    gap: 16px;
+    gap: 14px;
     justify-items: center;
-    margin-top: 6px;
+    margin-top: 4px;
   }
 
   .question-slider {
@@ -243,7 +252,7 @@ const QUESTION_DETAIL_STYLES = `
   .question-driver-grid {
     display: grid;
     grid-template-columns: repeat(5, minmax(0, 1fr));
-    gap: 10px;
+    gap: 8px;
   }
 
   .question-driver-chip {
@@ -266,9 +275,28 @@ const QUESTION_DETAIL_STYLES = `
     color: var(--gold);
   }
 
+  .question-panel-compact {
+    padding: 22px 22px 24px;
+  }
+
+  .question-side-card {
+    display: grid;
+    gap: 16px;
+  }
+
   @media (max-width: 960px) {
     .question-detail-shell {
       gap: 28px;
+    }
+
+    .question-main-grid {
+      grid-template-columns: 1fr;
+      gap: 18px;
+    }
+
+    .question-header {
+      text-align: center;
+      max-width: none;
     }
 
     .question-heading {
@@ -277,6 +305,16 @@ const QUESTION_DETAIL_STYLES = `
 
     .question-subcopy {
       font-size: 16px;
+      margin: 0 auto;
+    }
+
+    .question-meta-strip {
+      justify-content: center;
+    }
+
+    .question-preview-stage {
+      height: auto;
+      min-height: 260px;
     }
 
     .question-option-card {
@@ -693,8 +731,6 @@ function QuestionShell({ question, brief, tier, children }) {
 
   return (
     <div className="question-detail-shell">
-      <QuestionPreview question={question} tone={tone} tier={tier} />
-
       <div className="question-header">
         <div className="question-eyebrow" style={{ color: tone }}>
           {getVoteLabel(questionType)}
@@ -709,7 +745,12 @@ function QuestionShell({ question, brief, tier, children }) {
         </div>
       </div>
 
-      {children}
+      <div className="question-main-grid">
+        <QuestionPreview question={question} tone={tone} tier={tier} />
+        <div className="question-side-card">
+          {children}
+        </div>
+      </div>
 
       {brief && <MoreInsightsCard brief={brief} question={question} />}
     </div>
@@ -780,7 +821,7 @@ function ChoiceQuestionVote({ question, brief, options, tier, canVote, submittin
 
   return (
     <QuestionShell question={question} brief={brief} tier={tier}>
-      <div className="question-panel" style={{ padding: '26px 26px 28px' }}>
+      <div className="question-panel question-panel-compact">
         <div className="question-option-grid">
           {options.map((option, index) => {
             const isSelected = selected === option
@@ -870,7 +911,7 @@ function SignalQuestionVote({ question, brief, tier, canVote, submitting, onSubm
 
   return (
     <QuestionShell question={question} brief={brief} tier={tier}>
-      <div className="question-panel" style={{ padding: '28px 26px 30px' }}>
+      <div className="question-panel question-panel-compact">
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
           <div
             style={{
@@ -974,9 +1015,6 @@ function SignalQuestionVote({ question, brief, tier, canVote, submitting, onSubm
 }
 
 function RankedQuestionVote({ question, brief, options, tier, canVote, submitting, onSubmit, onRequireAuth }) {
-  const answerInsights = deriveAnswerInsights(question, brief)
-  const hasInsights = answerInsights.some((item) => item.insight)
-
   function handleSubmitRanked(voteData) {
     if (!canVote) {
       onRequireAuth()
@@ -988,25 +1026,10 @@ function RankedQuestionVote({ question, brief, options, tier, canVote, submittin
   return (
     <QuestionShell question={question} brief={brief} tier={tier}>
       <div className="question-stack">
-        {hasInsights && (
-          <div className="question-panel" style={{ padding: '20px 22px' }}>
-            <div style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#9B6FD8', marginBottom: 12 }}>
-              About the list
-            </div>
-            <div style={{ display: 'grid', gap: 10 }}>
-              {answerInsights.map((item) => (
-                <div key={item.answer} style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6 }}>
-                  <span style={{ color: 'var(--text)', fontWeight: 600 }}>{item.answer}:</span> {item.insight}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        <div className="question-panel" style={{ padding: '26px 26px 28px' }}>
+        <div className="question-panel question-panel-compact">
           <RankedVote options={options} onSubmit={handleSubmitRanked} submitting={submitting} canVote={canVote} />
 
-          <div className="question-cta-wrap" style={{ marginTop: 18 }}>
+          <div className="question-cta-wrap" style={{ marginTop: 16 }}>
             <div className="question-footnote">
               {getStatusMeta(question.type, tier).map((item) => (
                 <span key={item}>{item}</span>
