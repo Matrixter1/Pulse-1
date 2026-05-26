@@ -1457,10 +1457,10 @@ const feedStyles = `
 
   .focus-feed-media-shell {
     position: absolute;
-    top: 34px;
+    top: 112px;
     left: 34px;
-    bottom: 34px;
-    right: calc(360px + 64px);
+    width: min(760px, calc(100% - 360px - 98px));
+    height: min(440px, calc(100% - 210px));
     border: 0;
     background: none;
     padding: 0;
@@ -1504,8 +1504,8 @@ const feedStyles = `
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(90deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.48)),
-      linear-gradient(180deg, rgba(7, 9, 14, 0.12), rgba(7, 9, 14, 0.58));
+      linear-gradient(90deg, rgba(7, 9, 14, 0.28), rgba(7, 9, 14, 0.54)),
+      linear-gradient(180deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.68));
     pointer-events: none;
   }
 
@@ -1576,7 +1576,7 @@ const feedStyles = `
   .focus-feed-copy h3 {
     grid-area: title;
     align-self: end;
-    max-width: 760px;
+    max-width: 640px;
     font-family: var(--font-display);
     font-size: clamp(48px, 5.7vw, 78px);
     line-height: 0.96;
@@ -1586,14 +1586,14 @@ const feedStyles = `
   }
 
   .focus-feed-card.pulse-of-day .focus-feed-copy h3 {
-    max-width: 800px;
+    max-width: 680px;
     color: #fbf7e6;
   }
 
   .focus-feed-copy p {
     grid-area: summary;
     align-self: start;
-    max-width: 620px;
+    max-width: 520px;
     color: rgba(232, 230, 240, 0.76);
     font-size: 18px;
     line-height: 1.66;
@@ -1952,8 +1952,9 @@ const feedStyles = `
       top: 22px;
       left: 22px;
       right: 22px;
+      width: auto;
       bottom: auto;
-      height: 280px;
+      height: 240px;
     }
 
     .focus-feed-media-frame {
@@ -1970,7 +1971,7 @@ const feedStyles = `
         'answers'
         'footer';
       gap: 18px;
-      padding-top: 300px;
+      padding-top: 258px;
     }
 
     .focus-feed-copy h3 {
