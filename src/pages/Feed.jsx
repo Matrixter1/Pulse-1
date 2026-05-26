@@ -23,11 +23,6 @@ const TOP_TABS = [
   { key: 'ranked', label: 'Rankings' },
 ]
 
-const VIEW_MODES = [
-  { key: 'grid', label: 'Overview' },
-  { key: 'focus', label: 'Focus' },
-]
-
 const CARD_ACTION = {
   statement: 'Explore Signals',
   choice: 'Explore Decisions',
@@ -257,15 +252,11 @@ export default function Feed() {
   const requestedType = ['statement', 'choice', 'ranked'].includes(searchParams.get('type'))
     ? searchParams.get('type')
     : 'all'
-  const requestedView = VIEW_MODES.some((mode) => mode.key === searchParams.get('view'))
-    ? searchParams.get('view')
-    : 'focus'
   const requestedCategory = CATEGORIES.includes(searchParams.get('category'))
     ? searchParams.get('category')
     : 'All'
   const [activeCategory, setActiveCategory] = useState(requestedCategory)
   const [activeType, setActiveType] = useState(requestedType)
-  const [activeView, setActiveView] = useState(requestedView)
   const [questions, setQuestions] = useState([])
   const [featuredQuestion, setFeaturedQuestion] = useState(null)
   const [voteCounts, setVoteCounts] = useState({})
@@ -279,10 +270,6 @@ export default function Feed() {
   useEffect(() => {
     setActiveCategory(requestedCategory)
   }, [requestedCategory])
-
-  useEffect(() => {
-    setActiveView(requestedView)
-  }, [requestedView])
 
   useEffect(() => {
     void loadQuestions()
@@ -427,20 +414,6 @@ export default function Feed() {
     }, 50)
   }
 
-  function handleViewChange(nextView) {
-    setActiveView(nextView)
-
-    const nextParams = new URLSearchParams(searchParams)
-    if (nextView === 'grid') {
-      nextParams.delete('view')
-    } else {
-      nextParams.set('view', nextView)
-    }
-    setSearchParams(nextParams, { replace: true })
-
-    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
-  }
-
   const allQuestions = useMemo(() => {
     const list = [...questions]
     if (featuredQuestion && !list.find((question) => question.id === featuredQuestion.id)) {
@@ -466,31 +439,6 @@ export default function Feed() {
     ordered.unshift(featured)
     return ordered
   }, [featuredQuestion, filteredQuestions])
-
-  const heroQuestion =
-    orderedFilteredQuestions.find((question) => featuredQuestion && question.id === featuredQuestion.id) ||
-    orderedFilteredQuestions[0] ||
-    null
-
-  const gridQuestions = heroQuestion
-    ? orderedFilteredQuestions.filter((question) => question.id !== heroQuestion.id)
-    : orderedFilteredQuestions
-
-  const allVisibleVotes = orderedFilteredQuestions.reduce(
-    (sum, question) => sum + (voteCounts[question.id]?.all?.total || 0),
-    0,
-  )
-  const allVisibleVerifiedVotes = orderedFilteredQuestions.reduce(
-    (sum, question) => sum + (voteCounts[question.id]?.verified?.total || 0),
-    0,
-  )
-  const activeQuestionCount = orderedFilteredQuestions.length
-  const totalQuestions = allQuestions.length
-  const liveCategoryCount = Math.max(categories.length - 1, 0)
-  const visibleTypeLabel =
-    activeType === 'all'
-      ? 'Recent Signals'
-      : `${QUESTION_TYPE_META[activeType]?.label || 'Signal'} Stream`
 
   const categoryCounts = useMemo(
     () => categories.reduce((accumulator, category) => {
@@ -627,21 +575,6 @@ export default function Feed() {
             </div>
 
             <div className="feed-topbar-actions">
-              <div className="feed-view-toggle" role="tablist" aria-label="Feed layouts">
-                {VIEW_MODES.map((mode) => {
-                  const isActive = activeView === mode.key
-                  return (
-                    <button
-                      key={mode.key}
-                      type="button"
-                      className={`feed-view-button ${isActive ? 'active' : ''}`}
-                      onClick={() => handleViewChange(mode.key)}
-                    >
-                      {mode.label}
-                    </button>
-                  )
-                })}
-              </div>
               <div className="feed-search-shell">
                 <span className="feed-search-icon" aria-hidden="true" />
                 <input
@@ -691,89 +624,23 @@ export default function Feed() {
             {loading ? (
               <PageLoading />
             ) : (
-              <>
-                {activeView === 'focus' ? (
-                  orderedFilteredQuestions.length === 0 ? (
-                    <EmptyState message="No live questions match this lane yet." />
-                  ) : (
-                    <section className="focus-feed-stack" ref={contentRef}>
-                      {orderedFilteredQuestions.map((question, index) => (
-                        <FocusFeedQuestion
-                          key={question.id}
-                          question={question}
-                          counts={voteCounts[question.id]}
-                          isFirst={index === 0}
-                          isLast={index === orderedFilteredQuestions.length - 1}
-                          isPulseOfDay={!!featuredQuestion && question.id === featuredQuestion.id}
-                          onOpen={() => handleOpenQuestion(question.id)}
-                        />
-                      ))}
-                    </section>
-                  )
-                ) : (
-                  <>
-                    {heroQuestion ? (
-                      <FeaturedQuestionCard
-                        question={heroQuestion}
-                        counts={voteCounts[heroQuestion.id]}
-                        onOpen={() => handleOpenQuestion(heroQuestion.id)}
-                      />
-                    ) : (
-                      <EmptyState message="No live questions match this lane yet." />
-                    )}
-
-                    <section className="feed-section" ref={contentRef}>
-                      <div className="feed-section-heading">
-                        <div>
-                          <p className="feed-section-kicker">
-                            {activeCategory === 'All' ? 'Across the feed' : activeCategory}
-                          </p>
-                          <h3>{visibleTypeLabel}</h3>
-                        </div>
-                        <div className="feed-section-controls">
-                          <span>Sort by popularity</span>
-                          <span>Latest first</span>
-                        </div>
-                      </div>
-
-                      {gridQuestions.length === 0 ? (
-                        <EmptyState message="The featured card is carrying this lane for now." />
-                      ) : (
-                        <div className="feed-card-grid">
-                          {gridQuestions.map((question) => (
-                            <FeedQuestionCard
-                              key={question.id}
-                              question={question}
-                              counts={voteCounts[question.id]}
-                              onOpen={() => handleOpenQuestion(question.id)}
-                            />
-                          ))}
-                        </div>
-                      )}
-                    </section>
-
-                    <section className="feed-metrics">
-                      <MetricCard
-                        label="Active Questions"
-                        value={formatCount(totalQuestions)}
-                        body={`${activeQuestionCount} visible in this view right now.`}
-                      />
-                      <MetricCard
-                        label="Curated Topics"
-                        value={formatCount(liveCategoryCount)}
-                        body="Distinct categories currently represented in the live feed."
-                        accent="teal"
-                      />
-                      <MetricCard
-                        label="Verified Layer"
-                        value={formatCount(allVisibleVerifiedVotes)}
-                        body={`${formatCount(allVisibleVotes)} total votes in view, with verified participation surfaced beside them.`}
-                        accent="wide"
-                      />
-                    </section>
-                  </>
-                )}
-              </>
+              orderedFilteredQuestions.length === 0 ? (
+                <EmptyState message="No live questions match this lane yet." />
+              ) : (
+                <section className="focus-feed-stack" ref={contentRef}>
+                  {orderedFilteredQuestions.map((question, index) => (
+                    <FocusFeedQuestion
+                      key={question.id}
+                      question={question}
+                      counts={voteCounts[question.id]}
+                      isFirst={index === 0}
+                      isLast={index === orderedFilteredQuestions.length - 1}
+                      isPulseOfDay={!!featuredQuestion && question.id === featuredQuestion.id}
+                      onOpen={() => handleOpenQuestion(question.id)}
+                    />
+                  ))}
+                </section>
+              )
             )}
           </main>
         </div>
@@ -885,26 +752,14 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast =
   const options = parseOptions(question.options)
   const totalVotes = counts?.all?.total || 0
   const verifiedVotes = counts?.verified?.total || 0
+  const previewAnswers =
+    type === 'statement'
+      ? ['Disagree', 'Mixed', 'Agree']
+      : options.slice(0, 4)
 
   return (
     <article className={`focus-feed-question ${isFirst ? 'first' : ''} ${isPulseOfDay ? 'pulse-of-day' : ''}`}>
       <div className={`focus-feed-card ${isPulseOfDay ? 'pulse-of-day' : ''}`}>
-        <button type="button" className="focus-feed-media-shell" onClick={onOpen}>
-          {mediaUrl ? (
-            <QuestionMedia
-              src={mediaUrl}
-              alt={question.text}
-              variant="reference"
-              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-            />
-          ) : (
-            <div className="focus-feed-media placeholder">
-              <span>{getQuestionLabel(type)}</span>
-            </div>
-          )}
-          <div className="focus-feed-media-overlay" />
-        </button>
-
         <div className="focus-feed-copy">
           <div className="focus-feed-meta">
             {isPulseOfDay ? <span className="focus-feed-pill">Pulse of the Day</span> : null}
@@ -919,21 +774,14 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast =
           <p>{getQuestionSummary(question, counts)}</p>
 
           <div className={`focus-answer-grid type-${type}`}>
-            {type === 'statement' ? (
-              ['Disagree', 'Mixed', 'Agree'].map((stance) => (
-                <div key={stance} className="focus-answer-card">
-                  <span className="focus-answer-badge">{stance.charAt(0)}</span>
-                  <span className="focus-answer-label">{stance}</span>
-                </div>
-              ))
-            ) : (
-              options.slice(0, 4).map((option, index) => (
-                <div key={option} className="focus-answer-card">
-                  <span className="focus-answer-badge">{String.fromCharCode(65 + index)}</span>
-                  <span className="focus-answer-label">{option}</span>
-                </div>
-              ))
-            )}
+            {previewAnswers.map((answer, index) => (
+              <div key={answer} className="focus-answer-card">
+                <span className="focus-answer-badge">
+                  {type === 'statement' ? answer.charAt(0) : String.fromCharCode(65 + index)}
+                </span>
+                <span className="focus-answer-label">{answer}</span>
+              </div>
+            ))}
           </div>
 
           <div className="focus-feed-footer">
@@ -949,6 +797,25 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast =
             </div>
           </div>
         </div>
+
+        <button type="button" className="focus-feed-media-shell" onClick={onOpen}>
+          <div className="focus-feed-media-frame">
+            {mediaUrl ? (
+              <QuestionMedia
+                src={mediaUrl}
+                alt={question.text}
+                variant="reference"
+                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+              />
+            ) : (
+              <div className="focus-feed-media placeholder">
+                <span>{getQuestionLabel(type)}</span>
+              </div>
+            )}
+            <div className="focus-feed-media-overlay" />
+          </div>
+          <span className="focus-feed-media-note">Open signal</span>
+        </button>
       </div>
     </article>
   )
@@ -1280,34 +1147,6 @@ const feedStyles = `
     gap: 12px;
   }
 
-  .feed-view-toggle {
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 4px;
-    border-radius: 999px;
-    background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.06);
-  }
-
-  .feed-view-button {
-    border: 0;
-    background: transparent;
-    color: rgba(232, 230, 240, 0.5);
-    font-size: 11px;
-    font-weight: 700;
-    letter-spacing: 0.16em;
-    text-transform: uppercase;
-    border-radius: 999px;
-    padding: 10px 14px;
-    transition: var(--transition);
-  }
-
-  .feed-view-button.active {
-    color: var(--gold);
-    background: rgba(201, 168, 76, 0.12);
-  }
-
   .feed-search-shell {
     min-width: min(320px, 38vw);
     display: flex;
@@ -1594,15 +1433,16 @@ const feedStyles = `
   }
 
   .focus-feed-card {
-    position: relative;
     display: grid;
-    grid-template-columns: minmax(0, 1fr);
-    min-height: min(78vh, 980px);
+    grid-template-columns: minmax(0, 1.15fr) minmax(280px, 360px);
+    gap: 30px;
+    align-items: center;
+    min-height: min(72vh, 860px);
     border-radius: 28px;
-    overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(8, 10, 16, 0.96);
     box-shadow: 0 22px 54px rgba(0, 0, 0, 0.24);
+    padding: 34px;
   }
 
   .focus-feed-card.pulse-of-day {
@@ -1610,23 +1450,40 @@ const feedStyles = `
     box-shadow:
       0 24px 60px rgba(0, 0, 0, 0.28),
       inset 0 0 0 1px rgba(201, 168, 76, 0.06);
+    background:
+      radial-gradient(circle at top right, rgba(201, 168, 76, 0.08), transparent 34%),
+      rgba(8, 10, 16, 0.98);
   }
 
   .focus-feed-media-shell {
-    position: absolute;
-    inset: 0;
     border: 0;
     background: none;
     padding: 0;
+    width: 100%;
+    display: grid;
+    gap: 12px;
+    align-content: start;
+    text-align: left;
   }
 
   .focus-feed-media,
-  .focus-feed-media-shell img,
-  .focus-feed-media-shell video {
+  .focus-feed-media-frame img,
+  .focus-feed-media-frame video {
     width: 100%;
     height: 100%;
     display: block;
     object-fit: cover;
+  }
+
+  .focus-feed-media-frame {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 0.94 / 1.06;
+    border-radius: 24px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.07);
+    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
   }
 
   .focus-feed-media.placeholder {
@@ -1645,20 +1502,25 @@ const feedStyles = `
   .focus-feed-media-overlay {
     position: absolute;
     inset: 0;
-    background:
-      linear-gradient(180deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.7)),
-      radial-gradient(circle at center, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.55) 80%);
+    background: linear-gradient(180deg, rgba(7, 9, 14, 0.04), rgba(7, 9, 14, 0.22));
     pointer-events: none;
   }
 
+  .focus-feed-media-note {
+    color: rgba(232, 230, 240, 0.42);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    padding-left: 2px;
+  }
+
   .focus-feed-copy {
-    position: relative;
-    z-index: 1;
     display: grid;
     align-content: space-between;
     gap: 26px;
-    padding: 38px 42px 34px;
-    min-height: inherit;
+    min-height: 100%;
+    padding: 2px 0;
   }
 
   .focus-feed-meta {
@@ -1703,67 +1565,68 @@ const feedStyles = `
   }
 
   .focus-feed-copy h3 {
-    max-width: 960px;
+    max-width: 760px;
     font-family: var(--font-display);
-    font-size: clamp(58px, 7vw, 92px);
-    line-height: 0.94;
+    font-size: clamp(48px, 5.7vw, 78px);
+    line-height: 0.96;
     font-weight: 600;
     color: #f7f2fb;
     text-wrap: balance;
   }
 
   .focus-feed-card.pulse-of-day .focus-feed-copy h3 {
-    max-width: 980px;
+    max-width: 800px;
     color: #fbf7e6;
   }
 
   .focus-feed-copy p {
-    max-width: 700px;
+    max-width: 620px;
     color: rgba(232, 230, 240, 0.76);
-    font-size: 20px;
-    line-height: 1.72;
+    font-size: 18px;
+    line-height: 1.66;
   }
 
   .focus-answer-grid {
     display: grid;
     grid-template-columns: repeat(2, minmax(0, 1fr));
     gap: 16px;
-    max-width: 920px;
+    max-width: 760px;
   }
 
   .focus-answer-grid.type-statement {
     grid-template-columns: repeat(3, minmax(0, 1fr));
-    max-width: 780px;
+    max-width: 620px;
   }
 
   .focus-answer-card {
     display: flex;
     align-items: center;
-    gap: 20px;
-    min-height: 104px;
-    padding: 0 28px;
+    gap: 16px;
+    min-height: 88px;
+    padding: 0 20px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(15, 20, 28, 0.54);
+    background: rgba(15, 20, 28, 0.42);
     backdrop-filter: blur(12px);
+    border-radius: 20px;
   }
 
   .focus-answer-badge {
-    width: 42px;
-    height: 42px;
+    width: 38px;
+    height: 38px;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.22);
     color: rgba(232, 230, 240, 0.82);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 22px;
+    font-size: 18px;
     flex: 0 0 auto;
   }
 
   .focus-answer-label {
     color: #f2edf8;
-    font-size: 19px;
-    line-height: 1.4;
+    font-size: 17px;
+    line-height: 1.35;
   }
 
   .focus-feed-footer {
@@ -1793,8 +1656,8 @@ const feedStyles = `
   }
 
   .focus-feed-cta {
-    min-width: 290px;
-    min-height: 70px;
+    min-width: 260px;
+    min-height: 64px;
     border-radius: 999px;
     border: 1px solid rgba(201, 168, 76, 0.42);
     background: rgba(8, 11, 17, 0.58);
@@ -2065,11 +1928,13 @@ const feedStyles = `
     }
 
     .focus-feed-card {
+      grid-template-columns: 1fr;
+      gap: 22px;
       min-height: auto;
+      padding: 22px;
     }
 
     .focus-feed-copy {
-      padding: 24px 22px 24px;
       gap: 22px;
     }
 
@@ -2085,6 +1950,15 @@ const feedStyles = `
     .focus-answer-grid.type-statement {
       grid-template-columns: 1fr;
       max-width: none;
+    }
+
+    .focus-feed-media-shell {
+      order: -1;
+      max-width: 420px;
+    }
+
+    .focus-feed-media-frame {
+      aspect-ratio: 16 / 11;
     }
 
     .focus-answer-card {
@@ -2132,15 +2006,6 @@ const feedStyles = `
 
     .topbar-primary-action {
       width: 100%;
-    }
-
-    .feed-view-toggle {
-      width: 100%;
-      justify-content: space-between;
-    }
-
-    .feed-view-button {
-      flex: 1 1 0;
     }
 
     .feed-intro h2 {
