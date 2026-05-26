@@ -462,12 +462,6 @@ function getDetailTone(type) {
   return 'var(--gold)'
 }
 
-function getPreviewLabel(type) {
-  if (type === 'choice') return 'Active Signal'
-  if (type === 'ranked') return 'Priority Layer'
-  return 'Truth Layer'
-}
-
 function getQuestionPrompt(type, brief) {
   if (brief?.plainEnglish) return brief.plainEnglish
   if (type === 'choice') return 'Choose the answer that best reflects your current stance, then reveal the live signal.'
@@ -746,7 +740,7 @@ function QuestionShell({ question, brief, tier, children }) {
       </div>
 
       <div className="question-main-grid">
-        <QuestionPreview question={question} tone={tone} tier={tier} />
+        <QuestionPreview question={question} tone={tone} />
         <div className="question-side-card">
           {children}
         </div>
@@ -757,9 +751,7 @@ function QuestionShell({ question, brief, tier, children }) {
   )
 }
 
-function QuestionPreview({ question, tone, tier }) {
-  const questionType = question.type || 'statement'
-
+function QuestionPreview({ question, tone }) {
   return (
     <div className="question-preview-stage">
       {question.image_url ? (
@@ -779,28 +771,6 @@ function QuestionPreview({ question, tone, tier }) {
       )}
 
       <div className="question-preview-glow" />
-
-      <div
-        style={{
-          position: 'absolute',
-          left: 22,
-          right: 22,
-          bottom: 18,
-          display: 'flex',
-          justifyContent: 'space-between',
-          alignItems: 'flex-end',
-          gap: 12,
-          flexWrap: 'wrap',
-        }}
-      >
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          <span style={previewChipStyle(tone)}>{getPreviewLabel(questionType)}</span>
-          <span style={previewChipStyle('var(--teal)')}>{tier === 'verified' ? 'Verified layer' : 'Anonymous pulse'}</span>
-        </div>
-        <div style={{ color: 'rgba(255,255,255,0.62)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
-          Curated question view
-        </div>
-      </div>
     </div>
   )
 }
@@ -1197,24 +1167,6 @@ function MoreInsightsCard({ brief, question }) {
       )}
     </div>
   )
-}
-
-function previewChipStyle(color) {
-  return {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 4,
-    padding: '4px 10px',
-    borderRadius: 999,
-    fontSize: 10,
-    fontWeight: 700,
-    letterSpacing: '0.16em',
-    textTransform: 'uppercase',
-    color,
-    border: `1px solid ${color}44`,
-    background: `${color}16`,
-    backdropFilter: 'blur(14px)',
-  }
 }
 
 const ghostButtonStyle = {

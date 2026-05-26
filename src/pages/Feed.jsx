@@ -689,6 +689,7 @@ function FeaturedQuestionCard({ question, counts, onOpen }) {
   const mediaUrl = getFeedMediaUrl(question)
   const totalVotes = counts?.all?.total || 0
   const verifiedVotes = counts?.verified?.total || 0
+  const telemetryLabel = totalVotes > 0 ? `${formatCount(totalVotes)} signaling` : 'Awaiting the first signal'
 
   return (
     <section className="featured-card">
@@ -707,13 +708,8 @@ function FeaturedQuestionCard({ question, counts, onOpen }) {
             Reveal the Signal
           </button>
           <div className="featured-telemetry">
-            <div className="featured-telemetry-dots" aria-hidden="true">
-              <span />
-              <span />
-              <span />
-            </div>
             <div className="featured-telemetry-copy">
-              <span>{totalVotes > 0 ? `${formatCount(totalVotes)} signaling` : 'Awaiting the first signal'}</span>
+              <span>{telemetryLabel}</span>
               {verifiedVotes > 0 ? <strong>{formatCount(verifiedVotes)} verified</strong> : null}
             </div>
           </div>
