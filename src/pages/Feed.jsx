@@ -259,7 +259,7 @@ export default function Feed() {
     : 'all'
   const requestedView = VIEW_MODES.some((mode) => mode.key === searchParams.get('view'))
     ? searchParams.get('view')
-    : 'grid'
+    : 'focus'
   const requestedCategory = CATEGORIES.includes(searchParams.get('category'))
     ? searchParams.get('category')
     : 'All'
@@ -456,24 +456,35 @@ export default function Feed() {
     [activeCategory, activeType, allQuestions],
   )
 
+  const orderedFilteredQuestions = useMemo(() => {
+    if (!featuredQuestion) return filteredQuestions
+    const featuredIndex = filteredQuestions.findIndex((question) => question.id === featuredQuestion.id)
+    if (featuredIndex <= 0) return filteredQuestions
+
+    const ordered = [...filteredQuestions]
+    const [featured] = ordered.splice(featuredIndex, 1)
+    ordered.unshift(featured)
+    return ordered
+  }, [featuredQuestion, filteredQuestions])
+
   const heroQuestion =
-    filteredQuestions.find((question) => featuredQuestion && question.id === featuredQuestion.id) ||
-    filteredQuestions[0] ||
+    orderedFilteredQuestions.find((question) => featuredQuestion && question.id === featuredQuestion.id) ||
+    orderedFilteredQuestions[0] ||
     null
 
   const gridQuestions = heroQuestion
-    ? filteredQuestions.filter((question) => question.id !== heroQuestion.id)
-    : filteredQuestions
+    ? orderedFilteredQuestions.filter((question) => question.id !== heroQuestion.id)
+    : orderedFilteredQuestions
 
-  const allVisibleVotes = filteredQuestions.reduce(
+  const allVisibleVotes = orderedFilteredQuestions.reduce(
     (sum, question) => sum + (voteCounts[question.id]?.all?.total || 0),
     0,
   )
-  const allVisibleVerifiedVotes = filteredQuestions.reduce(
+  const allVisibleVerifiedVotes = orderedFilteredQuestions.reduce(
     (sum, question) => sum + (voteCounts[question.id]?.verified?.total || 0),
     0,
   )
-  const activeQuestionCount = filteredQuestions.length
+  const activeQuestionCount = orderedFilteredQuestions.length
   const totalQuestions = allQuestions.length
   const liveCategoryCount = Math.max(categories.length - 1, 0)
   const visibleTypeLabel =
@@ -682,17 +693,18 @@ export default function Feed() {
             ) : (
               <>
                 {activeView === 'focus' ? (
-                  filteredQuestions.length === 0 ? (
+                  orderedFilteredQuestions.length === 0 ? (
                     <EmptyState message="No live questions match this lane yet." />
                   ) : (
                     <section className="focus-feed-stack" ref={contentRef}>
-                      {filteredQuestions.map((question, index) => (
+                      {orderedFilteredQuestions.map((question, index) => (
                         <FocusFeedQuestion
                           key={question.id}
                           question={question}
                           counts={voteCounts[question.id]}
                           isFirst={index === 0}
-                          isLast={index === filteredQuestions.length - 1}
+                          isLast={index === orderedFilteredQuestions.length - 1}
+                          isPulseOfDay={!!featuredQuestion && question.id === featuredQuestion.id}
                           onOpen={() => handleOpenQuestion(question.id)}
                         />
                       ))}
@@ -867,7 +879,7 @@ function FeedQuestionCard({ question, counts, onOpen }) {
   )
 }
 
-function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast = false }) {
+function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast = false, isPulseOfDay = false }) {
   const type = question.type || 'statement'
   const mediaUrl = getFeedMediaUrl(question)
   const options = parseOptions(question.options)
@@ -875,8 +887,8 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast =
   const verifiedVotes = counts?.verified?.total || 0
 
   return (
-    <article className={`focus-feed-question ${isFirst ? 'first' : ''}`}>
-      <div className="focus-feed-card">
+    <article className={`focus-feed-question ${isFirst ? 'first' : ''} ${isPulseOfDay ? 'pulse-of-day' : ''}`}>
+      <div className={`focus-feed-card ${isPulseOfDay ? 'pulse-of-day' : ''}`}>
         <button type="button" className="focus-feed-media-shell" onClick={onOpen}>
           {mediaUrl ? (
             <QuestionMedia
@@ -895,9 +907,8 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast =
 
         <div className="focus-feed-copy">
           <div className="focus-feed-meta">
-            <span className="focus-feed-kicker">
-              {titleCase(question.category || 'General')}
-            </span>
+            {isPulseOfDay ? <span className="focus-feed-pill">Pulse of the Day</span> : null}
+            <span className="focus-feed-kicker">{titleCase(question.category || 'General')}</span>
             <span className="focus-feed-dot" aria-hidden="true">•</span>
             <span className="focus-feed-minutes">
               {totalVotes > 0 ? `${Math.min(9, Math.max(2, Math.ceil(totalVotes / 4)))} min deliberation` : 'Open signal'}
@@ -1594,6 +1605,13 @@ const feedStyles = `
     box-shadow: 0 22px 54px rgba(0, 0, 0, 0.24);
   }
 
+  .focus-feed-card.pulse-of-day {
+    border-color: rgba(201, 168, 76, 0.24);
+    box-shadow:
+      0 24px 60px rgba(0, 0, 0, 0.28),
+      inset 0 0 0 1px rgba(201, 168, 76, 0.06);
+  }
+
   .focus-feed-media-shell {
     position: absolute;
     inset: 0;
@@ -1650,6 +1668,20 @@ const feedStyles = `
     flex-wrap: wrap;
   }
 
+  .focus-feed-pill {
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    color: var(--gold);
+    background: rgba(201, 168, 76, 0.14);
+    border: 1px solid rgba(201, 168, 76, 0.24);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+  }
+
   .focus-feed-kicker,
   .focus-feed-minutes {
     font-size: 12px;
@@ -1678,6 +1710,11 @@ const feedStyles = `
     font-weight: 600;
     color: #f7f2fb;
     text-wrap: balance;
+  }
+
+  .focus-feed-card.pulse-of-day .focus-feed-copy h3 {
+    max-width: 980px;
+    color: #fbf7e6;
   }
 
   .focus-feed-copy p {
@@ -1768,6 +1805,10 @@ const feedStyles = `
     text-transform: uppercase;
     backdrop-filter: blur(10px);
     transition: var(--transition);
+  }
+
+  .focus-feed-card.pulse-of-day .focus-feed-cta {
+    background: linear-gradient(180deg, rgba(201, 168, 76, 0.16), rgba(201, 168, 76, 0.08));
   }
 
   .focus-feed-cta:hover {
