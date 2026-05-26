@@ -23,6 +23,11 @@ const TOP_TABS = [
   { key: 'ranked', label: 'Rankings' },
 ]
 
+const VIEW_MODES = [
+  { key: 'grid', label: 'Overview' },
+  { key: 'focus', label: 'Focus' },
+]
+
 const CARD_ACTION = {
   statement: 'Explore Signals',
   choice: 'Explore Decisions',
@@ -252,11 +257,15 @@ export default function Feed() {
   const requestedType = ['statement', 'choice', 'ranked'].includes(searchParams.get('type'))
     ? searchParams.get('type')
     : 'all'
+  const requestedView = VIEW_MODES.some((mode) => mode.key === searchParams.get('view'))
+    ? searchParams.get('view')
+    : 'grid'
   const requestedCategory = CATEGORIES.includes(searchParams.get('category'))
     ? searchParams.get('category')
     : 'All'
   const [activeCategory, setActiveCategory] = useState(requestedCategory)
   const [activeType, setActiveType] = useState(requestedType)
+  const [activeView, setActiveView] = useState(requestedView)
   const [questions, setQuestions] = useState([])
   const [featuredQuestion, setFeaturedQuestion] = useState(null)
   const [voteCounts, setVoteCounts] = useState({})
@@ -270,6 +279,10 @@ export default function Feed() {
   useEffect(() => {
     setActiveCategory(requestedCategory)
   }, [requestedCategory])
+
+  useEffect(() => {
+    setActiveView(requestedView)
+  }, [requestedView])
 
   useEffect(() => {
     void loadQuestions()
@@ -412,6 +425,20 @@ export default function Feed() {
     setTimeout(() => {
       contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
     }, 50)
+  }
+
+  function handleViewChange(nextView) {
+    setActiveView(nextView)
+
+    const nextParams = new URLSearchParams(searchParams)
+    if (nextView === 'grid') {
+      nextParams.delete('view')
+    } else {
+      nextParams.set('view', nextView)
+    }
+    setSearchParams(nextParams, { replace: true })
+
+    requestAnimationFrame(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
   }
 
   const allQuestions = useMemo(() => {
@@ -589,6 +616,21 @@ export default function Feed() {
             </div>
 
             <div className="feed-topbar-actions">
+              <div className="feed-view-toggle" role="tablist" aria-label="Feed layouts">
+                {VIEW_MODES.map((mode) => {
+                  const isActive = activeView === mode.key
+                  return (
+                    <button
+                      key={mode.key}
+                      type="button"
+                      className={`feed-view-button ${isActive ? 'active' : ''}`}
+                      onClick={() => handleViewChange(mode.key)}
+                    >
+                      {mode.label}
+                    </button>
+                  )
+                })}
+              </div>
               <div className="feed-search-shell">
                 <span className="feed-search-icon" aria-hidden="true" />
                 <input
@@ -639,65 +681,86 @@ export default function Feed() {
               <PageLoading />
             ) : (
               <>
-                {heroQuestion ? (
-                  <FeaturedQuestionCard
-                    question={heroQuestion}
-                    counts={voteCounts[heroQuestion.id]}
-                    onOpen={() => handleOpenQuestion(heroQuestion.id)}
-                  />
-                ) : (
-                  <EmptyState message="No live questions match this lane yet." />
-                )}
-
-                <section className="feed-section" ref={contentRef}>
-                  <div className="feed-section-heading">
-                    <div>
-                      <p className="feed-section-kicker">
-                        {activeCategory === 'All' ? 'Across the feed' : activeCategory}
-                      </p>
-                      <h3>{visibleTypeLabel}</h3>
-                    </div>
-                    <div className="feed-section-controls">
-                      <span>Sort by popularity</span>
-                      <span>Latest first</span>
-                    </div>
-                  </div>
-
-                  {gridQuestions.length === 0 ? (
-                    <EmptyState message="The featured card is carrying this lane for now." />
+                {activeView === 'focus' ? (
+                  filteredQuestions.length === 0 ? (
+                    <EmptyState message="No live questions match this lane yet." />
                   ) : (
-                    <div className="feed-card-grid">
-                      {gridQuestions.map((question) => (
-                        <FeedQuestionCard
+                    <section className="focus-feed-stack" ref={contentRef}>
+                      {filteredQuestions.map((question, index) => (
+                        <FocusFeedQuestion
                           key={question.id}
                           question={question}
                           counts={voteCounts[question.id]}
+                          isFirst={index === 0}
+                          isLast={index === filteredQuestions.length - 1}
                           onOpen={() => handleOpenQuestion(question.id)}
                         />
                       ))}
-                    </div>
-                  )}
-                </section>
+                    </section>
+                  )
+                ) : (
+                  <>
+                    {heroQuestion ? (
+                      <FeaturedQuestionCard
+                        question={heroQuestion}
+                        counts={voteCounts[heroQuestion.id]}
+                        onOpen={() => handleOpenQuestion(heroQuestion.id)}
+                      />
+                    ) : (
+                      <EmptyState message="No live questions match this lane yet." />
+                    )}
 
-                <section className="feed-metrics">
-                  <MetricCard
-                    label="Active Questions"
-                    value={formatCount(totalQuestions)}
-                    body={`${activeQuestionCount} visible in this view right now.`}
-                  />
-                  <MetricCard
-                    label="Curated Topics"
-                    value={formatCount(liveCategoryCount)}
-                    body="Distinct categories currently represented in the live feed."
-                    accent="teal"
-                  />
-                  <MetricCard
-                    label="Verified Layer"
-                    value={formatCount(allVisibleVerifiedVotes)}
-                    body={`${formatCount(allVisibleVotes)} total votes in view, with verified participation surfaced beside them.`}
-                    accent="wide"
-                  />
-                </section>
+                    <section className="feed-section" ref={contentRef}>
+                      <div className="feed-section-heading">
+                        <div>
+                          <p className="feed-section-kicker">
+                            {activeCategory === 'All' ? 'Across the feed' : activeCategory}
+                          </p>
+                          <h3>{visibleTypeLabel}</h3>
+                        </div>
+                        <div className="feed-section-controls">
+                          <span>Sort by popularity</span>
+                          <span>Latest first</span>
+                        </div>
+                      </div>
+
+                      {gridQuestions.length === 0 ? (
+                        <EmptyState message="The featured card is carrying this lane for now." />
+                      ) : (
+                        <div className="feed-card-grid">
+                          {gridQuestions.map((question) => (
+                            <FeedQuestionCard
+                              key={question.id}
+                              question={question}
+                              counts={voteCounts[question.id]}
+                              onOpen={() => handleOpenQuestion(question.id)}
+                            />
+                          ))}
+                        </div>
+                      )}
+                    </section>
+
+                    <section className="feed-metrics">
+                      <MetricCard
+                        label="Active Questions"
+                        value={formatCount(totalQuestions)}
+                        body={`${activeQuestionCount} visible in this view right now.`}
+                      />
+                      <MetricCard
+                        label="Curated Topics"
+                        value={formatCount(liveCategoryCount)}
+                        body="Distinct categories currently represented in the live feed."
+                        accent="teal"
+                      />
+                      <MetricCard
+                        label="Verified Layer"
+                        value={formatCount(allVisibleVerifiedVotes)}
+                        body={`${formatCount(allVisibleVotes)} total votes in view, with verified participation surfaced beside them.`}
+                        accent="wide"
+                      />
+                    </section>
+                  </>
+                )}
               </>
             )}
           </main>
@@ -800,6 +863,82 @@ function FeedQuestionCard({ question, counts, onOpen }) {
           <span className="feed-card-footnote">{getQuestionFootnote(question, counts)}</span>
         </div>
       </button>
+    </article>
+  )
+}
+
+function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast = false }) {
+  const type = question.type || 'statement'
+  const mediaUrl = getFeedMediaUrl(question)
+  const options = parseOptions(question.options)
+  const totalVotes = counts?.all?.total || 0
+  const verifiedVotes = counts?.verified?.total || 0
+
+  return (
+    <article className={`focus-feed-question ${isFirst ? 'first' : ''}`}>
+      <div className="focus-feed-card">
+        <button type="button" className="focus-feed-media-shell" onClick={onOpen}>
+          {mediaUrl ? (
+            <QuestionMedia
+              src={mediaUrl}
+              alt={question.text}
+              variant="reference"
+              style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+            />
+          ) : (
+            <div className="focus-feed-media placeholder">
+              <span>{getQuestionLabel(type)}</span>
+            </div>
+          )}
+          <div className="focus-feed-media-overlay" />
+        </button>
+
+        <div className="focus-feed-copy">
+          <div className="focus-feed-meta">
+            <span className="focus-feed-kicker">
+              {titleCase(question.category || 'General')}
+            </span>
+            <span className="focus-feed-dot" aria-hidden="true">•</span>
+            <span className="focus-feed-minutes">
+              {totalVotes > 0 ? `${Math.min(9, Math.max(2, Math.ceil(totalVotes / 4)))} min deliberation` : 'Open signal'}
+            </span>
+          </div>
+
+          <h3>{formatQuestionText(question)}</h3>
+          <p>{getQuestionSummary(question, counts)}</p>
+
+          <div className={`focus-answer-grid type-${type}`}>
+            {type === 'statement' ? (
+              ['Disagree', 'Mixed', 'Agree'].map((stance) => (
+                <div key={stance} className="focus-answer-card">
+                  <span className="focus-answer-badge">{stance.charAt(0)}</span>
+                  <span className="focus-answer-label">{stance}</span>
+                </div>
+              ))
+            ) : (
+              options.slice(0, 4).map((option, index) => (
+                <div key={option} className="focus-answer-card">
+                  <span className="focus-answer-badge">{String.fromCharCode(65 + index)}</span>
+                  <span className="focus-answer-label">{option}</span>
+                </div>
+              ))
+            )}
+          </div>
+
+          <div className="focus-feed-footer">
+            <div className="focus-feed-signals">
+              <span>{formatCount(totalVotes)} responses</span>
+              <span>{verifiedVotes > 0 ? `${formatCount(verifiedVotes)} verified` : 'Anonymous pulse'}</span>
+            </div>
+            <div className="focus-feed-actions">
+              <button type="button" className="focus-feed-cta" onClick={onOpen}>
+                Reveal the signal
+              </button>
+              {!isLast ? <span className="focus-feed-next">Scroll for next signal</span> : null}
+            </div>
+          </div>
+        </div>
+      </div>
     </article>
   )
 }
@@ -1130,6 +1269,34 @@ const feedStyles = `
     gap: 12px;
   }
 
+  .feed-view-toggle {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.06);
+  }
+
+  .feed-view-button {
+    border: 0;
+    background: transparent;
+    color: rgba(232, 230, 240, 0.5);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+    border-radius: 999px;
+    padding: 10px 14px;
+    transition: var(--transition);
+  }
+
+  .feed-view-button.active {
+    color: var(--gold);
+    background: rgba(201, 168, 76, 0.12);
+  }
+
   .feed-search-shell {
     min-width: min(320px, 38vw);
     display: flex;
@@ -1399,6 +1566,223 @@ const feedStyles = `
     scroll-margin-top: 140px;
   }
 
+  .focus-feed-stack {
+    display: grid;
+    gap: 26px;
+    scroll-margin-top: 140px;
+  }
+
+  .focus-feed-question {
+    min-height: calc(100vh - 150px);
+    display: grid;
+    align-items: start;
+  }
+
+  .focus-feed-question.first {
+    padding-top: 8px;
+  }
+
+  .focus-feed-card {
+    position: relative;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    min-height: min(78vh, 980px);
+    border-radius: 28px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: rgba(8, 10, 16, 0.96);
+    box-shadow: 0 22px 54px rgba(0, 0, 0, 0.24);
+  }
+
+  .focus-feed-media-shell {
+    position: absolute;
+    inset: 0;
+    border: 0;
+    background: none;
+    padding: 0;
+  }
+
+  .focus-feed-media,
+  .focus-feed-media-shell img,
+  .focus-feed-media-shell video {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+  }
+
+  .focus-feed-media.placeholder {
+    display: grid;
+    place-items: center;
+    background:
+      radial-gradient(circle at top, rgba(201, 168, 76, 0.16), transparent 40%),
+      linear-gradient(180deg, rgba(9, 11, 18, 1), rgba(6, 8, 12, 1));
+    color: rgba(232, 230, 240, 0.62);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .focus-feed-media-overlay {
+    position: absolute;
+    inset: 0;
+    background:
+      linear-gradient(180deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.7)),
+      radial-gradient(circle at center, rgba(0, 0, 0, 0.06), rgba(0, 0, 0, 0.55) 80%);
+    pointer-events: none;
+  }
+
+  .focus-feed-copy {
+    position: relative;
+    z-index: 1;
+    display: grid;
+    align-content: space-between;
+    gap: 26px;
+    padding: 38px 42px 34px;
+    min-height: inherit;
+  }
+
+  .focus-feed-meta {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+
+  .focus-feed-kicker,
+  .focus-feed-minutes {
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .focus-feed-kicker {
+    color: var(--teal);
+  }
+
+  .focus-feed-minutes {
+    color: rgba(232, 230, 240, 0.58);
+  }
+
+  .focus-feed-dot {
+    color: rgba(232, 230, 240, 0.34);
+  }
+
+  .focus-feed-copy h3 {
+    max-width: 960px;
+    font-family: var(--font-display);
+    font-size: clamp(58px, 7vw, 92px);
+    line-height: 0.94;
+    font-weight: 600;
+    color: #f7f2fb;
+    text-wrap: balance;
+  }
+
+  .focus-feed-copy p {
+    max-width: 700px;
+    color: rgba(232, 230, 240, 0.76);
+    font-size: 20px;
+    line-height: 1.72;
+  }
+
+  .focus-answer-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    max-width: 920px;
+  }
+
+  .focus-answer-grid.type-statement {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-width: 780px;
+  }
+
+  .focus-answer-card {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+    min-height: 104px;
+    padding: 0 28px;
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    background: rgba(15, 20, 28, 0.54);
+    backdrop-filter: blur(12px);
+  }
+
+  .focus-answer-badge {
+    width: 42px;
+    height: 42px;
+    border-radius: 999px;
+    border: 1px solid rgba(255, 255, 255, 0.22);
+    color: rgba(232, 230, 240, 0.82);
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 22px;
+    flex: 0 0 auto;
+  }
+
+  .focus-answer-label {
+    color: #f2edf8;
+    font-size: 19px;
+    line-height: 1.4;
+  }
+
+  .focus-feed-footer {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .focus-feed-signals {
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    flex-wrap: wrap;
+    color: rgba(232, 230, 240, 0.5);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .focus-feed-actions {
+    display: grid;
+    justify-items: end;
+    gap: 12px;
+  }
+
+  .focus-feed-cta {
+    min-width: 290px;
+    min-height: 70px;
+    border-radius: 999px;
+    border: 1px solid rgba(201, 168, 76, 0.42);
+    background: rgba(8, 11, 17, 0.58);
+    color: var(--gold);
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    backdrop-filter: blur(10px);
+    transition: var(--transition);
+  }
+
+  .focus-feed-cta:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 12px 30px rgba(201, 168, 76, 0.16);
+  }
+
+  .focus-feed-next {
+    color: rgba(232, 230, 240, 0.54);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
   .feed-section-heading {
     display: flex;
     align-items: end;
@@ -1623,6 +2007,7 @@ const feedStyles = `
 
     .feed-topbar-actions {
       justify-content: space-between;
+      flex-wrap: wrap;
     }
 
     .feed-search-shell {
@@ -1632,6 +2017,51 @@ const feedStyles = `
 
     .feed-content {
       padding: 22px 20px 40px;
+    }
+
+    .focus-feed-question {
+      min-height: auto;
+    }
+
+    .focus-feed-card {
+      min-height: auto;
+    }
+
+    .focus-feed-copy {
+      padding: 24px 22px 24px;
+      gap: 22px;
+    }
+
+    .focus-feed-copy h3 {
+      font-size: clamp(42px, 8vw, 62px);
+    }
+
+    .focus-feed-copy p {
+      font-size: 16px;
+    }
+
+    .focus-answer-grid,
+    .focus-answer-grid.type-statement {
+      grid-template-columns: 1fr;
+      max-width: none;
+    }
+
+    .focus-answer-card {
+      min-height: 82px;
+      padding: 0 18px;
+    }
+
+    .focus-feed-footer {
+      align-items: start;
+    }
+
+    .focus-feed-actions {
+      justify-items: start;
+    }
+
+    .focus-feed-cta {
+      min-width: 0;
+      width: 100%;
     }
 
     .feed-mobile-categories {
@@ -1663,6 +2093,15 @@ const feedStyles = `
       width: 100%;
     }
 
+    .feed-view-toggle {
+      width: 100%;
+      justify-content: space-between;
+    }
+
+    .feed-view-button {
+      flex: 1 1 0;
+    }
+
     .feed-intro h2 {
       font-size: 42px;
     }
@@ -1678,6 +2117,17 @@ const feedStyles = `
 
     .featured-copy p {
       font-size: 16px;
+    }
+
+    .focus-feed-meta {
+      gap: 8px;
+    }
+
+    .focus-feed-kicker,
+    .focus-feed-minutes,
+    .focus-feed-signals,
+    .focus-feed-next {
+      font-size: 10px;
     }
 
     .feed-card-grid,
