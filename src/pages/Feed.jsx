@@ -1457,7 +1457,7 @@ const feedStyles = `
 
   .focus-feed-media-shell {
     position: absolute;
-    top: 112px;
+    top: 92px;
     left: 34px;
     width: min(760px, calc(100% - 360px - 98px));
     height: min(440px, calc(100% - 210px));
@@ -1527,7 +1527,7 @@ const feedStyles = `
     align-content: stretch;
     gap: 18px 30px;
     min-height: 100%;
-    padding: 2px 0 0;
+    padding: 0;
   }
 
   .focus-feed-meta {
