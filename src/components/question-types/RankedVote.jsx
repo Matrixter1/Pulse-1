@@ -12,7 +12,7 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
   function commitReorder(from, to) {
     if (from === null || to === null || from === to) return
 
-    setItems(currentItems => {
+    setItems((currentItems) => {
       const reordered = [...currentItems]
       const [moved] = reordered.splice(from, 1)
       reordered.splice(to, 0, moved)
@@ -77,7 +77,7 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
     const target = index + direction
     if (target < 0 || target >= items.length) return
 
-    setItems(currentItems => {
+    setItems((currentItems) => {
       const nextItems = [...currentItems]
       ;[nextItems[index], nextItems[target]] = [nextItems[target], nextItems[index]]
       return nextItems
@@ -85,109 +85,108 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+    <div style={{ display: 'grid', gap: 18 }}>
       <p
         style={{
-          fontSize: 12,
-          color: 'var(--text-muted)',
-          letterSpacing: '0.08em',
-          textTransform: 'uppercase',
+          margin: 0,
           textAlign: 'center',
+          color: 'var(--text-muted)',
+          fontSize: 11,
+          letterSpacing: '0.18em',
+          textTransform: 'uppercase',
         }}
       >
-        Drag to reorder or use arrows - #1 = most important
+        Drag to reorder or use arrows. Position #1 carries the most weight.
       </p>
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+      <div style={{ display: 'grid', gap: 12 }}>
         {items.map((item, index) => {
           const isTouchDragging = touchDrag.current?.from === index
+          const rankColor = RANK_COLORS[index] || 'var(--text-muted)'
 
           return (
             <div
               key={item}
               data-rank-index={index}
               draggable
-              onDragStart={e => handleDragStart(e, index)}
-              onDragOver={e => handleDragOver(e, index)}
+              onDragStart={(e) => handleDragStart(e, index)}
+              onDragOver={(e) => handleDragOver(e, index)}
               onDrop={handleDrop}
-              onPointerDown={e => handlePointerDown(e, index)}
+              onPointerDown={(e) => handlePointerDown(e, index)}
               onPointerMove={handlePointerMove}
               onPointerUp={handlePointerEnd}
               onPointerCancel={handlePointerEnd}
               style={{
                 display: 'flex',
                 alignItems: 'center',
-                gap: 14,
-                padding: '16px 20px',
-                borderRadius: 'var(--radius)',
-                border: '1px solid rgba(255,255,255,0.07)',
-                background: isTouchDragging ? 'rgba(18,22,42,0.95)' : 'rgba(10,12,26,0.7)',
-                cursor: 'grab',
-                userSelect: 'none',
+                gap: 16,
+                padding: '18px 18px 18px 16px',
+                borderRadius: 20,
+                border: `1px solid ${isTouchDragging ? `${rankColor}66` : 'rgba(255,255,255,0.08)'}`,
+                background: isTouchDragging ? 'rgba(255,255,255,0.05)' : 'rgba(255,255,255,0.02)',
                 transition: 'var(--transition)',
+                cursor: 'grab',
                 touchAction: 'none',
+                userSelect: 'none',
               }}
             >
               <div
                 style={{
-                  width: 32,
-                  height: 32,
+                  width: 36,
+                  height: 36,
                   borderRadius: '50%',
-                  background: `${RANK_COLORS[index] || 'var(--text-dim)'}22`,
-                  border: `2px solid ${RANK_COLORS[index] || 'var(--text-dim)'}`,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
+                  border: `1px solid ${rankColor}`,
+                  color: rankColor,
+                  background: `${rankColor}14`,
+                  display: 'grid',
+                  placeItems: 'center',
                   fontSize: 13,
                   fontWeight: 800,
-                  color: RANK_COLORS[index] || 'var(--text-dim)',
                   flexShrink: 0,
                 }}
               >
                 {index + 1}
               </div>
 
-              <span style={{ flex: 1, fontSize: 14, color: 'var(--text)' }}>{item}</span>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div
+                  style={{
+                    fontSize: 10,
+                    letterSpacing: '0.18em',
+                    textTransform: 'uppercase',
+                    color: 'var(--text-muted)',
+                    marginBottom: 6,
+                  }}
+                >
+                  Rank position
+                </div>
+                <div style={{ color: 'var(--text)', fontFamily: 'var(--font-display)', fontSize: 28, lineHeight: 1.08 }}>
+                  {item}
+                </div>
+              </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 <button
+                  type="button"
                   onClick={() => moveItem(index, -1)}
                   disabled={index === 0}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: index === 0 ? 'var(--text-dim)' : 'var(--text-muted)',
-                    cursor: index === 0 ? 'default' : 'pointer',
-                    padding: '2px 4px',
-                    fontSize: 10,
-                    lineHeight: 1,
-                  }}
+                  style={arrowButtonStyle(index === 0)}
                 >
-                  ^
+                  ↑
                 </button>
                 <button
+                  type="button"
                   onClick={() => moveItem(index, 1)}
                   disabled={index === items.length - 1}
-                  style={{
-                    background: 'none',
-                    border: 'none',
-                    color: index === items.length - 1 ? 'var(--text-dim)' : 'var(--text-muted)',
-                    cursor: index === items.length - 1 ? 'default' : 'pointer',
-                    padding: '2px 4px',
-                    fontSize: 10,
-                    lineHeight: 1,
-                  }}
+                  style={arrowButtonStyle(index === items.length - 1)}
                 >
-                  v
+                  ↓
                 </button>
               </div>
 
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 3, opacity: 0.3, cursor: 'grab' }}>
-                {[0, 1, 2].map(i => (
-                  <div
-                    key={i}
-                    style={{ width: 16, height: 2, background: 'var(--text-muted)', borderRadius: 1 }}
-                  />
+              <div style={{ display: 'grid', gap: 4, opacity: 0.34, flexShrink: 0 }}>
+                {[0, 1, 2].map((handle) => (
+                  <span key={handle} style={{ display: 'block', width: 14, height: 2, borderRadius: 999, background: 'var(--text-muted)' }} />
                 ))}
               </div>
             </div>
@@ -195,16 +194,42 @@ export default function RankedVote({ options = [], onSubmit, submitting, canVote
         })}
       </div>
 
-      <Button
-        fullWidth
-        size="xl"
-        variant={canVote ? 'primary' : 'secondary'}
-        loading={submitting}
-        onClick={() => onSubmit({ rankedValues: items })}
-        style={canVote ? { background: 'linear-gradient(135deg, #9B6FD8, #7a50c0)', color: '#fff', border: 'none' } : {}}
-      >
-        {!canVote ? 'Sign in to Submit Your Truth' : 'Submit Your Truth'}
-      </Button>
+      <div style={{ display: 'grid', gap: 14, justifyItems: 'center', marginTop: 6 }}>
+        <Button
+          size="xl"
+          variant={canVote ? 'primary' : 'secondary'}
+          loading={submitting}
+          onClick={() => onSubmit({ rankedValues: items })}
+          style={canVote ? {
+            borderRadius: 999,
+            minWidth: 320,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+            background: 'linear-gradient(135deg, #f2cf5a, #b58b14)',
+          } : {
+            borderRadius: 999,
+            minWidth: 320,
+            letterSpacing: '0.18em',
+            textTransform: 'uppercase',
+          }}
+        >
+          {!canVote ? 'Sign in to vote' : 'Submit ranking'}
+        </Button>
+      </div>
     </div>
   )
+}
+
+function arrowButtonStyle(disabled) {
+  return {
+    width: 28,
+    height: 24,
+    borderRadius: 999,
+    border: '1px solid rgba(255,255,255,0.08)',
+    background: 'rgba(255,255,255,0.02)',
+    color: disabled ? 'rgba(255,255,255,0.24)' : 'var(--text-muted)',
+    cursor: disabled ? 'default' : 'pointer',
+    padding: 0,
+    lineHeight: 1,
+  }
 }

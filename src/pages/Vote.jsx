@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import AuthModal from '../components/AuthModal'
 import QuestionMedia from '../components/QuestionMedia'
-import { TierBanner, PageLoading, CategoryBadge, TypeBadge, Button } from '../components/ui'
+import { PageLoading, CategoryBadge, TypeBadge, Button } from '../components/ui'
 import RankedVote from '../components/question-types/RankedVote'
 import { fetchQuestion, submitVote, hasUserVoted } from '../lib/data'
 import { useAuth } from '../lib/auth'
@@ -28,6 +28,267 @@ const OPTION_INSIGHT_LIBRARY = [
   ['digital minds', 'Software-based minds or mind copies that could think, remember, or act like a person.'],
   ['longevity', 'Technologies aimed at slowing aging, extending lifespan, or keeping people healthy for much longer.'],
 ]
+
+const SIGNAL_DRIVER_OPTIONS = ['Experience', 'Evidence', 'Instinct', 'Pattern', 'Belief']
+
+const QUESTION_DETAIL_STYLES = `
+  .question-detail-shell {
+    max-width: 980px;
+    margin: 0 auto;
+    display: grid;
+    gap: 34px;
+  }
+
+  .question-preview-stage {
+    position: relative;
+    min-height: 260px;
+    border-radius: 30px;
+    overflow: hidden;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: linear-gradient(180deg, rgba(13, 18, 33, 0.86), rgba(8, 10, 18, 0.96));
+    box-shadow: 0 24px 60px rgba(0,0,0,0.34);
+  }
+
+  .question-preview-glow {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(0,0,0,0.02), transparent 42%, rgba(4,6,12,0.72));
+  }
+
+  .question-header {
+    text-align: center;
+    display: grid;
+    gap: 14px;
+  }
+
+  .question-eyebrow {
+    font-size: 11px;
+    letter-spacing: 0.28em;
+    text-transform: uppercase;
+    font-weight: 800;
+  }
+
+  .question-heading {
+    margin: 0;
+    font-family: var(--font-display);
+    font-size: clamp(42px, 5.4vw, 66px);
+    line-height: 1.07;
+    letter-spacing: -0.03em;
+    color: var(--text);
+  }
+
+  .question-heading em {
+    font-style: italic;
+    font-weight: 500;
+  }
+
+  .question-subcopy {
+    max-width: 780px;
+    margin: 0 auto;
+    color: var(--text-muted);
+    font-size: 18px;
+    line-height: 1.72;
+  }
+
+  .question-meta-strip {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .question-panel {
+    background: rgba(16, 22, 34, 0.88);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 26px;
+    box-shadow: 0 18px 48px rgba(0,0,0,0.24);
+  }
+
+  .question-footnote {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+    color: var(--text-muted);
+    font-size: 12px;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+  }
+
+  .question-link-row {
+    display: flex;
+    justify-content: center;
+    gap: 18px;
+    flex-wrap: wrap;
+  }
+
+  .question-inline-link {
+    color: var(--gold);
+    text-decoration: none;
+    font-size: 12px;
+    letter-spacing: 0.16em;
+    text-transform: uppercase;
+  }
+
+  .question-inline-link:hover {
+    opacity: 0.86;
+  }
+
+  .question-option-grid,
+  .question-stack {
+    display: grid;
+    gap: 14px;
+  }
+
+  .question-option-card {
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 22px;
+    text-align: left;
+    padding: 24px 24px 22px;
+    background: rgba(255,255,255,0.02);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 20px;
+    color: inherit;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .question-option-card:hover {
+    transform: translateY(-2px);
+    border-color: rgba(255,255,255,0.14);
+  }
+
+  .question-option-card.is-selected {
+    background: rgba(255,255,255,0.05);
+    box-shadow: inset 0 0 0 1px currentColor;
+  }
+
+  .question-option-letter {
+    font-size: 11px;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+    color: var(--text-muted);
+    margin-bottom: 10px;
+  }
+
+  .question-option-title {
+    margin: 0 0 10px;
+    font-family: var(--font-display);
+    font-size: clamp(28px, 3.2vw, 38px);
+    line-height: 1.08;
+    color: var(--text);
+  }
+
+  .question-option-description {
+    margin: 0;
+    color: var(--text-muted);
+    font-size: 15px;
+    line-height: 1.64;
+    max-width: 620px;
+  }
+
+  .question-option-mark {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1.5px solid rgba(255,255,255,0.14);
+    flex-shrink: 0;
+    margin-top: 8px;
+    transition: var(--transition);
+  }
+
+  .question-cta-wrap {
+    display: grid;
+    gap: 16px;
+    justify-items: center;
+    margin-top: 6px;
+  }
+
+  .question-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 12px;
+    border-radius: 999px;
+    outline: none;
+    cursor: pointer;
+    background: linear-gradient(90deg, #ff9f95 0%, #d6b34d 50%, #5fdfbd 100%);
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
+  }
+
+  .question-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--gold);
+    border: 6px solid rgba(201,168,76,0.18);
+    box-shadow: 0 10px 26px rgba(0,0,0,0.36), 0 0 0 1px rgba(201,168,76,0.42);
+  }
+
+  .question-slider::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: var(--gold);
+    border: 6px solid rgba(201,168,76,0.18);
+    box-shadow: 0 10px 26px rgba(0,0,0,0.36), 0 0 0 1px rgba(201,168,76,0.42);
+  }
+
+  .question-driver-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+    gap: 10px;
+  }
+
+  .question-driver-chip {
+    min-height: 44px;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.02);
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    cursor: pointer;
+    transition: var(--transition);
+  }
+
+  .question-driver-chip.is-selected {
+    background: rgba(201,168,76,0.12);
+    border-color: rgba(201,168,76,0.42);
+    color: var(--gold);
+  }
+
+  @media (max-width: 960px) {
+    .question-detail-shell {
+      gap: 28px;
+    }
+
+    .question-heading {
+      font-size: clamp(34px, 10vw, 52px);
+    }
+
+    .question-subcopy {
+      font-size: 16px;
+    }
+
+    .question-option-card {
+      padding: 20px 18px;
+      gap: 14px;
+    }
+
+    .question-driver-grid {
+      grid-template-columns: 1fr 1fr;
+    }
+  }
+`
 
 function humanizeOptionLabel(option) {
   return option
@@ -69,13 +330,7 @@ function deriveAnswerInsights(question, brief) {
   if (brief?.answerInsights?.length) return brief.answerInsights
   const type = question.type || 'statement'
   const options = parseOptions(question.options)
-  if (type === 'choice') {
-    return options.map((option) => ({
-      answer: option,
-      insight: deriveOptionInsight(option, type),
-    }))
-  }
-  if (type === 'ranked') {
+  if (type === 'choice' || type === 'ranked') {
     return options.map((option) => ({
       answer: option,
       insight: deriveOptionInsight(option, type),
@@ -163,6 +418,47 @@ function getVoteLabel(type) {
   return 'Signal'
 }
 
+function getDetailTone(type) {
+  if (type === 'choice') return 'var(--teal)'
+  if (type === 'ranked') return '#9B6FD8'
+  return 'var(--gold)'
+}
+
+function getPreviewLabel(type) {
+  if (type === 'choice') return 'Active Signal'
+  if (type === 'ranked') return 'Priority Layer'
+  return 'Truth Layer'
+}
+
+function getQuestionPrompt(type, brief) {
+  if (brief?.plainEnglish) return brief.plainEnglish
+  if (type === 'choice') return 'Choose the answer that best reflects your current stance, then reveal the live signal.'
+  if (type === 'ranked') return 'Order the options from strongest to weakest pull, then submit the sequence that feels true.'
+  return 'Move the signal between disagreement and agreement, then cast your anonymous Pulse.'
+}
+
+function getStatusMeta(type, tier) {
+  return [
+    'Anonymous vote',
+    tier === 'verified' ? 'Pulse verified' : 'Verification optional',
+    type === 'ranked' ? 'Order defines outcome' : type === 'choice' ? 'One answer only' : 'Truth gap updates live',
+  ]
+}
+
+function getSignalBucketLabel(value) {
+  if (value <= 20) return 'Strong disagree'
+  if (value <= 40) return 'Lean disagree'
+  if (value < 60) return 'Balanced'
+  if (value < 80) return 'Lean agree'
+  return 'Strong agree'
+}
+
+function getSignalPositionTone(value) {
+  if (value <= 40) return '#ff9f95'
+  if (value < 60) return 'var(--gold)'
+  return 'var(--teal)'
+}
+
 export default function Vote() {
   const { id } = useParams()
   const navigate = useNavigate()
@@ -185,19 +481,25 @@ export default function Vote() {
           setAlreadyVoted(voted)
         }
       } catch {
-        setError('Statement not found.')
+        setError('Question not found.')
       } finally {
         setLoading(false)
       }
     }
+
     load()
   }, [id, user])
 
   async function handleSubmit(voteData) {
-    if (tier === 'guest' || !user) { setShowAuth(true); return }
+    if (tier === 'guest' || !user) {
+      setShowAuth(true)
+      return
+    }
     if (alreadyVoted) return
+
     setSubmitting(true)
     setError('')
+
     try {
       await submitVote({
         questionId: id,
@@ -213,7 +515,14 @@ export default function Vote() {
     }
   }
 
-  if (loading) return <><NavBar /><PageLoading /></>
+  if (loading) {
+    return (
+      <>
+        <NavBar />
+        <PageLoading />
+      </>
+    )
+  }
 
   if (!question) {
     return (
@@ -234,104 +543,76 @@ export default function Vote() {
   return (
     <div className="page">
       <NavBar />
+      <style>{QUESTION_DETAIL_STYLES}</style>
 
-      <div style={{ maxWidth: 1220, margin: '0 auto', padding: '40px 20px 90px' }}>
-        <button onClick={() => navigate('/feed')} style={{
-          background: 'none',
-          border: 'none',
-          color: 'var(--text-muted)',
-          cursor: 'pointer',
-          fontSize: 13,
-          marginBottom: 28,
-          display: 'flex',
-          alignItems: 'center',
-          gap: 6,
-        }}>
-          ← Back
+      <div style={{ maxWidth: 1180, margin: '0 auto', padding: '36px 20px 96px' }}>
+        <button
+          type="button"
+          onClick={() => navigate('/feed')}
+          style={{
+            background: 'none',
+            border: 'none',
+            color: 'var(--text-muted)',
+            cursor: 'pointer',
+            fontSize: 12,
+            letterSpacing: '0.16em',
+            textTransform: 'uppercase',
+            marginBottom: 26,
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 8,
+          }}
+        >
+          Back to feed
         </button>
 
         {error && (
-          <div style={{
-            background: 'var(--red-dim)',
-            border: '1px solid var(--red-border)',
-            borderRadius: 'var(--radius)',
-            padding: '10px 14px',
-            marginBottom: 20,
-            fontSize: 13,
-            color: 'var(--red)',
-          }}>
+          <div
+            style={{
+              background: 'var(--red-dim)',
+              border: '1px solid var(--red-border)',
+              borderRadius: 'var(--radius)',
+              padding: '10px 14px',
+              marginBottom: 20,
+              fontSize: 13,
+              color: 'var(--red)',
+            }}
+          >
             {error}
           </div>
         )}
 
         {alreadyVoted ? (
-          <div style={{
-            background: 'rgba(10,12,26,0.76)',
-            border: '1px solid rgba(201,168,76,0.16)',
-            borderRadius: 'var(--radius-xl)',
-            padding: '56px 32px',
-            textAlign: 'center',
-          }}>
-            <div style={{ fontSize: 32, marginBottom: 16, color: 'var(--teal)' }}>◈</div>
-            <div style={{
-              fontFamily: 'var(--font-display)',
-              fontSize: 28,
-              color: 'var(--text)',
-              marginBottom: 12,
-            }}>
-              You&apos;ve already signalled on this.
-            </div>
-            <p style={{ color: 'var(--text-muted)', fontSize: 15, marginBottom: 28 }}>
-              Your anonymous vote is recorded in the Truth Layer.
-            </p>
-            <button
-              onClick={() => navigate(`/results/${id}`)}
-              style={{
-                background: 'linear-gradient(135deg, #C9A84C, #a8882e)',
-                border: 'none',
-                color: '#05060F',
-                padding: '14px 32px',
-                borderRadius: 999,
-                fontSize: 13,
-                fontWeight: 800,
-                letterSpacing: '0.12em',
-                textTransform: 'uppercase',
-                cursor: 'pointer',
-              }}
-            >
-              See the Truth Gap →
-            </button>
-          </div>
+          <AlreadyVotedPanel id={id} navigate={navigate} />
         ) : (
           <>
             {questionType === 'choice' ? (
-              <CinematicChoiceVote
+              <ChoiceQuestionVote
                 question={question}
+                brief={brief}
                 options={options}
                 tier={tier}
-                brief={brief}
                 canVote={canVote}
                 submitting={submitting}
                 onSubmit={handleSubmit}
                 onRequireAuth={() => setShowAuth(true)}
               />
             ) : questionType === 'statement' ? (
-              <SignalAnalysisVote
+              <SignalQuestionVote
                 question={question}
-                tier={tier}
                 brief={brief}
+                tier={tier}
                 canVote={canVote}
                 submitting={submitting}
                 onSubmit={handleSubmit}
                 onRequireAuth={() => setShowAuth(true)}
               />
             ) : (
-              <CinematicStandardVote
+              <RankedQuestionVote
                 question={question}
-                questionType={questionType}
+                brief={brief}
                 options={options}
                 tier={tier}
-                brief={brief}
                 canVote={canVote}
                 submitting={submitting}
                 onSubmit={handleSubmit}
@@ -349,11 +630,237 @@ export default function Vote() {
   )
 }
 
-function SignalAnalysisVote({ question, tier, brief, canVote, submitting, onSubmit, onRequireAuth }) {
+function AlreadyVotedPanel({ id, navigate }) {
+  return (
+    <div
+      style={{
+        maxWidth: 760,
+        margin: '48px auto 0',
+        textAlign: 'center',
+        background: 'rgba(12, 18, 30, 0.84)',
+        border: '1px solid rgba(201,168,76,0.18)',
+        borderRadius: 28,
+        padding: '56px 28px',
+        boxShadow: '0 24px 56px rgba(0,0,0,0.28)',
+      }}
+    >
+      <div
+        style={{
+          fontSize: 12,
+          letterSpacing: '0.24em',
+          textTransform: 'uppercase',
+          color: 'var(--gold)',
+          fontWeight: 800,
+          marginBottom: 18,
+        }}
+      >
+        Signal Captured
+      </div>
+      <h1
+        style={{
+          margin: '0 0 12px',
+          fontFamily: 'var(--font-display)',
+          fontSize: 'clamp(34px, 5vw, 48px)',
+          lineHeight: 1.08,
+          color: 'var(--text)',
+        }}
+      >
+        You&apos;ve already voted on this question.
+      </h1>
+      <p style={{ margin: '0 auto 28px', maxWidth: 520, color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.7 }}>
+        Your anonymous response is already sitting in the truth layer. You can jump straight to the live result view at any time.
+      </p>
+      <Button
+        size="xl"
+        onClick={() => navigate(`/results/${id}`)}
+        style={{
+          borderRadius: 999,
+          minWidth: 260,
+          letterSpacing: '0.16em',
+          textTransform: 'uppercase',
+        }}
+      >
+        See the truth gap
+      </Button>
+    </div>
+  )
+}
+
+function QuestionShell({ question, brief, tier, children }) {
+  const questionType = question.type || 'statement'
+  const tone = getDetailTone(questionType)
+  const intro = getQuestionPrompt(questionType, brief)
+
+  return (
+    <div className="question-detail-shell">
+      <QuestionPreview question={question} tone={tone} tier={tier} />
+
+      <div className="question-header">
+        <div className="question-eyebrow" style={{ color: tone }}>
+          {getVoteLabel(questionType)}
+        </div>
+        <h1 className="question-heading">
+          {questionType === 'statement' ? <em>{question.text}</em> : question.text}
+        </h1>
+        <p className="question-subcopy">{intro}</p>
+        <div className="question-meta-strip">
+          <CategoryBadge category={question.category} />
+          <TypeBadge type={questionType} />
+        </div>
+      </div>
+
+      {children}
+
+      {brief && <MoreInsightsCard brief={brief} question={question} />}
+    </div>
+  )
+}
+
+function QuestionPreview({ question, tone, tier }) {
+  const questionType = question.type || 'statement'
+
+  return (
+    <div className="question-preview-stage">
+      {question.image_url ? (
+        <QuestionMedia
+          src={question.image_url}
+          alt={question.text}
+          variant="reference"
+          style={{ height: '100%', minHeight: 260, padding: 0, boxSizing: 'border-box' }}
+        />
+      ) : (
+        <div
+          style={{
+            minHeight: 260,
+            background: `radial-gradient(circle at top, ${tone}22, rgba(7, 9, 16, 0.96) 62%)`,
+          }}
+        />
+      )}
+
+      <div className="question-preview-glow" />
+
+      <div
+        style={{
+          position: 'absolute',
+          left: 22,
+          right: 22,
+          bottom: 18,
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'flex-end',
+          gap: 12,
+          flexWrap: 'wrap',
+        }}
+      >
+        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <span style={previewChipStyle(tone)}>{getPreviewLabel(questionType)}</span>
+          <span style={previewChipStyle('var(--teal)')}>{tier === 'verified' ? 'Verified layer' : 'Anonymous pulse'}</span>
+        </div>
+        <div style={{ color: 'rgba(255,255,255,0.62)', fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase' }}>
+          Curated question view
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function ChoiceQuestionVote({ question, brief, options, tier, canVote, submitting, onSubmit, onRequireAuth }) {
+  const [selected, setSelected] = useState(null)
+  const answerInsights = deriveAnswerInsights(question, brief)
+  const optionDescriptions = Object.fromEntries(answerInsights.map((item) => [item.answer, item.insight]))
+
+  function handleSubmitChoice() {
+    if (!canVote) {
+      onRequireAuth()
+      return
+    }
+    if (!selected) return
+    onSubmit({ choiceValue: selected })
+  }
+
+  return (
+    <QuestionShell question={question} brief={brief} tier={tier}>
+      <div className="question-panel" style={{ padding: '26px 26px 28px' }}>
+        <div className="question-option-grid">
+          {options.map((option, index) => {
+            const isSelected = selected === option
+
+            return (
+              <button
+                key={option}
+                type="button"
+                className={`question-option-card${isSelected ? ' is-selected' : ''}`}
+                onClick={() => setSelected(isSelected ? null : option)}
+                style={{ color: isSelected ? 'var(--teal)' : 'inherit' }}
+              >
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div className="question-option-letter">Option {String.fromCharCode(65 + index)}</div>
+                  <h2 className="question-option-title">{option}</h2>
+                  <p className="question-option-description">
+                    {optionDescriptions[option] || `This option represents the case for ${humanizeOptionLabel(option).toLowerCase()}.`}
+                  </p>
+                </div>
+                <div
+                  className="question-option-mark"
+                  style={{
+                    borderColor: isSelected ? 'var(--teal)' : 'rgba(255,255,255,0.14)',
+                    background: isSelected ? 'rgba(76,201,168,0.16)' : 'transparent',
+                    boxShadow: isSelected ? 'inset 0 0 0 7px var(--teal)' : 'none',
+                  }}
+                />
+              </button>
+            )
+          })}
+        </div>
+
+        <div className="question-cta-wrap">
+          <Button
+            size="xl"
+            loading={submitting}
+            disabled={canVote && !selected}
+            onClick={handleSubmitChoice}
+            variant={canVote && selected ? 'primary' : 'secondary'}
+            style={canVote && selected ? {
+              background: 'linear-gradient(135deg, #f2cf5a, #b68e18)',
+              borderRadius: 999,
+              minWidth: 320,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+            } : {
+              borderRadius: 999,
+              minWidth: 320,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {!canVote ? 'Sign in to vote' : !selected ? 'Select an option to vote' : 'Cast this vote'}
+          </Button>
+
+          <div className="question-footnote">
+            {getStatusMeta(question.type, tier).map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
+
+          <div className="question-link-row">
+            <button type="button" onClick={() => setSelected(null)} style={ghostButtonStyle}>
+              Reset choice
+            </button>
+            <a className="question-inline-link" href={`/results/${question.id}`}>See current results</a>
+          </div>
+        </div>
+      </div>
+    </QuestionShell>
+  )
+}
+
+function SignalQuestionVote({ question, brief, tier, canVote, submitting, onSubmit, onRequireAuth }) {
   const [value, setValue] = useState(50)
   const [reason, setReason] = useState(null)
+  const signalLabel = getSignalBucketLabel(value)
+  const signalTone = getSignalPositionTone(value)
 
-  function handleReveal() {
+  function handleSubmitSignal() {
     if (!canVote) {
       onRequireAuth()
       return
@@ -362,194 +869,73 @@ function SignalAnalysisVote({ question, tier, brief, canVote, submitting, onSubm
   }
 
   return (
-    <>
-      <style>{`
-        .signal-mobile-flow {
-          max-width: 860px;
-          margin: 0 auto;
-        }
-        .signal-slider-input {
-          -webkit-appearance: none;
-          appearance: none;
-          width: 100%;
-          height: 16px;
-          border-radius: 999px;
-          background: linear-gradient(90deg, #ffa49d 0%, #d8b84f 50%, #63dcbc 100%);
-          outline: none;
-          cursor: pointer;
-          box-shadow: inset 0 0 0 1px rgba(255,255,255,0.08);
-        }
-        .signal-slider-input::-webkit-slider-thumb {
-          -webkit-appearance: none;
-          width: 42px;
-          height: 42px;
-          border-radius: 50%;
-          background: var(--gold);
-          border: 8px solid rgba(201,168,76,0.22);
-          box-shadow: 0 12px 28px rgba(0,0,0,0.42), 0 0 0 1px rgba(201,168,76,0.55);
-        }
-        .signal-slider-input::-moz-range-thumb {
-          width: 42px;
-          height: 42px;
-          border-radius: 50%;
-          background: var(--gold);
-          border: 8px solid rgba(201,168,76,0.22);
-          box-shadow: 0 12px 28px rgba(0,0,0,0.42), 0 0 0 1px rgba(201,168,76,0.55);
-        }
-        .signal-driver-grid {
-          display: grid;
-          grid-template-columns: repeat(5, minmax(0, 1fr));
-          gap: 10px;
-        }
-        @media (max-width: 960px) {
-          .vote-reference-frame {
-            min-height: 0 !important;
-            aspect-ratio: auto !important;
-            max-height: none !important;
-          }
-          .vote-reference-frame img,
-          .vote-reference-frame video {
-            height: auto !important;
-            max-height: 74vh !important;
-          }
-          .vote-reference-caption {
-            position: static !important;
-            padding: 14px 16px 16px !important;
-            background: rgba(5, 7, 16, 0.78) !important;
-          }
-          .signal-driver-grid {
-            grid-template-columns: 1fr 1fr !important;
-          }
-        }
-      `}</style>
-
-      <div className="signal-mobile-flow">
-        <div style={{ textAlign: 'center', marginBottom: 28 }}>
-          <div style={{
-            fontSize: 12,
-            letterSpacing: '0.26em',
-            textTransform: 'uppercase',
-            color: 'var(--teal)',
-            fontWeight: 800,
-            marginBottom: 14,
-          }}>
-            Live Signal
+    <QuestionShell question={question} brief={brief} tier={tier}>
+      <div className="question-panel" style={{ padding: '28px 26px 30px' }}>
+        <div style={{ textAlign: 'center', marginBottom: 24 }}>
+          <div
+            style={{
+              fontSize: 11,
+              letterSpacing: '0.2em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+              marginBottom: 10,
+            }}
+          >
+            Position on the signal
           </div>
-          <h1 style={{
-            fontFamily: 'var(--font-ui, inherit)',
-            fontSize: 'clamp(38px, 6vw, 72px)',
-            lineHeight: 1.08,
-            letterSpacing: '-0.02em',
-            fontWeight: 500,
-            fontStyle: 'italic',
-            color: 'var(--text)',
-            marginBottom: 18,
-          }}>
-            "{question.text}"
-          </h1>
-          <p style={{
-            fontSize: 17,
-            color: 'var(--text-muted)',
-            lineHeight: 1.65,
-            maxWidth: 820,
-            margin: '0 auto',
-          }}>
-            {brief?.plainEnglish || 'Move the signal between disagree and agree, then cast your Pulse.'}
-          </p>
-        </div>
-
-        <div className="vote-reference-frame" style={{
-          position: 'relative',
-          minHeight: 480,
-          borderRadius: '34px',
-          overflow: 'hidden',
-          border: '1px solid rgba(255,255,255,0.06)',
-          background: question.image_url
-            ? 'rgba(5,7,16,0.82)'
-            : 'radial-gradient(circle at center, rgba(76,201,168,0.18), rgba(10,12,26,0.96) 62%)',
-          marginBottom: 38,
-          boxShadow: '0 20px 54px rgba(0,0,0,0.34)',
-        }}>
-          {question.image_url && (
-            <QuestionMedia
-              src={question.image_url}
-              alt={question.text}
-              variant="reference"
-              controls
-              style={{ minHeight: 480, height: '100%', padding: 0, boxSizing: 'border-box' }}
-            />
-          )}
-          <div className="vote-reference-caption" style={{ position: 'absolute', left: 24, right: 24, bottom: 24, pointerEvents: 'none' }}>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-              <CategoryBadge category={question.category} />
-              <TypeBadge type={question.type} />
-            </div>
+          <div style={{ fontFamily: 'var(--font-display)', fontSize: 'clamp(30px, 4vw, 42px)', color: signalTone, marginBottom: 6 }}>
+            {signalLabel}
+          </div>
+          <div style={{ color: 'var(--text-muted)', fontSize: 13, letterSpacing: '0.14em', textTransform: 'uppercase' }}>
+            {value} / 100
           </div>
         </div>
 
-        <div style={{ marginBottom: 34 }}>
-          <div style={{
-            display: 'flex',
-            justifyContent: 'space-between',
-            alignItems: 'center',
-            marginBottom: 28,
-            color: 'var(--text-muted)',
-            fontSize: 18,
-            letterSpacing: '0.12em',
-            textTransform: 'uppercase',
-          }}>
-            <span style={{ color: '#ffa49d' }}>Disagree</span>
+        <div style={{ display: 'grid', gap: 14, marginBottom: 22 }}>
+          <div
+            style={{
+              display: 'flex',
+              justifyContent: 'space-between',
+              color: 'var(--text-muted)',
+              fontSize: 11,
+              letterSpacing: '0.16em',
+              textTransform: 'uppercase',
+            }}
+          >
+            <span style={{ color: '#ff9f95' }}>Disagree</span>
+            <span style={{ color: 'var(--gold)' }}>Mixed</span>
             <span style={{ color: 'var(--teal)' }}>Agree</span>
           </div>
           <input
-            className="signal-slider-input"
+            className="question-slider"
             type="range"
             min={0}
             max={100}
             value={value}
             onChange={(event) => setValue(Number(event.target.value))}
           />
-          <div style={{
-            color: 'var(--text-muted)',
-            fontSize: 22,
-            letterSpacing: '0.22em',
-            textAlign: 'center',
-            marginTop: 24,
-          }}>
-            {value}/100
-          </div>
         </div>
 
-        <div style={{ marginBottom: 34 }}>
-          <p style={{
-            color: 'var(--text-muted)',
-            fontSize: 18,
-            letterSpacing: '0.16em',
-            textAlign: 'center',
-            textTransform: 'uppercase',
-            marginBottom: 18,
-          }}>
+        <div style={{ marginBottom: 26 }}>
+          <div
+            style={{
+              fontSize: 11,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: 'var(--text-muted)',
+              textAlign: 'center',
+              marginBottom: 14,
+            }}
+          >
             Primary sentiment driver
-          </p>
-          <div className="signal-driver-grid">
-            {['Experience', 'Evidence', 'Instinct', 'Pattern', 'Belief'].map(chip => (
+          </div>
+          <div className="question-driver-grid">
+            {SIGNAL_DRIVER_OPTIONS.map((chip) => (
               <button
                 key={chip}
                 type="button"
+                className={`question-driver-chip${reason === chip ? ' is-selected' : ''}`}
                 onClick={() => setReason(reason === chip ? null : chip)}
-                style={{
-                  padding: '12px 10px',
-                  borderRadius: 999,
-                  border: `1px solid ${reason === chip ? 'var(--gold)' : 'rgba(201,168,76,0.16)'}`,
-                  background: reason === chip ? 'rgba(201,168,76,0.16)' : 'rgba(255,255,255,0.02)',
-                  color: reason === chip ? 'var(--gold)' : 'var(--text-muted)',
-                  fontSize: 12,
-                  fontWeight: 700,
-                  letterSpacing: '0.08em',
-                  cursor: 'pointer',
-                  textTransform: 'uppercase',
-                  transition: 'var(--transition)',
-                }}
               >
                 {chip}
               </button>
@@ -557,572 +943,83 @@ function SignalAnalysisVote({ question, tier, brief, canVote, submitting, onSubm
           </div>
         </div>
 
-        <div style={{ display: 'grid', gap: 14 }}>
+        <div className="question-cta-wrap">
           <Button
             size="xl"
-            variant={canVote ? 'primary' : 'secondary'}
             loading={submitting}
-            onClick={handleReveal}
-            style={canVote ? {
-              background: 'linear-gradient(135deg, #f0cf67, #8b6d05)',
-              color: '#05060F',
-              border: 'none',
+            onClick={handleSubmitSignal}
+            style={{
               borderRadius: 999,
-              width: '100%',
-              minHeight: 72,
-              fontSize: 22,
-              letterSpacing: '0.02em',
-            } : {
-              borderRadius: 999,
-              width: '100%',
-              minHeight: 72,
-              fontSize: 18,
+              minWidth: 320,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
             }}
           >
-            {!canVote ? 'Sign in to Cast My Pulse' : 'Cast My Pulse ->'}
+            {!canVote ? 'Sign in to vote' : 'Cast my pulse'}
           </Button>
 
-          <a
-            href="/feed"
-            style={{
-              display: 'grid',
-              placeItems: 'center',
-              minHeight: 58,
-              borderRadius: 999,
-              border: '1px solid rgba(255,255,255,0.06)',
-              color: 'var(--gold)',
-              textDecoration: 'none',
-              fontSize: 18,
-            }}
-          >
-            Back to Feed
-          </a>
+          <div className="question-footnote">
+            {getStatusMeta(question.type, tier).map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
 
-          <a
-            href={`/results/${question.id}`}
-            style={{
-              color: 'var(--gold)',
-              textAlign: 'center',
-              textDecoration: 'none',
-              fontSize: 18,
-              padding: '14px 0',
-            }}
-          >
-            See the Truth Gap -&gt;
-          </a>
-
-          <div style={{
-            color: 'var(--text-muted)',
-            fontSize: 13,
-            letterSpacing: '0.18em',
-            textAlign: 'center',
-            textTransform: 'uppercase',
-            marginTop: 20,
-          }}>
-            Your vote is anonymous - your identity is never linked to your response.
+          <div className="question-link-row">
+            <a className="question-inline-link" href={`/results/${question.id}`}>See current results</a>
           </div>
         </div>
-
-        {brief && (
-          <div style={{ maxWidth: 980, margin: '36px auto 0' }}>
-            <MoreInsightsCard brief={brief} question={question} />
-          </div>
-        )}
       </div>
-    </>
+    </QuestionShell>
   )
 }
 
-function CinematicChoiceVote({ question, options, tier, brief, canVote, submitting, onSubmit, onRequireAuth }) {
-  const [selected, setSelected] = useState(null)
+function RankedQuestionVote({ question, brief, options, tier, canVote, submitting, onSubmit, onRequireAuth }) {
   const answerInsights = deriveAnswerInsights(question, brief)
-  const optionDescriptions = Object.fromEntries(answerInsights.map((item) => [item.answer, item.insight]))
+  const hasInsights = answerInsights.some((item) => item.insight)
 
-  function handleReveal() {
-    if (!selected) return
+  function handleSubmitRanked(voteData) {
     if (!canVote) {
       onRequireAuth()
       return
     }
-    onSubmit({ choiceValue: selected })
+    onSubmit(voteData)
   }
 
   return (
-    <>
-      <style>{`
-        @media (max-width: 960px) {
-          .choice-hero-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .vote-reference-frame {
-            min-height: 0 !important;
-            aspect-ratio: auto !important;
-            max-height: none !important;
-          }
-          .vote-reference-frame img,
-          .vote-reference-frame video {
-            height: auto !important;
-            max-height: 74vh !important;
-          }
-          .vote-reference-caption {
-            position: static !important;
-            padding: 14px 16px 16px !important;
-            background: rgba(5, 7, 16, 0.78) !important;
-          }
-        }
-      `}</style>
-
-      <div style={{ textAlign: 'center', marginBottom: 34, maxWidth: 980, marginInline: 'auto' }}>
-        <div style={{
-          fontSize: 12,
-          letterSpacing: '0.26em',
-          textTransform: 'uppercase',
-          color: 'var(--teal)',
-          fontWeight: 800,
-          marginBottom: 14,
-        }}>
-          {getVoteLabel(question.type)}
-        </div>
-        <h1 style={{
-          fontFamily: 'var(--font-ui, inherit)',
-          fontSize: 'clamp(34px, 4.2vw, 58px)',
-          lineHeight: 1.08,
-          letterSpacing: '-0.02em',
-          fontWeight: 700,
-          color: 'var(--text)',
-          marginBottom: 18,
-        }}>
-          {question.text}
-        </h1>
-        <p style={{
-          fontSize: 17,
-          color: 'var(--text-muted)',
-          lineHeight: 1.65,
-          maxWidth: 820,
-          margin: '0 auto',
-        }}>
-          {brief?.plainEnglish || 'Reflect on the signal. The choice defines the architecture of the void.'}
-        </p>
-      </div>
-
-      <div className="choice-hero-grid" style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(340px, 0.9fr) minmax(0, 1.25fr)',
-        gap: 34,
-        alignItems: 'stretch',
-      }}>
-        <div style={{
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 18,
-        }}>
-          <div className="vote-reference-frame" style={{
-            position: 'relative',
-            minHeight: 520,
-            borderRadius: '34px',
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.06)',
-            background: question.image_url
-              ? 'rgba(5,7,16,0.82)'
-              : 'radial-gradient(circle at center, rgba(76,201,168,0.18), rgba(10,12,26,0.96) 62%)',
-          }}>
-            {question.image_url && (
-              <>
-                <QuestionMedia
-                  src={question.image_url}
-                  alt={question.text}
-                  variant="reference"
-                  style={{ minHeight: 520, height: '100%', padding: 12, boxSizing: 'border-box' }}
-                />
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  pointerEvents: 'none',
-                  background: 'linear-gradient(180deg, rgba(5,7,16,0.02), transparent 46%, rgba(5,7,16,0.42))',
-                }} />
-              </>
-            )}
-            <div className="vote-reference-caption" style={{ position: 'absolute', left: 24, right: 24, bottom: 24 }}>
-              <div style={{
-                fontSize: 12,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: 'var(--text-muted)',
-                marginBottom: 10,
-              }}>
-                Prompt Reference
-              </div>
-              <div style={{ color: 'var(--teal)', fontSize: 14, fontWeight: 700 }}>
-                Active Pulse Detected
-              </div>
+    <QuestionShell question={question} brief={brief} tier={tier}>
+      <div className="question-stack">
+        {hasInsights && (
+          <div className="question-panel" style={{ padding: '20px 22px' }}>
+            <div style={{ fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase', color: '#9B6FD8', marginBottom: 12 }}>
+              About the list
+            </div>
+            <div style={{ display: 'grid', gap: 10 }}>
+              {answerInsights.map((item) => (
+                <div key={item.answer} style={{ color: 'var(--text-muted)', fontSize: 14, lineHeight: 1.6 }}>
+                  <span style={{ color: 'var(--text)', fontWeight: 600 }}>{item.answer}:</span> {item.insight}
+                </div>
+              ))}
             </div>
           </div>
+        )}
 
-          <div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-              <CategoryBadge category={question.category} />
-              <TypeBadge type={question.type || 'choice'} />
+        <div className="question-panel" style={{ padding: '26px 26px 28px' }}>
+          <RankedVote options={options} onSubmit={handleSubmitRanked} submitting={submitting} canVote={canVote} />
+
+          <div className="question-cta-wrap" style={{ marginTop: 18 }}>
+            <div className="question-footnote">
+              {getStatusMeta(question.type, tier).map((item) => (
+                <span key={item}>{item}</span>
+              ))}
             </div>
-            <p style={{
-              fontFamily: 'var(--font-ui, inherit)',
-              fontSize: 'clamp(26px, 3vw, 40px)',
-              lineHeight: 1.14,
-              letterSpacing: '-0.01em',
-              fontWeight: 700,
-              color: 'var(--text)',
-              marginBottom: 12,
-            }}>
-              Define your signal.
-            </p>
-            <p style={{ color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.7, marginBottom: 0 }}>
-              Choose the answer that best reflects your current stance. The reveal holds until you commit.
-            </p>
-          </div>
-        </div>
 
-        <div style={{
-          background: 'rgba(10,12,26,0.84)',
-          border: '1px solid rgba(76,201,168,0.18)',
-          borderRadius: '34px',
-          padding: '26px 26px 30px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 18,
-          boxShadow: '0 18px 48px rgba(0,0,0,0.24)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-            <div style={{
-              fontSize: 12,
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-              color: 'var(--teal)',
-              fontWeight: 800,
-            }}>
-              Binary choice
+            <div className="question-link-row">
+              <a className="question-inline-link" href={`/results/${question.id}`}>See current results</a>
             </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.45 }}>
-              {canVote ? 'One answer. No middle ground.' : 'Sign in to cast your pulse.'}
-            </div>
-          </div>
-
-          <div style={{ display: 'grid', gap: 16 }}>
-            {options.map((option, index) => {
-              const isSelected = selected === option
-              return (
-                <button
-                  key={option}
-                  type="button"
-                  onClick={() => setSelected(isSelected ? null : option)}
-                  style={{
-                    width: '100%',
-                    textAlign: 'left',
-                    background: isSelected ? 'rgba(76,201,168,0.08)' : 'rgba(255,255,255,0.02)',
-                    border: `1px solid ${isSelected ? 'rgba(76,201,168,0.8)' : 'rgba(255,255,255,0.08)'}`,
-                    borderRadius: 28,
-                    padding: '22px 24px',
-                    cursor: 'pointer',
-                    transition: 'var(--transition)',
-                    transform: isSelected ? 'translateY(-2px)' : 'none',
-                    boxShadow: isSelected ? '0 0 0 1px rgba(76,201,168,0.2), 0 12px 30px rgba(76,201,168,0.12)' : 'none',
-                  }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 18 }}>
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{
-                        fontSize: 11,
-                        letterSpacing: '0.16em',
-                        textTransform: 'uppercase',
-                        color: 'var(--text-muted)',
-                        marginBottom: 8,
-                      }}>
-                        Option {String.fromCharCode(65 + index)}
-                      </div>
-                      <div style={{
-                        fontFamily: 'var(--font-ui, inherit)',
-                        fontSize: 'clamp(26px, 2.4vw, 40px)',
-                        lineHeight: 1.14,
-                        letterSpacing: '-0.01em',
-                        fontWeight: 700,
-                        color: isSelected ? '#FFFFFF' : 'var(--text)',
-                        marginBottom: 10,
-                      }}>
-                        {option}
-                      </div>
-                      <div style={{ color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.65, maxWidth: 520 }}>
-                        {optionDescriptions[option] || `This answer represents the case for ${humanizeOptionLabel(option).toLowerCase()}.`}
-                      </div>
-                    </div>
-                    <div style={{
-                      width: 34,
-                      height: 34,
-                      borderRadius: '50%',
-                      border: `2px solid ${isSelected ? 'var(--teal)' : 'rgba(255,255,255,0.12)'}`,
-                      background: isSelected ? 'var(--teal)' : 'transparent',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      color: '#05060F',
-                      fontWeight: 900,
-                      flexShrink: 0,
-                      marginTop: 10,
-                    }}>
-                      {isSelected ? '✓' : ''}
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-
-          <div style={{ height: 1, background: 'rgba(255,255,255,0.08)', marginTop: 4 }} />
-
-          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
-            <button
-              type="button"
-              onClick={() => setSelected(null)}
-              style={{
-                background: 'none',
-                border: 'none',
-                color: 'var(--text-muted)',
-                cursor: 'pointer',
-                fontSize: 12,
-                textTransform: 'uppercase',
-                letterSpacing: '0.12em',
-                padding: 0,
-              }}
-            >
-              Reset choice
-            </button>
-
-            <Button
-              size="xl"
-              variant={canVote && selected ? 'teal' : 'secondary'}
-              loading={submitting}
-              disabled={!selected}
-              onClick={handleReveal}
-              style={canVote && selected ? {
-                background: 'linear-gradient(135deg, var(--teal), #2fa886)',
-                color: '#05060F',
-                border: 'none',
-                borderRadius: 999,
-                minWidth: 260,
-                letterSpacing: '0.14em',
-                textTransform: 'uppercase',
-              } : {
-                borderRadius: 999,
-                minWidth: 260,
-              }}
-            >
-              {!canVote ? 'Sign in to Cast Your Pulse' : !selected ? 'Select an option to vote' : 'Reveal the Signal'}
-            </Button>
-          </div>
-
-          <div style={{
-            display: 'flex',
-            justifyContent: 'center',
-            gap: 22,
-            flexWrap: 'wrap',
-            color: 'var(--text-muted)',
-            fontSize: 13,
-            paddingTop: 4,
-          }}>
-            <span>Anonymous vote</span>
-            <span>•</span>
-            <span>{tier === 'verified' ? 'Verified layer active' : 'Truth Layer available'}</span>
           </div>
         </div>
       </div>
-
-      {brief && (
-        <div style={{ maxWidth: 980, margin: '32px auto 0' }}>
-          <MoreInsightsCard brief={brief} question={question} />
-        </div>
-      )}
-    </>
-  )
-}
-
-function CinematicStandardVote({ question, questionType, options, tier, brief, canVote, submitting, onSubmit, onRequireAuth }) {
-  const answerInsights = deriveAnswerInsights(question, brief)
-
-  return (
-    <>
-      <style>{`
-        @media (max-width: 960px) {
-          .standard-vote-grid {
-            grid-template-columns: 1fr !important;
-          }
-          .vote-reference-frame {
-            min-height: 0 !important;
-            aspect-ratio: auto !important;
-            max-height: none !important;
-          }
-          .vote-reference-frame img,
-          .vote-reference-frame video {
-            height: auto !important;
-            max-height: 74vh !important;
-          }
-          .vote-reference-caption {
-            position: static !important;
-            padding: 14px 16px 16px !important;
-            background: rgba(5, 7, 16, 0.78) !important;
-          }
-        }
-      `}</style>
-
-      <div className="standard-vote-grid" style={{
-        display: 'grid',
-        gridTemplateColumns: 'minmax(320px, 0.92fr) minmax(0, 1.18fr)',
-        gap: 32,
-        alignItems: 'stretch',
-        maxWidth: 1180,
-        margin: '0 auto',
-      }}>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-          <div className="vote-reference-frame" style={{
-            position: 'relative',
-            minHeight: 520,
-            borderRadius: '34px',
-            overflow: 'hidden',
-            border: '1px solid rgba(255,255,255,0.06)',
-            background: question.image_url
-              ? 'rgba(5,7,16,0.82)'
-              : 'radial-gradient(circle at center, rgba(201,168,76,0.16), rgba(10,12,26,0.96) 62%)',
-          }}>
-            {question.image_url && (
-              <>
-                <QuestionMedia
-                  src={question.image_url}
-                  alt={question.text}
-                  variant="reference"
-                  style={{ minHeight: 520, height: '100%', padding: 12, boxSizing: 'border-box' }}
-                />
-                <div style={{
-                  position: 'absolute',
-                  inset: 0,
-                  pointerEvents: 'none',
-                  background: 'linear-gradient(180deg, rgba(5,7,16,0.02), transparent 46%, rgba(5,7,16,0.42))',
-                }} />
-              </>
-            )}
-            <div className="vote-reference-caption" style={{ position: 'absolute', left: 24, right: 24, bottom: 24 }}>
-              <div style={{
-                fontSize: 12,
-                letterSpacing: '0.18em',
-                textTransform: 'uppercase',
-                color: 'var(--text-muted)',
-                marginBottom: 10,
-              }}>
-                Prompt Reference
-              </div>
-              <div style={{ color: questionType === 'ranked' ? '#9B6FD8' : 'var(--gold)', fontSize: 14, fontWeight: 700 }}>
-                {questionType === 'ranked' ? 'Priority sequence active' : 'Live signal detected'}
-              </div>
-            </div>
-          </div>
-
-          <div>
-            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', marginBottom: 14 }}>
-              <CategoryBadge category={question.category} />
-              <TypeBadge type={questionType} />
-            </div>
-            <p style={{
-              fontFamily: 'var(--font-ui, inherit)',
-              fontSize: 'clamp(26px, 3vw, 40px)',
-              lineHeight: 1.14,
-              letterSpacing: '-0.01em',
-              fontWeight: 700,
-              color: 'var(--text)',
-              marginBottom: 12,
-            }}>
-              {questionType === 'ranked' ? 'Define your order.' : 'Define your stance.'}
-            </p>
-            <p style={{ color: 'var(--text-muted)', fontSize: 16, lineHeight: 1.7, marginBottom: 0 }}>
-              {brief?.plainEnglish || (questionType === 'ranked'
-                ? 'Arrange the options to reflect what matters most to you right now.'
-                : 'Place yourself on the signal and reveal the direction you trust most.')}
-            </p>
-          </div>
-        </div>
-
-        <div style={{
-          background: 'rgba(10,12,26,0.84)',
-          border: `1px solid ${questionType === 'ranked' ? 'rgba(155,111,216,0.18)' : 'rgba(201,168,76,0.18)'}`,
-          borderRadius: '34px',
-          padding: '26px 26px 30px',
-          display: 'flex',
-          flexDirection: 'column',
-          gap: 20,
-          boxShadow: '0 18px 48px rgba(0,0,0,0.24)',
-        }}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16, flexWrap: 'wrap' }}>
-            <div style={{
-              fontSize: 12,
-              letterSpacing: '0.2em',
-              textTransform: 'uppercase',
-              color: questionType === 'ranked' ? '#9B6FD8' : 'var(--gold)',
-              fontWeight: 800,
-            }}>
-              {getVoteLabel(questionType)}
-            </div>
-            <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.45 }}>
-              {canVote ? 'Anonymous signal. Real-time truth gap.' : 'Sign in to cast your pulse.'}
-            </div>
-          </div>
-
-          <div>
-            <h1 style={{
-              fontFamily: 'var(--font-ui, inherit)',
-              fontSize: 'clamp(28px, 3.4vw, 44px)',
-              lineHeight: 1.16,
-              letterSpacing: '-0.01em',
-              fontWeight: 700,
-              color: 'var(--text)',
-              marginBottom: 14,
-            }}>
-              {questionType === 'statement' ? `"${question.text}"` : question.text}
-            </h1>
-            {answerInsights.length > 0 && (
-              <p style={{ color: 'var(--text-muted)', fontSize: 15, lineHeight: 1.7, marginBottom: 0 }}>
-                {questionType === 'ranked'
-                  ? 'The image holds the atmosphere. The sequence on the right defines the signal.'
-                  : answerInsights[0]?.insight || 'The image and the answer belong to the same signal experience.'}
-              </p>
-            )}
-          </div>
-
-          <div style={{ marginBottom: 2 }}>
-            <TierBanner
-              tier={tier}
-              onAction={() => tier === 'guest' ? onRequireAuth() : navigate('/verify')}
-            />
-          </div>
-
-          <p style={{
-            fontSize: 12,
-            color: 'var(--text-muted)',
-            textAlign: 'center',
-            marginBottom: 0,
-            lineHeight: 1.45,
-          }}>
-            ◈ Your vote is anonymous — your identity is never linked to your response.
-          </p>
-
-          {questionType === 'statement' && (
-            <StatementVote onSubmit={onSubmit} submitting={submitting} canVote={canVote} />
-          )}
-          {questionType === 'ranked' && (
-            <RankedVote options={options} onSubmit={onSubmit} submitting={submitting} canVote={canVote} />
-          )}
-        </div>
-      </div>
-
-      {brief && (
-        <div style={{ maxWidth: 980, margin: '32px auto 0' }}>
-          <MoreInsightsCard brief={brief} question={question} />
-        </div>
-      )}
-    </>
+    </QuestionShell>
   )
 }
 
@@ -1133,12 +1030,11 @@ function MoreInsightsCard({ brief, question }) {
 
   return (
     <div
+      className="question-panel"
       style={{
-        marginBottom: 24,
-        background: 'rgba(12, 18, 34, 0.72)',
-        border: '1px solid rgba(76,201,168,0.18)',
-        borderRadius: 'var(--radius-lg)',
+        padding: 0,
         overflow: 'hidden',
+        borderColor: 'rgba(76,201,168,0.16)',
       }}
     >
       <button
@@ -1155,34 +1051,48 @@ function MoreInsightsCard({ brief, question }) {
           color: 'inherit',
           cursor: 'pointer',
           textAlign: 'left',
-          padding: '18px 20px',
+          padding: '22px 24px',
         }}
       >
         <div>
-          <div style={{
-            fontSize: 11,
-            letterSpacing: '0.18em',
-            textTransform: 'uppercase',
-            color: 'var(--teal)',
-            fontWeight: 700,
-            marginBottom: 6,
-          }}>
+          <div
+            style={{
+              fontSize: 11,
+              letterSpacing: '0.18em',
+              textTransform: 'uppercase',
+              color: 'var(--teal)',
+              fontWeight: 700,
+              marginBottom: 6,
+            }}
+          >
             More Insights
           </div>
-          <div style={{ color: 'var(--text)', fontSize: 16, fontWeight: 600 }}>
+          <div style={{ color: 'var(--text)', fontFamily: 'var(--font-display)', fontSize: 22 }}>
             {brief.title || 'High-level context for this question'}
           </div>
-          <div style={{ color: 'var(--text-muted)', fontSize: 13, marginTop: 4 }}>
+          <div style={{ color: 'var(--text-muted)', fontSize: 12, marginTop: 6, letterSpacing: '0.1em', textTransform: 'uppercase' }}>
             Click for more context before you vote.
           </div>
         </div>
-        <span style={{ color: 'var(--gold)', fontSize: 18, lineHeight: 1 }}>
-          {expanded ? '-' : '+'}
+        <span
+          style={{
+            width: 42,
+            height: 42,
+            borderRadius: '50%',
+            border: '1px solid rgba(255,255,255,0.1)',
+            display: 'grid',
+            placeItems: 'center',
+            color: 'var(--text)',
+            fontSize: 18,
+            flexShrink: 0,
+          }}
+        >
+          {expanded ? '-' : '⌄'}
         </span>
       </button>
 
       {expanded && (
-        <div style={{ padding: '0 20px 20px', display: 'grid', gap: 18 }}>
+        <div style={{ padding: '0 24px 24px', display: 'grid', gap: 20 }}>
           {plainEnglish && (
             <div>
               <div style={sectionLabelStyle}>In plain English</div>
@@ -1204,9 +1114,7 @@ function MoreInsightsCard({ brief, question }) {
                 {answerInsights.map((item) => (
                   <div key={`${item.answer}-${item.insight || 'plain'}`} style={glossaryRowStyle}>
                     <div style={{ color: 'var(--gold)', fontWeight: 600, marginBottom: item.insight ? 4 : 0 }}>{item.answer}</div>
-                    {item.insight ? (
-                      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{item.insight}</div>
-                    ) : null}
+                    {item.insight ? <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{item.insight}</div> : null}
                   </div>
                 ))}
               </div>
@@ -1220,9 +1128,7 @@ function MoreInsightsCard({ brief, question }) {
                 {brief.keyTerms.map((item) => (
                   <div key={`${item.term}-${item.definition}`} style={glossaryRowStyle}>
                     <div style={{ color: 'var(--gold)', fontWeight: 600, marginBottom: item.definition ? 4 : 0 }}>{item.term}</div>
-                    {item.definition ? (
-                      <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{item.definition}</div>
-                    ) : null}
+                    {item.definition ? <div style={{ color: 'var(--text-muted)', fontSize: 13, lineHeight: 1.5 }}>{item.definition}</div> : null}
                   </div>
                 ))}
               </div>
@@ -1270,6 +1176,35 @@ function MoreInsightsCard({ brief, question }) {
   )
 }
 
+function previewChipStyle(color) {
+  return {
+    display: 'inline-flex',
+    alignItems: 'center',
+    gap: 4,
+    padding: '4px 10px',
+    borderRadius: 999,
+    fontSize: 10,
+    fontWeight: 700,
+    letterSpacing: '0.16em',
+    textTransform: 'uppercase',
+    color,
+    border: `1px solid ${color}44`,
+    background: `${color}16`,
+    backdropFilter: 'blur(14px)',
+  }
+}
+
+const ghostButtonStyle = {
+  background: 'none',
+  border: 'none',
+  color: 'var(--text-muted)',
+  cursor: 'pointer',
+  fontSize: 12,
+  letterSpacing: '0.16em',
+  textTransform: 'uppercase',
+  padding: 0,
+}
+
 const sectionLabelStyle = {
   fontSize: 11,
   letterSpacing: '0.14em',
@@ -1282,7 +1217,7 @@ const sectionLabelStyle = {
 const sectionBodyStyle = {
   color: 'var(--text-muted)',
   fontSize: 14,
-  lineHeight: 1.65,
+  lineHeight: 1.7,
   margin: 0,
 }
 
