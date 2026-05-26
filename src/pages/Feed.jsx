@@ -249,10 +249,13 @@ export default function Feed() {
   const navigate = useNavigate()
   const contentRef = useRef(null)
 
-  const [activeCategory, setActiveCategory] = useState('All')
   const requestedType = ['statement', 'choice', 'ranked'].includes(searchParams.get('type'))
     ? searchParams.get('type')
     : 'all'
+  const requestedCategory = CATEGORIES.includes(searchParams.get('category'))
+    ? searchParams.get('category')
+    : 'All'
+  const [activeCategory, setActiveCategory] = useState(requestedCategory)
   const [activeType, setActiveType] = useState(requestedType)
   const [questions, setQuestions] = useState([])
   const [featuredQuestion, setFeaturedQuestion] = useState(null)
@@ -263,6 +266,10 @@ export default function Feed() {
   useEffect(() => {
     setActiveType(requestedType)
   }, [requestedType])
+
+  useEffect(() => {
+    setActiveCategory(requestedCategory)
+  }, [requestedCategory])
 
   useEffect(() => {
     void loadQuestions()
@@ -391,6 +398,22 @@ export default function Feed() {
     }, 50)
   }
 
+  function handleCategoryChange(nextCategory) {
+    setActiveCategory(nextCategory)
+
+    const nextParams = new URLSearchParams(searchParams)
+    if (nextCategory === 'All') {
+      nextParams.delete('category')
+    } else {
+      nextParams.set('category', nextCategory)
+    }
+    setSearchParams(nextParams, { replace: true })
+
+    setTimeout(() => {
+      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 50)
+  }
+
   const allQuestions = useMemo(() => {
     const list = [...questions]
     if (featuredQuestion && !list.find((question) => question.id === featuredQuestion.id)) {
@@ -477,7 +500,7 @@ export default function Feed() {
                     key={category}
                     type="button"
                     className={`sidebar-category ${isActive ? 'active' : ''}`}
-                    onClick={() => setActiveCategory(category)}
+                    onClick={() => handleCategoryChange(category)}
                     style={{
                       '--category-accent': color,
                       '--category-accent-rgb':
@@ -594,7 +617,7 @@ export default function Feed() {
                   key={category}
                   type="button"
                   className={`mobile-category-chip ${category === activeCategory ? 'active' : ''}`}
-                  onClick={() => setActiveCategory(category)}
+                    onClick={() => handleCategoryChange(category)}
                 >
                   {category}
                 </button>
