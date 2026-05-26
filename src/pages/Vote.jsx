@@ -162,7 +162,7 @@ const QUESTION_DETAIL_STYLES = `
   .question-screen-shell {
     min-height: calc(100vh - 60px);
     display: grid;
-    grid-template-columns: 248px minmax(0, 1fr);
+    grid-template-columns: 238px minmax(0, 1fr);
   }
 
   .question-sidebar {
@@ -171,7 +171,7 @@ const QUESTION_DETAIL_STYLES = `
     height: calc(100vh - 60px);
     display: flex;
     flex-direction: column;
-    gap: 22px;
+    gap: 18px;
     padding: 18px 0 18px;
     background: #14181f;
     border-right: 1px solid rgba(255,255,255,0.05);
@@ -189,7 +189,7 @@ const QUESTION_DETAIL_STYLES = `
   .question-sidebar-brand h2 {
     margin: 0 0 10px;
     font-family: var(--font-display);
-    font-size: 46px;
+    font-size: 42px;
     line-height: 0.9;
     color: var(--gold);
   }
@@ -206,14 +206,14 @@ const QUESTION_DETAIL_STYLES = `
   .question-sidebar-copy {
     max-width: 206px;
     color: rgba(232, 230, 240, 0.58);
-    font-size: 12px;
-    line-height: 1.7;
+    font-size: 11px;
+    line-height: 1.65;
     margin: 0;
   }
 
   .question-sidebar-category-list {
     display: grid;
-    gap: 4px;
+    gap: 2px;
   }
 
   .question-sidebar-category {
@@ -221,9 +221,9 @@ const QUESTION_DETAIL_STYLES = `
     display: flex;
     align-items: center;
     gap: 12px;
-    min-height: 48px;
+    min-height: 44px;
     width: 100%;
-    padding: 11px 14px 11px 18px;
+    padding: 10px 14px 10px 18px;
     background: transparent;
     border: 0;
     color: rgba(232, 230, 240, 0.76);
@@ -267,7 +267,7 @@ const QUESTION_DETAIL_STYLES = `
   }
 
   .question-sidebar-category-name {
-    font-size: 15px;
+    font-size: 14px;
     font-weight: 500;
   }
 
@@ -278,7 +278,7 @@ const QUESTION_DETAIL_STYLES = `
   }
 
   .question-sidebar-primary {
-    min-height: 52px;
+    min-height: 48px;
     border: 1px solid rgba(201,168,76,0.4);
     border-radius: 14px;
     background: rgba(201,168,76,0.04);
@@ -348,23 +348,23 @@ const QUESTION_DETAIL_STYLES = `
   }
 
   .question-detail-shell {
-    max-width: 1260px;
+    max-width: 1160px;
     margin: 0 auto;
     display: grid;
-    gap: 24px;
+    gap: 20px;
   }
 
   .question-main-grid {
     display: grid;
-    grid-template-columns: minmax(320px, 0.82fr) minmax(0, 1.08fr);
-    gap: 28px;
+    grid-template-columns: minmax(300px, 0.76fr) minmax(0, 1fr);
+    gap: 24px;
     align-items: start;
   }
 
   .question-preview-stage {
     position: relative;
-    min-height: 280px;
-    height: clamp(280px, 38vh, 420px);
+    min-height: 250px;
+    height: clamp(250px, 34vh, 360px);
     border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(255,255,255,0.08);
@@ -384,8 +384,8 @@ const QUESTION_DETAIL_STYLES = `
   .question-header {
     text-align: left;
     display: grid;
-    gap: 10px;
-    max-width: 1040px;
+    gap: 8px;
+    max-width: 860px;
   }
 
   .question-eyebrow {
@@ -398,10 +398,11 @@ const QUESTION_DETAIL_STYLES = `
   .question-heading {
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(34px, 4.2vw, 56px);
-    line-height: 1.03;
+    font-size: clamp(34px, 3.8vw, 54px);
+    line-height: 1.01;
     letter-spacing: -0.03em;
     color: var(--text);
+    max-width: 920px;
   }
 
   .question-heading em {
@@ -410,11 +411,11 @@ const QUESTION_DETAIL_STYLES = `
   }
 
   .question-subcopy {
-    max-width: 760px;
+    max-width: 620px;
     margin: 0;
     color: var(--text-muted);
-    font-size: 15px;
-    line-height: 1.58;
+    font-size: 14px;
+    line-height: 1.52;
   }
 
   .question-meta-strip {
@@ -427,7 +428,7 @@ const QUESTION_DETAIL_STYLES = `
 
   .question-panel {
     background:
-      linear-gradient(180deg, rgba(20, 27, 40, 0.9), rgba(16, 21, 33, 0.92));
+      linear-gradient(180deg, rgba(19, 25, 38, 0.86), rgba(15, 20, 31, 0.9));
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 26px;
     box-shadow: 0 18px 48px rgba(0,0,0,0.22);
@@ -466,7 +467,7 @@ const QUESTION_DETAIL_STYLES = `
   .question-option-grid,
   .question-stack {
     display: grid;
-    gap: 10px;
+    gap: 12px;
   }
 
   .question-option-card {
@@ -476,7 +477,7 @@ const QUESTION_DETAIL_STYLES = `
     justify-content: space-between;
     gap: 22px;
     text-align: left;
-    padding: 18px 20px 16px;
+    padding: 19px 20px 17px;
     background: linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.018));
     border: 1px solid rgba(255,255,255,0.07);
     border-radius: 20px;
@@ -493,7 +494,7 @@ const QUESTION_DETAIL_STYLES = `
 
   .question-option-card.is-selected {
     background: linear-gradient(180deg, rgba(76,201,168,0.09), rgba(76,201,168,0.03));
-    box-shadow: inset 0 0 0 1px currentColor, 0 10px 26px rgba(76,201,168,0.08);
+    box-shadow: inset 0 0 0 1px currentColor, 0 12px 28px rgba(76,201,168,0.1);
   }
 
   .question-option-letter {
@@ -535,7 +536,7 @@ const QUESTION_DETAIL_STYLES = `
     gap: 14px;
     justify-items: center;
     margin-top: 6px;
-    padding-top: 16px;
+    padding-top: 18px;
     border-top: 1px solid rgba(255,255,255,0.06);
   }
 
@@ -597,7 +598,7 @@ const QUESTION_DETAIL_STYLES = `
   }
 
   .question-panel-compact {
-    padding: 20px 20px 22px;
+    padding: 20px 20px 20px;
   }
 
   .question-side-card {
@@ -1214,7 +1215,10 @@ function ChoiceQuestionVote({ question, brief, options, tier, canVote, submittin
                 type="button"
                 className={`question-option-card${isSelected ? ' is-selected' : ''}`}
                 onClick={() => setSelected(isSelected ? null : option)}
-                style={{ color: isSelected ? 'var(--teal)' : 'inherit' }}
+                style={{
+                  color: isSelected ? 'var(--teal)' : 'inherit',
+                  transform: isSelected ? 'translateY(-2px)' : 'none',
+                }}
               >
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div className="question-option-letter">Option {String.fromCharCode(65 + index)}</div>
@@ -1249,7 +1253,8 @@ function ChoiceQuestionVote({ question, brief, options, tier, canVote, submittin
               minWidth: 360,
               letterSpacing: '0.18em',
               textTransform: 'uppercase',
-              boxShadow: '0 12px 30px rgba(201,168,76,0.18)',
+              boxShadow: '0 16px 36px rgba(201,168,76,0.22)',
+              color: '#0a0b11',
             } : {
               borderRadius: 999,
               minWidth: 360,
