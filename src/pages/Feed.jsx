@@ -123,6 +123,97 @@ function getQuestionFootnote(question, counts) {
   return `${formatCount(totalVotes)} votes captured, ${formatCount(verifiedVotes)} from verified members.`
 }
 
+function parseBrief(value) {
+  if (!value) return null
+  if (typeof value === 'string') {
+    try {
+      return JSON.parse(value)
+    } catch (_) {
+      return null
+    }
+  }
+  return value
+}
+
+function humanizeOptionLabel(option) {
+  return String(option || '')
+    .replace(/[_-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function deriveOptionInsight(option, type) {
+  const clean = humanizeOptionLabel(option)
+  if (!clean) return ''
+  if (type === 'choice') {
+    return `A direct case for ${clean.toLowerCase()}.`
+  }
+  if (type === 'ranked') {
+    return `Consider how strongly ${clean.toLowerCase()} shapes the outcome.`
+  }
+  return `A signal anchored in ${clean.toLowerCase()}.`
+}
+
+function getAnswerInsights(question) {
+  const type = question.type || 'statement'
+  const brief = parseBrief(question.brief)
+  const briefInsights = Array.isArray(brief?.answer_insights)
+    ? brief.answer_insights
+    : Array.isArray(brief?.answerInsights)
+      ? brief.answerInsights
+      : []
+
+  const mappedBriefInsights = briefInsights.reduce((accumulator, item) => {
+    if (!item) return accumulator
+    const answer = typeof item.answer === 'string' ? item.answer.trim() : ''
+    const insight = typeof item.insight === 'string' ? item.insight.trim() : ''
+    if (answer) accumulator[answer] = insight
+    return accumulator
+  }, {})
+
+  if (type === 'statement') {
+    return {
+      Disagree: 'Push back against the claim.',
+      Mixed: 'See truth on both sides.',
+      Agree: 'Back the signal directly.',
+    }
+  }
+
+  return parseOptions(question.options).reduce((accumulator, option) => {
+    accumulator[option] = mappedBriefInsights[option] || deriveOptionInsight(option, type)
+    return accumulator
+  }, {})
+}
+
+function getFocusStageItems(question, counts) {
+  const type = question.type || 'statement'
+  const options = parseOptions(question.options)
+
+  if (type === 'statement') {
+    return [
+      { label: 'Disagree', value: `${counts?.all?.Disagree ?? 0}%`, accent: '#C94C4C' },
+      { label: 'Mixed', value: `${counts?.all?.Neutral ?? 0}%`, accent: '#C9A84C' },
+      { label: 'Agree', value: `${counts?.all?.Agree ?? 0}%`, accent: '#4CC9A8' },
+    ]
+  }
+
+  if (type === 'choice') {
+    const choiceOptions = counts?.all?.options?.length ? counts.all.options : options.map((option) => ({ label: option, pct: 0 }))
+    return choiceOptions.slice(0, 2).map((option, index) => ({
+      label: option.label,
+      value: `${option.pct ?? 0}%`,
+      accent: index === 0 ? '#4CC9A8' : '#C9A84C',
+    }))
+  }
+
+  const rankedOptions = counts?.all?.options?.length ? counts.all.options : options.map((option, index) => ({ label: option, avgRank: index + 1 }))
+  return rankedOptions.slice(0, 4).map((option, index) => ({
+    label: option.label,
+    value: `#${Math.round(option.avgRank ?? index + 1)}`,
+    accent: ['#C9A84C', '#4CC9A8', '#9B6FD8', '#4C8EC9'][index] || '#C9A84C',
+  }))
+}
+
 function getCuratorName(profile, user) {
   return profile?.display_name || profile?.nickname || user?.email?.split('@')[0] || 'Signal Curator'
 }
@@ -749,73 +840,118 @@ function FeedQuestionCard({ question, counts, onOpen }) {
 function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast = false, isPulseOfDay = false }) {
   const type = question.type || 'statement'
   const mediaUrl = getFeedMediaUrl(question)
-  const options = parseOptions(question.options)
+  const typeMeta = QUESTION_TYPE_META[type] || QUESTION_TYPE_META.statement
   const totalVotes = counts?.all?.total || 0
   const verifiedVotes = counts?.verified?.total || 0
+  const answerInsights = getAnswerInsights(question)
+  const stageItems = getFocusStageItems(question, counts)
   const previewAnswers =
     type === 'statement'
       ? ['Disagree', 'Mixed', 'Agree']
-      : options.slice(0, 4)
+      : parseOptions(question.options).slice(0, 4)
 
   return (
     <article className={`focus-feed-question ${isFirst ? 'first' : ''} ${isPulseOfDay ? 'pulse-of-day' : ''}`}>
       <div className={`focus-feed-card ${isPulseOfDay ? 'pulse-of-day' : ''}`}>
-        <div className="focus-feed-copy">
-          <div className="focus-feed-meta">
-            {isPulseOfDay ? <span className="focus-feed-pill">Pulse of the Day</span> : null}
-            <span className="focus-feed-kicker">{titleCase(question.category || 'General')}</span>
-            <span className="focus-feed-dot" aria-hidden="true">•</span>
-            <span className="focus-feed-minutes">
-              {totalVotes > 0 ? `${Math.min(9, Math.max(2, Math.ceil(totalVotes / 4)))} min deliberation` : 'Open signal'}
-            </span>
+        <div className="focus-feed-shell-header">
+          <div className="focus-feed-shell-copy">
+            <div className="focus-feed-meta">
+              {isPulseOfDay ? <span className="focus-feed-pill">Pulse of the Day</span> : null}
+              <span className="focus-feed-kicker">{titleCase(question.category || 'General')}</span>
+              <span className="focus-feed-dot" aria-hidden="true">•</span>
+              <span className="focus-feed-minutes">{typeMeta.label}</span>
+            </div>
+
+            <h3 className="focus-feed-shell-title">
+              {isPulseOfDay ? 'Daily Signals' : 'Open Signal'}
+            </h3>
           </div>
 
-          <h3>{formatQuestionText(question)}</h3>
-          <p>{getQuestionSummary(question, counts)}</p>
-
-          <div className={`focus-answer-grid type-${type}`}>
-            {previewAnswers.map((answer, index) => (
-              <div key={answer} className="focus-answer-card">
-                <span className="focus-answer-badge">
-                  {type === 'statement' ? answer.charAt(0) : String.fromCharCode(65 + index)}
-                </span>
-                <span className="focus-answer-label">{answer}</span>
-              </div>
-            ))}
-          </div>
-
-          <div className="focus-feed-footer">
-            <div className="focus-feed-signals">
-              <span>{formatCount(totalVotes)} responses</span>
-              <span>{verifiedVotes > 0 ? `${formatCount(verifiedVotes)} verified` : 'Anonymous pulse'}</span>
-            </div>
-            <div className="focus-feed-actions">
-              <button type="button" className="focus-feed-cta" onClick={onOpen}>
-                Reveal the signal
-              </button>
-              {!isLast ? <span className="focus-feed-next">Scroll for next signal</span> : null}
-            </div>
+          <div className="focus-feed-shell-status">
+            <span>Currently active</span>
+            <strong>{isPulseOfDay ? 'Today' : 'Now'}</strong>
           </div>
         </div>
 
-        <button type="button" className="focus-feed-media-shell" onClick={onOpen}>
-          <div className="focus-feed-media-frame">
-            {mediaUrl ? (
-              <QuestionMedia
-                src={mediaUrl}
-                alt={question.text}
-                variant="reference"
-                style={{ width: '100%', height: '100%', objectFit: 'cover' }}
-              />
-            ) : (
-              <div className="focus-feed-media placeholder">
-                <span>{getQuestionLabel(type)}</span>
+        <div className={`focus-feed-body type-${type}`}>
+          <div className="focus-feed-stage">
+            <button type="button" className="focus-feed-media-shell" onClick={onOpen}>
+              <div className="focus-feed-media-frame">
+                {mediaUrl ? (
+                  <QuestionMedia
+                    src={mediaUrl}
+                    alt={question.text}
+                    variant="reference"
+                    style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                  />
+                ) : (
+                  <div className="focus-feed-media placeholder">
+                    <span>{getQuestionLabel(type)}</span>
+                  </div>
+                )}
+                <div className="focus-feed-media-overlay" />
               </div>
-            )}
-            <div className="focus-feed-media-overlay" />
+            </button>
+
+            <div className="focus-feed-stage-overlay">
+              <h4>{formatQuestionText(question)}</h4>
+              <p>{getQuestionSummary(question, counts)}</p>
+            </div>
+
+            <div className={`focus-feed-stage-markers type-${type}`}>
+              {stageItems.map((item, index) => (
+                <div
+                  key={`${item.label}-${index}`}
+                  className={`focus-stage-marker marker-${index + 1}`}
+                  style={{ '--marker-accent': item.accent }}
+                >
+                  <span>{item.value}</span>
+                  <strong>{item.label}</strong>
+                </div>
+              ))}
+            </div>
           </div>
-          <span className="focus-feed-media-note">Open signal</span>
-        </button>
+
+          <div className="focus-feed-panel">
+            <div className="focus-feed-panel-copy">
+              <div className="focus-feed-panel-type">
+                <span>{titleCase(question.category || 'General')}</span>
+                <span>{typeMeta.label}</span>
+              </div>
+              <h4>{formatQuestionText(question)}</h4>
+              <p>{getQuestionSummary(question, counts)}</p>
+            </div>
+
+            <div className={`focus-answer-grid type-${type}`}>
+              {previewAnswers.map((answer, index) => (
+                <div key={answer} className="focus-answer-card">
+                  <span className="focus-answer-badge">
+                    {type === 'statement' ? answer.charAt(0) : type === 'ranked' ? index + 1 : String.fromCharCode(65 + index)}
+                  </span>
+                  <div className="focus-answer-copy">
+                    <strong className="focus-answer-label">{answer}</strong>
+                    <span className="focus-answer-insight">
+                      {answerInsights[answer] || deriveOptionInsight(answer, type)}
+                    </span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="focus-feed-footer">
+              <div className="focus-feed-signals">
+                <span>{formatCount(totalVotes)} votes registered</span>
+                <span>{verifiedVotes > 0 ? `${formatCount(verifiedVotes)} verified layer` : 'Anonymous pulse'}</span>
+              </div>
+              <div className="focus-feed-actions">
+                <button type="button" className="focus-feed-cta" onClick={onOpen}>
+                  {type === 'ranked' ? 'Open ranking' : 'Reveal the signal'}
+                </button>
+                {!isLast ? <span className="focus-feed-next">Scroll for next signal</span> : null}
+              </div>
+            </div>
+          </div>
+        </div>
       </div>
     </article>
   )
@@ -1418,7 +1554,7 @@ const feedStyles = `
 
   .focus-feed-stack {
     display: grid;
-    gap: 26px;
+    gap: 30px;
     scroll-margin-top: 140px;
   }
 
@@ -1433,16 +1569,15 @@ const feedStyles = `
   }
 
   .focus-feed-card {
-    position: relative;
     display: grid;
-    grid-template-columns: 1fr;
-    min-height: min(72vh, 860px);
+    gap: 26px;
+    min-height: min(78vh, 980px);
     border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(8, 10, 16, 0.96);
     box-shadow: 0 22px 54px rgba(0, 0, 0, 0.24);
-    padding: 34px;
+    padding: 28px 28px 26px;
   }
 
   .focus-feed-card.pulse-of-day {
@@ -1455,16 +1590,82 @@ const feedStyles = `
       rgba(8, 10, 16, 0.98);
   }
 
+  .focus-feed-shell-header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 18px;
+  }
+
+  .focus-feed-shell-copy {
+    display: grid;
+    gap: 12px;
+  }
+
+  .focus-feed-shell-title {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: clamp(42px, 4.4vw, 60px);
+    line-height: 0.94;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: #f2eef7;
+  }
+
+  .focus-feed-shell-status {
+    display: grid;
+    gap: 4px;
+    justify-items: end;
+    text-align: right;
+    padding-bottom: 4px;
+  }
+
+  .focus-feed-shell-status span {
+    color: rgba(232, 230, 240, 0.58);
+    font-size: 11px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .focus-feed-shell-status strong {
+    color: var(--teal);
+    font-size: clamp(22px, 2.4vw, 34px);
+    line-height: 0.94;
+    font-weight: 700;
+    letter-spacing: -0.03em;
+    text-transform: uppercase;
+  }
+
+  .focus-feed-body {
+    display: grid;
+    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.62fr);
+    gap: 30px;
+    align-items: stretch;
+    min-height: 0;
+  }
+
+  .focus-feed-stage {
+    position: relative;
+    min-height: 540px;
+    border-radius: 28px;
+    overflow: hidden;
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    background:
+      radial-gradient(circle at center, rgba(76, 201, 168, 0.08), transparent 30%),
+      linear-gradient(180deg, rgba(9, 12, 18, 0.98), rgba(9, 12, 18, 0.92));
+  }
+
+  .focus-feed-body.type-statement .focus-feed-stage {
+    min-height: 500px;
+  }
+
   .focus-feed-media-shell {
     position: absolute;
-    top: 74px;
-    left: 34px;
-    width: min(760px, calc(100% - 360px - 98px));
-    height: min(440px, calc(100% - 210px));
+    inset: 0;
     border: 0;
     background: none;
     padding: 0;
-    z-index: 0;
   }
 
   .focus-feed-media,
@@ -1480,11 +1681,9 @@ const feedStyles = `
     position: relative;
     width: 100%;
     height: 100%;
-    border-radius: 24px;
+    border-radius: 0;
     overflow: hidden;
     background: rgba(255, 255, 255, 0.03);
-    border: 1px solid rgba(255, 255, 255, 0.07);
-    box-shadow: 0 18px 40px rgba(0, 0, 0, 0.22);
   }
 
   .focus-feed-media.placeholder {
@@ -1504,30 +1703,19 @@ const feedStyles = `
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(90deg, rgba(7, 9, 14, 0.28), rgba(7, 9, 14, 0.54)),
-      linear-gradient(180deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.68));
+      linear-gradient(90deg, rgba(7, 9, 14, 0.42), rgba(7, 9, 14, 0.62)),
+      linear-gradient(180deg, rgba(7, 9, 14, 0.08), rgba(7, 9, 14, 0.72));
     pointer-events: none;
-  }
-
-  .focus-feed-media-note {
-    display: none;
   }
 
   .focus-feed-copy {
     position: relative;
     z-index: 1;
     display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
-    grid-template-areas:
-      'meta answers'
-      'title answers'
-      'summary answers'
-      'spacer answers'
-      'footer footer';
-    align-content: stretch;
-    gap: 18px 30px;
-    min-height: 100%;
-    padding: 0;
+    align-content: start;
+    gap: 18px;
+    max-width: 440px;
+    padding: 26px 28px 30px;
   }
 
   .focus-feed-meta {
@@ -1535,8 +1723,6 @@ const feedStyles = `
     align-items: center;
     gap: 12px;
     flex-wrap: wrap;
-    grid-area: meta;
-    align-self: start;
   }
 
   .focus-feed-pill {
@@ -1574,39 +1760,168 @@ const feedStyles = `
   }
 
   .focus-feed-copy h3 {
-    grid-area: title;
-    align-self: end;
-    max-width: 640px;
+    margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(48px, 5.7vw, 78px);
-    line-height: 0.96;
+    font-size: clamp(58px, 6.4vw, 92px);
+    line-height: 0.9;
     font-weight: 600;
     color: #f7f2fb;
-    text-wrap: balance;
+    text-wrap: pretty;
   }
 
   .focus-feed-card.pulse-of-day .focus-feed-copy h3 {
-    max-width: 680px;
     color: #fbf7e6;
   }
 
   .focus-feed-copy p {
-    grid-area: summary;
-    align-self: start;
-    max-width: 520px;
+    margin: 0;
     color: rgba(232, 230, 240, 0.76);
-    font-size: 18px;
-    line-height: 1.66;
+    font-size: 16px;
+    line-height: 1.68;
+  }
+
+  .focus-feed-stage-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    bottom: 0;
+    width: min(48%, 420px);
+    background: linear-gradient(90deg, rgba(9, 12, 18, 0.72), rgba(9, 12, 18, 0.08));
+    pointer-events: none;
+  }
+
+  .focus-feed-stage-markers {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .focus-stage-marker {
+    position: absolute;
+    display: grid;
+    gap: 4px;
+    align-items: center;
+    justify-items: center;
+    width: 166px;
+    height: 166px;
+    border-radius: 999px;
+    background: color-mix(in srgb, var(--marker-accent) 12%, rgba(9, 12, 18, 0.92));
+    border: 1px solid color-mix(in srgb, var(--marker-accent) 55%, rgba(255, 255, 255, 0.12));
+    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
+    padding: 18px;
+    text-align: center;
+  }
+
+  .focus-stage-marker span {
+    color: var(--marker-accent);
+    font-size: 28px;
+    line-height: 1;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+  }
+
+  .focus-stage-marker strong {
+    color: #f2eef7;
+    font-size: 13px;
+    line-height: 1.35;
+    font-weight: 600;
+    max-width: 110px;
+  }
+
+  .focus-feed-stage-markers.type-ranked .marker-1 {
+    top: 58px;
+    left: 58px;
+  }
+
+  .focus-feed-stage-markers.type-ranked .marker-2 {
+    top: 58px;
+    right: 64px;
+  }
+
+  .focus-feed-stage-markers.type-ranked .marker-3 {
+    bottom: 58px;
+    left: 58px;
+  }
+
+  .focus-feed-stage-markers.type-ranked .marker-4 {
+    bottom: 58px;
+    right: 64px;
+  }
+
+  .focus-feed-stage-markers.type-choice .focus-stage-marker,
+  .focus-feed-stage-markers.type-statement .focus-stage-marker {
+    width: 194px;
+    height: 96px;
+    border-radius: 24px;
+  }
+
+  .focus-feed-stage-markers.type-choice .marker-1,
+  .focus-feed-stage-markers.type-statement .marker-1 {
+    bottom: 36px;
+    left: 36px;
+  }
+
+  .focus-feed-stage-markers.type-choice .marker-2,
+  .focus-feed-stage-markers.type-statement .marker-2 {
+    bottom: 36px;
+    left: 246px;
+  }
+
+  .focus-feed-stage-markers.type-statement .marker-3 {
+    bottom: 36px;
+    left: 456px;
+  }
+
+  .focus-feed-panel {
+    display: grid;
+    grid-template-rows: auto 1fr auto;
+    gap: 22px;
+    padding: 18px 6px 6px 0;
+  }
+
+  .focus-feed-panel-copy {
+    display: grid;
+    gap: 10px;
+  }
+
+  .focus-feed-panel-type {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+    color: rgba(232, 230, 240, 0.56);
+    font-size: 10px;
+    font-weight: 700;
+    letter-spacing: 0.18em;
+    text-transform: uppercase;
+  }
+
+  .focus-feed-panel-type span:first-child {
+    color: var(--gold);
+  }
+
+  .focus-feed-panel h4 {
+    margin: 0;
+    font-family: var(--font-sans);
+    font-size: clamp(34px, 3vw, 52px);
+    line-height: 0.96;
+    font-weight: 700;
+    letter-spacing: -0.04em;
+    color: #f3eef9;
+  }
+
+  .focus-feed-panel p {
+    margin: 0;
+    color: rgba(232, 230, 240, 0.72);
+    font-size: 15px;
+    line-height: 1.62;
   }
 
   .focus-answer-grid {
-    grid-area: answers;
     align-self: start;
     display: grid;
-    grid-template-columns: 1fr;
     gap: 16px;
     width: 100%;
-    max-width: none;
   }
 
   .focus-answer-grid.type-statement {
@@ -1617,10 +1932,10 @@ const feedStyles = `
     display: flex;
     align-items: center;
     gap: 16px;
-    min-height: 88px;
-    padding: 0 20px;
+    min-height: 108px;
+    padding: 0 22px;
     border: 1px solid rgba(255, 255, 255, 0.12);
-    background: rgba(15, 20, 28, 0.42);
+    background: rgba(15, 20, 28, 0.38);
     backdrop-filter: blur(12px);
     border-radius: 20px;
   }
@@ -1641,11 +1956,21 @@ const feedStyles = `
   .focus-answer-label {
     color: #f2edf8;
     font-size: 17px;
-    line-height: 1.35;
+    line-height: 1.25;
+  }
+
+  .focus-answer-copy {
+    display: grid;
+    gap: 6px;
+  }
+
+  .focus-answer-insight {
+    color: rgba(232, 230, 240, 0.58);
+    font-size: 13px;
+    line-height: 1.45;
   }
 
   .focus-feed-footer {
-    grid-area: footer;
     display: flex;
     align-items: end;
     justify-content: space-between;
@@ -1672,31 +1997,30 @@ const feedStyles = `
   }
 
   .focus-feed-cta {
-    min-width: 260px;
-    min-height: 64px;
-    border-radius: 999px;
+    min-width: 220px;
+    min-height: 58px;
+    border-radius: 18px;
     border: 1px solid rgba(201, 168, 76, 0.42);
-    background: rgba(8, 11, 17, 0.58);
-    color: var(--gold);
-    font-size: 12px;
-    font-weight: 700;
+    background: linear-gradient(180deg, rgba(201, 168, 76, 0.92), rgba(186, 145, 34, 0.92));
+    color: #111318;
+    font-size: 11px;
+    font-weight: 800;
     letter-spacing: 0.18em;
     text-transform: uppercase;
-    backdrop-filter: blur(10px);
     transition: var(--transition);
   }
 
   .focus-feed-card.pulse-of-day .focus-feed-cta {
-    background: linear-gradient(180deg, rgba(201, 168, 76, 0.16), rgba(201, 168, 76, 0.08));
+    box-shadow: 0 12px 30px rgba(201, 168, 76, 0.16);
   }
 
   .focus-feed-cta:hover {
     transform: translateY(-1px);
-    box-shadow: 0 12px 30px rgba(201, 168, 76, 0.16);
+    box-shadow: 0 12px 30px rgba(201, 168, 76, 0.18);
   }
 
   .focus-feed-next {
-    color: rgba(232, 230, 240, 0.54);
+    color: var(--gold);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.18em;
@@ -1948,57 +2272,101 @@ const feedStyles = `
       padding: 22px;
     }
 
+    .focus-feed-shell-header {
+      grid-template-columns: 1fr;
+      gap: 14px;
+      align-items: start;
+    }
+
+    .focus-feed-shell-status {
+      justify-items: start;
+      text-align: left;
+    }
+
+    .focus-feed-body {
+      grid-template-columns: 1fr;
+      gap: 22px;
+    }
+
+    .focus-feed-stage {
+      min-height: 440px;
+    }
+
     .focus-feed-media-shell {
-      top: 22px;
-      left: 22px;
-      right: 22px;
+      inset: 0;
       width: auto;
-      bottom: auto;
-      height: 240px;
+      height: auto;
     }
 
     .focus-feed-media-frame {
       height: 100%;
-      aspect-ratio: auto;
     }
 
     .focus-feed-copy {
-      grid-template-columns: 1fr;
-      grid-template-areas:
-        'meta'
-        'title'
-        'summary'
-        'answers'
-        'footer';
-      gap: 18px;
-      padding-top: 258px;
+      max-width: 420px;
+      padding: 22px 22px 24px;
     }
 
     .focus-feed-copy h3 {
-      font-size: clamp(42px, 8vw, 62px);
+      font-size: clamp(44px, 9vw, 68px);
     }
 
     .focus-feed-copy p {
       font-size: 16px;
     }
 
+    .focus-feed-stage-overlay {
+      width: 56%;
+    }
+
+    .focus-feed-stage-markers.type-ranked .marker-1 {
+      top: auto;
+      bottom: 104px;
+      left: 20px;
+    }
+
+    .focus-feed-stage-markers.type-ranked .marker-2 {
+      top: auto;
+      bottom: 104px;
+      right: 20px;
+    }
+
+    .focus-feed-stage-markers.type-ranked .marker-3 {
+      bottom: 20px;
+      left: 20px;
+    }
+
+    .focus-feed-stage-markers.type-ranked .marker-4 {
+      bottom: 20px;
+      right: 20px;
+    }
+
+    .focus-feed-stage-markers.type-choice .marker-1,
+    .focus-feed-stage-markers.type-statement .marker-1 {
+      bottom: 20px;
+      left: 20px;
+    }
+
+    .focus-feed-stage-markers.type-choice .marker-2,
+    .focus-feed-stage-markers.type-statement .marker-2 {
+      bottom: 20px;
+      left: 222px;
+    }
+
+    .focus-feed-stage-markers.type-statement .marker-3 {
+      bottom: 20px;
+      left: auto;
+      right: 20px;
+    }
+
+    .focus-feed-panel {
+      padding: 0;
+    }
+
     .focus-answer-grid,
     .focus-answer-grid.type-statement {
       grid-template-columns: 1fr;
       max-width: none;
-    }
-
-    .focus-answer-card {
-      min-height: 82px;
-      padding: 0 18px;
-    }
-
-    .focus-feed-footer {
-      align-items: start;
-    }
-
-    .focus-feed-actions {
-      justify-items: start;
     }
 
     .focus-feed-cta {
@@ -2054,6 +2422,49 @@ const feedStyles = `
 
     .focus-feed-meta {
       gap: 8px;
+    }
+
+    .focus-feed-shell-title {
+      font-size: 36px;
+    }
+
+    .focus-feed-stage {
+      min-height: 360px;
+    }
+
+    .focus-stage-marker {
+      width: 112px;
+      height: 112px;
+      padding: 12px;
+    }
+
+    .focus-stage-marker span {
+      font-size: 20px;
+    }
+
+    .focus-stage-marker strong {
+      font-size: 11px;
+      max-width: 78px;
+    }
+
+    .focus-feed-stage-markers.type-choice .focus-stage-marker,
+    .focus-feed-stage-markers.type-statement .focus-stage-marker {
+      width: 138px;
+      height: 74px;
+      border-radius: 18px;
+    }
+
+    .focus-feed-stage-markers.type-choice .marker-2,
+    .focus-feed-stage-markers.type-statement .marker-2 {
+      left: 166px;
+    }
+
+    .focus-feed-stage-markers.type-statement .marker-3 {
+      display: none;
+    }
+
+    .focus-feed-panel h4 {
+      font-size: 30px;
     }
 
     .focus-feed-kicker,
