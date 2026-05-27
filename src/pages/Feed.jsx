@@ -1457,7 +1457,7 @@ const feedStyles = `
 
   .focus-feed-media-shell {
     position: absolute;
-    top: 92px;
+    top: 74px;
     left: 34px;
     width: min(760px, calc(100% - 360px - 98px));
     height: min(440px, calc(100% - 210px));
