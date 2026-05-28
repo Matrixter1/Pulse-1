@@ -1518,12 +1518,12 @@ const feedStyles = `
 
   .focus-feed-stack {
     display: grid;
-    gap: 22px;
+    gap: 18px;
     scroll-margin-top: 140px;
   }
 
   .focus-feed-question {
-    min-height: calc(100vh - 190px);
+    min-height: calc(100vh - 220px);
     display: grid;
     align-items: start;
   }
@@ -1534,14 +1534,15 @@ const feedStyles = `
 
   .focus-feed-card {
     display: grid;
-    gap: 18px;
-    min-height: min(64vh, 760px);
+    gap: 14px;
+    min-height: min(58vh, 680px);
+    max-height: calc(100vh - 170px);
     border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(8, 10, 16, 0.96);
     box-shadow: 0 22px 54px rgba(0, 0, 0, 0.24);
-    padding: 22px 22px 20px;
+    padding: 18px 18px 16px;
   }
 
   .focus-feed-card.pulse-of-day {
@@ -1558,18 +1559,18 @@ const feedStyles = `
     display: flex;
     align-items: end;
     justify-content: space-between;
-    gap: 18px;
+    gap: 14px;
   }
 
   .focus-feed-shell-copy {
     display: grid;
-    gap: 12px;
+    gap: 8px;
   }
 
   .focus-feed-shell-title {
     margin: 0;
     font-family: var(--font-sans);
-    font-size: clamp(34px, 3.7vw, 50px);
+    font-size: clamp(28px, 3vw, 40px);
     line-height: 0.94;
     font-weight: 700;
     letter-spacing: -0.04em;
@@ -1603,15 +1604,18 @@ const feedStyles = `
 
   .focus-feed-body {
     display: grid;
-    grid-template-columns: minmax(0, 1.06fr) minmax(300px, 0.58fr);
-    gap: 22px;
-    align-items: stretch;
+    grid-template-columns: minmax(0, 0.92fr) minmax(320px, 0.68fr);
+    gap: 18px;
+    align-items: start;
     min-height: 0;
   }
 
   .focus-feed-stage {
     position: relative;
-    min-height: 420px;
+    min-height: 0;
+    height: min(42vh, 360px);
+    max-height: 360px;
+    aspect-ratio: 1.22 / 0.9;
     border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -1621,12 +1625,14 @@ const feedStyles = `
   }
 
   .focus-feed-body.type-statement .focus-feed-stage {
-    min-height: 390px;
+    height: min(40vh, 340px);
+    max-height: 340px;
   }
 
   .focus-feed-body.type-choice .focus-feed-stage,
   .focus-feed-body.type-ranked .focus-feed-stage {
-    min-height: 390px;
+    height: min(40vh, 340px);
+    max-height: 340px;
   }
 
   .focus-feed-media-shell {
@@ -1682,9 +1688,9 @@ const feedStyles = `
     z-index: 1;
     display: grid;
     align-content: start;
-    gap: 14px;
-    max-width: 390px;
-    padding: 20px 22px 24px;
+    gap: 10px;
+    max-width: 360px;
+    padding: 16px 18px 18px;
   }
 
   .focus-feed-meta {
@@ -1731,7 +1737,7 @@ const feedStyles = `
   .focus-feed-copy h3 {
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(46px, 5vw, 74px);
+    font-size: clamp(38px, 4.2vw, 58px);
     line-height: 0.9;
     font-weight: 600;
     color: #f7f2fb;
@@ -1745,20 +1751,20 @@ const feedStyles = `
   .focus-feed-copy p {
     margin: 0;
     color: rgba(232, 230, 240, 0.76);
-    font-size: 16px;
-    line-height: 1.68;
+    font-size: 14px;
+    line-height: 1.52;
   }
 
   .focus-feed-panel {
     display: grid;
     grid-template-rows: auto 1fr auto;
-    gap: 16px;
+    gap: 12px;
     padding: 10px 2px 2px 0;
   }
 
   .focus-feed-panel-copy {
     display: grid;
-    gap: 8px;
+    gap: 6px;
   }
 
   .focus-feed-panel-type {
@@ -1780,8 +1786,8 @@ const feedStyles = `
   .focus-feed-panel h4 {
     margin: 0;
     font-family: var(--font-sans);
-    font-size: clamp(23px, 1.8vw, 34px);
-    line-height: 1.02;
+    font-size: clamp(20px, 1.45vw, 28px);
+    line-height: 1.04;
     font-weight: 700;
     letter-spacing: -0.04em;
     color: #f3eef9;
@@ -1791,14 +1797,14 @@ const feedStyles = `
   .focus-feed-panel p {
     margin: 0;
     color: rgba(232, 230, 240, 0.72);
-    font-size: 14px;
-    line-height: 1.56;
+    font-size: 13px;
+    line-height: 1.46;
   }
 
   .focus-answer-grid {
     align-self: start;
     display: grid;
-    gap: 12px;
+    gap: 10px;
     width: 100%;
   }
 
@@ -1809,9 +1815,9 @@ const feedStyles = `
   .focus-answer-card {
     display: flex;
     align-items: center;
-    gap: 14px;
-    min-height: 78px;
-    padding: 0 18px;
+    gap: 12px;
+    min-height: 68px;
+    padding: 0 16px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(15, 20, 28, 0.38);
     backdrop-filter: blur(12px);
@@ -1819,50 +1825,50 @@ const feedStyles = `
   }
 
   .focus-answer-badge {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.22);
     color: rgba(232, 230, 240, 0.82);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 16px;
+    font-size: 14px;
     flex: 0 0 auto;
   }
 
   .focus-answer-label {
     color: #f2edf8;
-    font-size: 15px;
+    font-size: 14px;
     line-height: 1.25;
   }
 
   .focus-answer-copy {
     display: grid;
-    gap: 6px;
+    gap: 4px;
   }
 
   .focus-answer-insight {
     color: rgba(232, 230, 240, 0.58);
-    font-size: 12px;
-    line-height: 1.35;
+    font-size: 11px;
+    line-height: 1.28;
   }
 
   .focus-feed-footer {
     display: flex;
     align-items: end;
     justify-content: space-between;
-    gap: 14px;
+    gap: 10px;
     flex-wrap: wrap;
   }
 
   .focus-feed-signals {
     display: flex;
     align-items: center;
-    gap: 24px;
+    gap: 16px;
     flex-wrap: wrap;
     color: rgba(232, 230, 240, 0.58);
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 700;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -1871,17 +1877,17 @@ const feedStyles = `
   .focus-feed-actions {
     display: grid;
     justify-items: end;
-    gap: 10px;
+    gap: 8px;
   }
 
   .focus-feed-cta {
-    min-width: 200px;
-    min-height: 50px;
+    min-width: 180px;
+    min-height: 44px;
     border-radius: 18px;
     border: 1px solid rgba(201, 168, 76, 0.42);
     background: linear-gradient(180deg, rgba(201, 168, 76, 0.92), rgba(186, 145, 34, 0.92));
     color: #111318;
-    font-size: 11px;
+    font-size: 10px;
     font-weight: 800;
     letter-spacing: 0.18em;
     text-transform: uppercase;
@@ -2147,6 +2153,7 @@ const feedStyles = `
 
     .focus-feed-card {
       min-height: auto;
+      max-height: none;
       padding: 20px;
     }
 
