@@ -1518,12 +1518,12 @@ const feedStyles = `
 
   .focus-feed-stack {
     display: grid;
-    gap: 30px;
+    gap: 22px;
     scroll-margin-top: 140px;
   }
 
   .focus-feed-question {
-    min-height: calc(100vh - 150px);
+    min-height: calc(100vh - 190px);
     display: grid;
     align-items: start;
   }
@@ -1534,14 +1534,14 @@ const feedStyles = `
 
   .focus-feed-card {
     display: grid;
-    gap: 26px;
-    min-height: min(78vh, 980px);
+    gap: 18px;
+    min-height: min(64vh, 760px);
     border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.06);
     background: rgba(8, 10, 16, 0.96);
     box-shadow: 0 22px 54px rgba(0, 0, 0, 0.24);
-    padding: 28px 28px 26px;
+    padding: 22px 22px 20px;
   }
 
   .focus-feed-card.pulse-of-day {
@@ -1569,7 +1569,7 @@ const feedStyles = `
   .focus-feed-shell-title {
     margin: 0;
     font-family: var(--font-sans);
-    font-size: clamp(42px, 4.4vw, 60px);
+    font-size: clamp(34px, 3.7vw, 50px);
     line-height: 0.94;
     font-weight: 700;
     letter-spacing: -0.04em;
@@ -1603,15 +1603,15 @@ const feedStyles = `
 
   .focus-feed-body {
     display: grid;
-    grid-template-columns: minmax(0, 1.1fr) minmax(320px, 0.62fr);
-    gap: 30px;
+    grid-template-columns: minmax(0, 1.06fr) minmax(300px, 0.58fr);
+    gap: 22px;
     align-items: stretch;
     min-height: 0;
   }
 
   .focus-feed-stage {
     position: relative;
-    min-height: 540px;
+    min-height: 420px;
     border-radius: 28px;
     overflow: hidden;
     border: 1px solid rgba(255, 255, 255, 0.05);
@@ -1621,12 +1621,12 @@ const feedStyles = `
   }
 
   .focus-feed-body.type-statement .focus-feed-stage {
-    min-height: 500px;
+    min-height: 390px;
   }
 
   .focus-feed-body.type-choice .focus-feed-stage,
   .focus-feed-body.type-ranked .focus-feed-stage {
-    min-height: 500px;
+    min-height: 390px;
   }
 
   .focus-feed-media-shell {
@@ -1682,9 +1682,9 @@ const feedStyles = `
     z-index: 1;
     display: grid;
     align-content: start;
-    gap: 18px;
-    max-width: 440px;
-    padding: 26px 28px 30px;
+    gap: 14px;
+    max-width: 390px;
+    padding: 20px 22px 24px;
   }
 
   .focus-feed-meta {
@@ -1731,7 +1731,7 @@ const feedStyles = `
   .focus-feed-copy h3 {
     margin: 0;
     font-family: var(--font-display);
-    font-size: clamp(58px, 6.4vw, 92px);
+    font-size: clamp(46px, 5vw, 74px);
     line-height: 0.9;
     font-weight: 600;
     color: #f7f2fb;
@@ -1752,13 +1752,13 @@ const feedStyles = `
   .focus-feed-panel {
     display: grid;
     grid-template-rows: auto 1fr auto;
-    gap: 22px;
-    padding: 18px 6px 6px 0;
+    gap: 16px;
+    padding: 10px 2px 2px 0;
   }
 
   .focus-feed-panel-copy {
     display: grid;
-    gap: 10px;
+    gap: 8px;
   }
 
   .focus-feed-panel-type {
@@ -1780,7 +1780,7 @@ const feedStyles = `
   .focus-feed-panel h4 {
     margin: 0;
     font-family: var(--font-sans);
-    font-size: clamp(28px, 2.2vw, 42px);
+    font-size: clamp(23px, 1.8vw, 34px);
     line-height: 1.02;
     font-weight: 700;
     letter-spacing: -0.04em;
@@ -1791,14 +1791,14 @@ const feedStyles = `
   .focus-feed-panel p {
     margin: 0;
     color: rgba(232, 230, 240, 0.72);
-    font-size: 15px;
-    line-height: 1.62;
+    font-size: 14px;
+    line-height: 1.56;
   }
 
   .focus-answer-grid {
     align-self: start;
     display: grid;
-    gap: 16px;
+    gap: 12px;
     width: 100%;
   }
 
@@ -1809,9 +1809,9 @@ const feedStyles = `
   .focus-answer-card {
     display: flex;
     align-items: center;
-    gap: 16px;
-    min-height: 96px;
-    padding: 0 22px;
+    gap: 14px;
+    min-height: 78px;
+    padding: 0 18px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(15, 20, 28, 0.38);
     backdrop-filter: blur(12px);
@@ -1819,21 +1819,21 @@ const feedStyles = `
   }
 
   .focus-answer-badge {
-    width: 38px;
-    height: 38px;
+    width: 34px;
+    height: 34px;
     border-radius: 999px;
     border: 1px solid rgba(255, 255, 255, 0.22);
     color: rgba(232, 230, 240, 0.82);
     display: inline-flex;
     align-items: center;
     justify-content: center;
-    font-size: 18px;
+    font-size: 16px;
     flex: 0 0 auto;
   }
 
   .focus-answer-label {
     color: #f2edf8;
-    font-size: 17px;
+    font-size: 15px;
     line-height: 1.25;
   }
 
@@ -1844,15 +1844,15 @@ const feedStyles = `
 
   .focus-answer-insight {
     color: rgba(232, 230, 240, 0.58);
-    font-size: 13px;
-    line-height: 1.45;
+    font-size: 12px;
+    line-height: 1.35;
   }
 
   .focus-feed-footer {
     display: flex;
     align-items: end;
     justify-content: space-between;
-    gap: 18px;
+    gap: 14px;
     flex-wrap: wrap;
   }
 
@@ -1871,12 +1871,12 @@ const feedStyles = `
   .focus-feed-actions {
     display: grid;
     justify-items: end;
-    gap: 12px;
+    gap: 10px;
   }
 
   .focus-feed-cta {
-    min-width: 220px;
-    min-height: 58px;
+    min-width: 200px;
+    min-height: 50px;
     border-radius: 18px;
     border: 1px solid rgba(201, 168, 76, 0.42);
     background: linear-gradient(180deg, rgba(201, 168, 76, 0.92), rgba(186, 145, 34, 0.92));
@@ -2147,7 +2147,7 @@ const feedStyles = `
 
     .focus-feed-card {
       min-height: auto;
-      padding: 22px;
+      padding: 20px;
     }
 
     .focus-feed-shell-header {
@@ -2163,11 +2163,11 @@ const feedStyles = `
 
     .focus-feed-body {
       grid-template-columns: 1fr;
-      gap: 22px;
+      gap: 18px;
     }
 
     .focus-feed-stage {
-      min-height: 380px;
+      min-height: 320px;
     }
 
     .focus-feed-media-shell {
@@ -2182,7 +2182,7 @@ const feedStyles = `
 
     .focus-feed-copy {
       max-width: 420px;
-      padding: 22px 22px 24px;
+      padding: 18px 18px 20px;
     }
 
     .focus-feed-copy h3 {
@@ -2263,7 +2263,7 @@ const feedStyles = `
     }
 
     .focus-feed-stage {
-      min-height: 320px;
+      min-height: 280px;
     }
 
     .focus-feed-panel h4 {
