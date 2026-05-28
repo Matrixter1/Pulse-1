@@ -185,33 +185,17 @@ function getAnswerInsights(question) {
   }, {})
 }
 
-function getFocusStageItems(question, counts) {
+function getFocusNeutralPrompt(question) {
   const type = question.type || 'statement'
-  const options = parseOptions(question.options)
+  const brief = parseBrief(question.brief)
 
-  if (type === 'statement') {
-    return [
-      { label: 'Disagree', value: `${counts?.all?.Disagree ?? 0}%`, accent: '#C94C4C' },
-      { label: 'Mixed', value: `${counts?.all?.Neutral ?? 0}%`, accent: '#C9A84C' },
-      { label: 'Agree', value: `${counts?.all?.Agree ?? 0}%`, accent: '#4CC9A8' },
-    ]
-  }
+  if (brief?.plain_english) return brief.plain_english
+  if (brief?.plainEnglish) return brief.plainEnglish
 
-  if (type === 'choice') {
-    const choiceOptions = counts?.all?.options?.length ? counts.all.options : options.map((option) => ({ label: option, pct: 0 }))
-    return choiceOptions.slice(0, 2).map((option, index) => ({
-      label: option.label,
-      value: `${option.pct ?? 0}%`,
-      accent: index === 0 ? '#4CC9A8' : '#C9A84C',
-    }))
-  }
-
-  const rankedOptions = counts?.all?.options?.length ? counts.all.options : options.map((option, index) => ({ label: option, avgRank: index + 1 }))
-  return rankedOptions.slice(0, 4).map((option, index) => ({
-    label: option.label,
-    value: `#${Math.round(option.avgRank ?? index + 1)}`,
-    accent: ['#C9A84C', '#4CC9A8', '#9B6FD8', '#4C8EC9'][index] || '#C9A84C',
-  }))
+  if (type === 'statement') return 'Read the statement, cast anonymously, and reveal the live signal after you commit.'
+  if (type === 'choice') return 'Choose the option that feels most true to you. Community signal stays hidden until you vote.'
+  if (type === 'ranked') return 'Arrange the options in your order first. Community signal stays hidden until you submit.'
+  return 'Cast anonymously, then reveal the signal once you commit.'
 }
 
 function getCuratorName(profile, user) {
@@ -841,10 +825,8 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast =
   const type = question.type || 'statement'
   const mediaUrl = getFeedMediaUrl(question)
   const typeMeta = QUESTION_TYPE_META[type] || QUESTION_TYPE_META.statement
-  const totalVotes = counts?.all?.total || 0
-  const verifiedVotes = counts?.verified?.total || 0
   const answerInsights = getAnswerInsights(question)
-  const stageItems = getFocusStageItems(question, counts)
+  const neutralPrompt = getFocusNeutralPrompt(question)
   const previewAnswers =
     type === 'statement'
       ? ['Disagree', 'Mixed', 'Agree']
@@ -892,24 +874,6 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast =
                 <div className="focus-feed-media-overlay" />
               </div>
             </button>
-
-            <div className="focus-feed-stage-overlay">
-              <h4>{formatQuestionText(question)}</h4>
-              <p>{getQuestionSummary(question, counts)}</p>
-            </div>
-
-            <div className={`focus-feed-stage-markers type-${type}`}>
-              {stageItems.map((item, index) => (
-                <div
-                  key={`${item.label}-${index}`}
-                  className={`focus-stage-marker marker-${index + 1}`}
-                  style={{ '--marker-accent': item.accent }}
-                >
-                  <span>{item.value}</span>
-                  <strong>{item.label}</strong>
-                </div>
-              ))}
-            </div>
           </div>
 
           <div className="focus-feed-panel">
@@ -919,7 +883,7 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast =
                 <span>{typeMeta.label}</span>
               </div>
               <h4>{formatQuestionText(question)}</h4>
-              <p>{getQuestionSummary(question, counts)}</p>
+              <p>{neutralPrompt}</p>
             </div>
 
             <div className={`focus-answer-grid type-${type}`}>
@@ -940,12 +904,12 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isLast =
 
             <div className="focus-feed-footer">
               <div className="focus-feed-signals">
-                <span>{formatCount(totalVotes)} votes registered</span>
-                <span>{verifiedVotes > 0 ? `${formatCount(verifiedVotes)} verified layer` : 'Anonymous pulse'}</span>
+                <span>Anonymous voting</span>
+                <span>Community signal hidden until vote</span>
               </div>
               <div className="focus-feed-actions">
                 <button type="button" className="focus-feed-cta" onClick={onOpen}>
-                  {type === 'ranked' ? 'Open ranking' : 'Reveal the signal'}
+                  {type === 'ranked' ? 'Open ranking' : 'Open signal'}
                 </button>
                 {!isLast ? <span className="focus-feed-next">Scroll for next signal</span> : null}
               </div>
@@ -1660,6 +1624,11 @@ const feedStyles = `
     min-height: 500px;
   }
 
+  .focus-feed-body.type-choice .focus-feed-stage,
+  .focus-feed-body.type-ranked .focus-feed-stage {
+    min-height: 500px;
+  }
+
   .focus-feed-media-shell {
     position: absolute;
     inset: 0;
@@ -1703,8 +1672,8 @@ const feedStyles = `
     position: absolute;
     inset: 0;
     background:
-      linear-gradient(90deg, rgba(7, 9, 14, 0.42), rgba(7, 9, 14, 0.62)),
-      linear-gradient(180deg, rgba(7, 9, 14, 0.08), rgba(7, 9, 14, 0.72));
+      linear-gradient(90deg, rgba(7, 9, 14, 0.18), rgba(7, 9, 14, 0.28)),
+      linear-gradient(180deg, rgba(7, 9, 14, 0.06), rgba(7, 9, 14, 0.4));
     pointer-events: none;
   }
 
@@ -1780,98 +1749,6 @@ const feedStyles = `
     line-height: 1.68;
   }
 
-  .focus-feed-stage-overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    bottom: 0;
-    width: min(48%, 420px);
-    background: linear-gradient(90deg, rgba(9, 12, 18, 0.72), rgba(9, 12, 18, 0.08));
-    pointer-events: none;
-  }
-
-  .focus-feed-stage-markers {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-  }
-
-  .focus-stage-marker {
-    position: absolute;
-    display: grid;
-    gap: 4px;
-    align-items: center;
-    justify-items: center;
-    width: 166px;
-    height: 166px;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--marker-accent) 12%, rgba(9, 12, 18, 0.92));
-    border: 1px solid color-mix(in srgb, var(--marker-accent) 55%, rgba(255, 255, 255, 0.12));
-    box-shadow: 0 18px 36px rgba(0, 0, 0, 0.24);
-    padding: 18px;
-    text-align: center;
-  }
-
-  .focus-stage-marker span {
-    color: var(--marker-accent);
-    font-size: 28px;
-    line-height: 1;
-    font-weight: 700;
-    letter-spacing: -0.04em;
-  }
-
-  .focus-stage-marker strong {
-    color: #f2eef7;
-    font-size: 13px;
-    line-height: 1.35;
-    font-weight: 600;
-    max-width: 110px;
-  }
-
-  .focus-feed-stage-markers.type-ranked .marker-1 {
-    top: 58px;
-    left: 58px;
-  }
-
-  .focus-feed-stage-markers.type-ranked .marker-2 {
-    top: 58px;
-    right: 64px;
-  }
-
-  .focus-feed-stage-markers.type-ranked .marker-3 {
-    bottom: 58px;
-    left: 58px;
-  }
-
-  .focus-feed-stage-markers.type-ranked .marker-4 {
-    bottom: 58px;
-    right: 64px;
-  }
-
-  .focus-feed-stage-markers.type-choice .focus-stage-marker,
-  .focus-feed-stage-markers.type-statement .focus-stage-marker {
-    width: 194px;
-    height: 96px;
-    border-radius: 24px;
-  }
-
-  .focus-feed-stage-markers.type-choice .marker-1,
-  .focus-feed-stage-markers.type-statement .marker-1 {
-    bottom: 36px;
-    left: 36px;
-  }
-
-  .focus-feed-stage-markers.type-choice .marker-2,
-  .focus-feed-stage-markers.type-statement .marker-2 {
-    bottom: 36px;
-    left: 246px;
-  }
-
-  .focus-feed-stage-markers.type-statement .marker-3 {
-    bottom: 36px;
-    left: 456px;
-  }
-
   .focus-feed-panel {
     display: grid;
     grid-template-rows: auto 1fr auto;
@@ -1903,11 +1780,12 @@ const feedStyles = `
   .focus-feed-panel h4 {
     margin: 0;
     font-family: var(--font-sans);
-    font-size: clamp(34px, 3vw, 52px);
-    line-height: 0.96;
+    font-size: clamp(28px, 2.2vw, 42px);
+    line-height: 1.02;
     font-weight: 700;
     letter-spacing: -0.04em;
     color: #f3eef9;
+    text-wrap: balance;
   }
 
   .focus-feed-panel p {
@@ -1932,7 +1810,7 @@ const feedStyles = `
     display: flex;
     align-items: center;
     gap: 16px;
-    min-height: 108px;
+    min-height: 96px;
     padding: 0 22px;
     border: 1px solid rgba(255, 255, 255, 0.12);
     background: rgba(15, 20, 28, 0.38);
@@ -1983,7 +1861,7 @@ const feedStyles = `
     align-items: center;
     gap: 24px;
     flex-wrap: wrap;
-    color: rgba(232, 230, 240, 0.5);
+    color: rgba(232, 230, 240, 0.58);
     font-size: 11px;
     font-weight: 700;
     letter-spacing: 0.18em;
@@ -2289,7 +2167,7 @@ const feedStyles = `
     }
 
     .focus-feed-stage {
-      min-height: 440px;
+      min-height: 380px;
     }
 
     .focus-feed-media-shell {
@@ -2313,50 +2191,6 @@ const feedStyles = `
 
     .focus-feed-copy p {
       font-size: 16px;
-    }
-
-    .focus-feed-stage-overlay {
-      width: 56%;
-    }
-
-    .focus-feed-stage-markers.type-ranked .marker-1 {
-      top: auto;
-      bottom: 104px;
-      left: 20px;
-    }
-
-    .focus-feed-stage-markers.type-ranked .marker-2 {
-      top: auto;
-      bottom: 104px;
-      right: 20px;
-    }
-
-    .focus-feed-stage-markers.type-ranked .marker-3 {
-      bottom: 20px;
-      left: 20px;
-    }
-
-    .focus-feed-stage-markers.type-ranked .marker-4 {
-      bottom: 20px;
-      right: 20px;
-    }
-
-    .focus-feed-stage-markers.type-choice .marker-1,
-    .focus-feed-stage-markers.type-statement .marker-1 {
-      bottom: 20px;
-      left: 20px;
-    }
-
-    .focus-feed-stage-markers.type-choice .marker-2,
-    .focus-feed-stage-markers.type-statement .marker-2 {
-      bottom: 20px;
-      left: 222px;
-    }
-
-    .focus-feed-stage-markers.type-statement .marker-3 {
-      bottom: 20px;
-      left: auto;
-      right: 20px;
     }
 
     .focus-feed-panel {
@@ -2429,42 +2263,11 @@ const feedStyles = `
     }
 
     .focus-feed-stage {
-      min-height: 360px;
-    }
-
-    .focus-stage-marker {
-      width: 112px;
-      height: 112px;
-      padding: 12px;
-    }
-
-    .focus-stage-marker span {
-      font-size: 20px;
-    }
-
-    .focus-stage-marker strong {
-      font-size: 11px;
-      max-width: 78px;
-    }
-
-    .focus-feed-stage-markers.type-choice .focus-stage-marker,
-    .focus-feed-stage-markers.type-statement .focus-stage-marker {
-      width: 138px;
-      height: 74px;
-      border-radius: 18px;
-    }
-
-    .focus-feed-stage-markers.type-choice .marker-2,
-    .focus-feed-stage-markers.type-statement .marker-2 {
-      left: 166px;
-    }
-
-    .focus-feed-stage-markers.type-statement .marker-3 {
-      display: none;
+      min-height: 320px;
     }
 
     .focus-feed-panel h4 {
-      font-size: 30px;
+      font-size: 28px;
     }
 
     .focus-feed-kicker,
