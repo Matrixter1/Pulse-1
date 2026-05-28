@@ -1591,8 +1591,8 @@ const feedStyles = `
 
   .focus-feed-body {
     display: grid;
-    grid-template-columns: minmax(280px, 0.76fr) minmax(360px, 0.88fr);
-    gap: 16px;
+    grid-template-columns: minmax(300px, 0.8fr) minmax(380px, 0.9fr);
+    gap: 12px;
     align-items: center;
     min-height: 0;
   }
