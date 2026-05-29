@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import NavBar from '../components/NavBar'
 import QuestionMedia from '../components/QuestionMedia'
 import { EmptyState, PageLoading } from '../components/ui'
@@ -15,13 +15,6 @@ import { CATEGORIES, CATEGORY_COLORS, QUESTION_TYPE_META } from '../constants'
 import { useAuth } from '../lib/auth'
 import { isAdminUser } from '../lib/adminAccess'
 import { getOptimizedFeedMediaUrl } from '../lib/mediaUrls'
-
-const TOP_TABS = [
-  { key: 'all', label: 'Feed' },
-  { key: 'statement', label: 'Signals' },
-  { key: 'choice', label: 'Decisions' },
-  { key: 'ranked', label: 'Rankings' },
-]
 
 const CARD_ACTION = {
   statement: 'Explore Signals',
@@ -456,23 +449,6 @@ export default function Feed() {
     navigate(`/vote/${questionId}`)
   }
 
-  function handleTypeChange(nextType) {
-    const resolvedType = activeType === nextType ? 'all' : nextType
-    setActiveType(resolvedType)
-
-    const nextParams = new URLSearchParams(searchParams)
-    if (resolvedType === 'all') {
-      nextParams.delete('type')
-    } else {
-      nextParams.set('type', resolvedType)
-    }
-    setSearchParams(nextParams, { replace: true })
-
-    setTimeout(() => {
-      contentRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-    }, 50)
-  }
-
   function handleCategoryChange(nextCategory) {
     setActiveCategory(nextCategory)
 
@@ -545,8 +521,7 @@ export default function Feed() {
             <p className="sidebar-kicker">Signal Curator</p>
             <h1>Intellect</h1>
             <p className="sidebar-copy">
-              A sharper home for Signal, Decide, and Rank. Browse by lane or move
-              straight to the question pulling you in.
+              One live signal at a time.
             </p>
           </div>
 
@@ -630,25 +605,6 @@ export default function Feed() {
 
         <div className="feed-main-column">
           <header className="feed-topbar">
-            <div className="feed-tabs" role="tablist" aria-label="Feed lanes">
-              {TOP_TABS.map((tab) => {
-                const isActive = activeType === tab.key
-                return (
-                  <button
-                    key={tab.key}
-                    type="button"
-                    className={`feed-tab ${isActive ? 'active' : ''}`}
-                    onClick={() => handleTypeChange(tab.key)}
-                  >
-                    {tab.label}
-                  </button>
-                )
-              })}
-              <button type="button" className="feed-tab" onClick={() => navigate('/upcoming')}>
-                Upcoming
-              </button>
-            </div>
-
             <div className="feed-topbar-actions">
               <div className="feed-search-shell">
                 <span className="feed-search-icon" aria-hidden="true" />
@@ -832,14 +788,10 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isPulseO
               <span className="focus-feed-minutes">{typeMeta.label}</span>
             </div>
 
-            <h3 className="focus-feed-shell-title">
-              {isPulseOfDay ? 'Daily Signals' : 'Open Signal'}
-            </h3>
           </div>
 
           <div className="focus-feed-shell-status">
-            <span>Currently active</span>
-            <strong>{isPulseOfDay ? 'Today' : 'Now'}</strong>
+            <strong>{isPulseOfDay ? 'Live today' : 'Live now'}</strong>
           </div>
         </div>
 
@@ -893,6 +845,7 @@ function FocusFeedQuestion({ question, counts, onOpen, isFirst = false, isPulseO
             <div className="focus-feed-footer">
               <div className="focus-feed-signals">
                 <span>Anonymous voting</span>
+                <span className="focus-feed-footer-dot" aria-hidden="true">•</span>
                 <span>Community signal hidden until vote</span>
               </div>
               <div className="focus-feed-actions">
@@ -1186,9 +1139,9 @@ const feedStyles = `
     z-index: 20;
     display: flex;
     align-items: center;
-    justify-content: space-between;
-    gap: 18px;
-    padding: 10px 28px;
+    justify-content: flex-end;
+    gap: 10px;
+    padding: 8px 24px;
     background: rgba(10, 12, 18, 0.96);
     border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   }
@@ -1277,7 +1230,7 @@ const feedStyles = `
   }
 
   .feed-content {
-    padding: 16px 28px 30px;
+    padding: 12px 28px 30px;
     display: grid;
     gap: 18px;
     background:
@@ -1544,48 +1497,27 @@ const feedStyles = `
 
   .focus-feed-shell-header {
     display: flex;
-    align-items: start;
+    align-items: center;
     justify-content: space-between;
     gap: 12px;
   }
 
   .focus-feed-shell-copy {
     display: grid;
-    gap: 5px;
-  }
-
-  .focus-feed-shell-title {
-    margin: 0;
-    font-family: var(--font-sans);
-    font-size: clamp(22px, 2.2vw, 30px);
-    line-height: 0.96;
-    font-weight: 700;
-    letter-spacing: -0.04em;
-    color: #f2eef7;
+    gap: 0;
   }
 
   .focus-feed-shell-status {
-    display: grid;
-    gap: 2px;
-    justify-items: end;
-    text-align: right;
-    padding-top: 2px;
-  }
-
-  .focus-feed-shell-status span {
-    color: rgba(232, 230, 240, 0.58);
-    font-size: 10px;
-    font-weight: 700;
-    letter-spacing: 0.18em;
-    text-transform: uppercase;
+    display: flex;
+    align-items: center;
   }
 
   .focus-feed-shell-status strong {
-    color: var(--teal);
-    font-size: clamp(18px, 1.7vw, 24px);
-    line-height: 0.94;
+    color: rgba(96, 223, 208, 0.86);
+    font-size: 11px;
+    line-height: 1;
     font-weight: 700;
-    letter-spacing: -0.03em;
+    letter-spacing: 0.18em;
     text-transform: uppercase;
   }
 
@@ -1864,6 +1796,10 @@ const feedStyles = `
     text-transform: uppercase;
   }
 
+  .focus-feed-footer-dot {
+    color: rgba(232, 230, 240, 0.26);
+  }
+
   .focus-feed-actions {
     display: grid;
     justify-items: end;
@@ -2101,14 +2037,7 @@ const feedStyles = `
     .feed-topbar {
       top: 60px;
       padding: 16px 20px;
-      flex-direction: column;
-      align-items: stretch;
-    }
-
-    .feed-tabs {
-      overflow-x: auto;
-      flex-wrap: nowrap;
-      padding-bottom: 2px;
+      justify-content: space-between;
     }
 
     .feed-topbar-actions {
@@ -2135,15 +2064,8 @@ const feedStyles = `
       padding: 20px;
     }
 
-    .focus-feed-shell-header {
-      grid-template-columns: 1fr;
-      gap: 14px;
-      align-items: start;
-    }
-
     .focus-feed-shell-status {
-      justify-items: start;
-      text-align: left;
+      justify-content: flex-start;
     }
 
     .focus-feed-body {
@@ -2241,10 +2163,6 @@ const feedStyles = `
 
     .focus-feed-meta {
       gap: 8px;
-    }
-
-    .focus-feed-shell-title {
-      font-size: 36px;
     }
 
     .focus-feed-stage {
