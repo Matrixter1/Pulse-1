@@ -1,0 +1,351 @@
+[
+  {
+    "id": "75886f33-a7ab-46d7-96b3-31b10ef241a0",
+    "category": "Technology",
+    "type": "statement",
+    "text": "If an AI quietly took over your scheduling, shopping, and messaging for a month, you'd miss the convenience more than the freedom.",
+    "brief": {
+      "title": "Delegated Life",
+      "plain_english": "This asks whether convenience becomes so persuasive that giving up small pieces of personal agency starts to feel normal.",
+      "background": "Many people already let algorithms shape what they watch, buy, and respond to. This question pushes that pattern one step further: if an assistant became eerily good at running your day, would you still care that it was steering it?",
+      "key_terms": [
+        { "term": "agency", "definition": "Your felt sense of directing your own choices." },
+        { "term": "automation drift", "definition": "How gradual convenience makes surrendering control feel harmless." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "8602a8bb-c968-48ea-bdaa-1aed8662a057",
+    "category": "Technology",
+    "type": "choice",
+    "text": "A decade from now, which AI future would you rather live inside?",
+    "options": [
+      "Open models in everyone's hands",
+      "A few tightly regulated frontier labs",
+      "AI built into public institutions",
+      "A slower world with strict limits on deployment"
+    ],
+    "brief": {
+      "title": "Who Gets the Keys?",
+      "plain_english": "This asks which tradeoff feels safest and most human: openness, concentration, public stewardship, or restraint.",
+      "background": "AI is becoming less of a tool and more of an operating layer for society. The real choice may not be whether it advances, but who gets to shape the rules, speed, and access.",
+      "answer_insights": [
+        { "answer": "Open models in everyone's hands", "insight": "Innovation spreads fast, but so does misuse." },
+        { "answer": "A few tightly regulated frontier labs", "insight": "Control may improve safety, but it concentrates power." },
+        { "answer": "AI built into public institutions", "insight": "Shared oversight could matter more than raw speed." },
+        { "answer": "A slower world with strict limits on deployment", "insight": "Progress is tempered in favor of social breathing room." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "4f268b69-f15b-4a08-b67a-ea72cb6f5bd8",
+    "category": "Politics",
+    "type": "ranked",
+    "text": "Rank these by how much they distort democracy before election day even arrives:",
+    "options": [
+      "Outrage algorithms",
+      "Donor money",
+      "Low-trust media ecosystems",
+      "Public exhaustion and apathy"
+    ],
+    "brief": {
+      "title": "Democracy Before the Ballot",
+      "plain_english": "This asks what does the most damage before people even get to cast a vote.",
+      "background": "Political outcomes are shaped long before election day. Attention systems, cynicism, money, and fractured media all change the environment people make decisions inside.",
+      "answer_insights": [
+        { "answer": "Outrage algorithms", "insight": "The emotional tempo of politics gets engineered upward." },
+        { "answer": "Donor money", "insight": "Agenda-setting can be bought before the public notices." },
+        { "answer": "Low-trust media ecosystems", "insight": "People stop sharing the same reality long before they disagree on policy." },
+        { "answer": "Public exhaustion and apathy", "insight": "When people feel drained, manipulation barely needs to try." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "b89ad13c-2db2-41ea-ba81-97faf65455de",
+    "category": "Consumer",
+    "type": "statement",
+    "text": "The most expensive thing in your life is not what you buy - it's what your attention gets trained to want.",
+    "brief": {
+      "title": "The Price of Attention",
+      "plain_english": "This asks whether the real cost of modern consumer life is desire itself, not just spending.",
+      "background": "Many purchases are downstream of attention patterns. If systems continually shape what feels urgent, tasteful, aspirational, or missing, then desire may be the product long before the product is sold.",
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "19cdd0f8-bf66-4f97-9020-520ff0a99e5d",
+    "category": "Relationships",
+    "type": "choice",
+    "text": "When a close friendship starts drifting, what matters most to you?",
+    "options": [
+      "One honest conversation",
+      "Consistency without pressure",
+      "Space and grace",
+      "A memorable shared experience that resets the bond"
+    ],
+    "brief": {
+      "title": "Saving the Drift",
+      "plain_english": "This asks what kind of repair matters most when closeness fades slowly instead of ending dramatically.",
+      "background": "Most friendships don't break; they thin out. The question is whether connection is rebuilt through words, rhythm, generosity, or moments strong enough to alter momentum.",
+      "answer_insights": [
+        { "answer": "One honest conversation", "insight": "Clarity matters more than guessing." },
+        { "answer": "Consistency without pressure", "insight": "Trust is rebuilt through steady signals, not intensity." },
+        { "answer": "Space and grace", "insight": "Care can survive even when timing doesn't." },
+        { "answer": "A memorable shared experience that resets the bond", "insight": "Sometimes presence succeeds where analysis fails." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "6284c80c-16ce-4224-a63b-1121152d67d1",
+    "category": "Personality",
+    "type": "ranked",
+    "text": "Rank these by how accurately they predict how someone will handle real pressure:",
+    "options": [
+      "Emotional regulation",
+      "Reliability",
+      "Curiosity",
+      "Sense of humor"
+    ],
+    "brief": {
+      "title": "Pressure Reveals Character",
+      "plain_english": "This asks which trait tells you the most about how a person behaves when life stops being easy.",
+      "background": "People often look impressive in calm seasons. Pressure exposes different strengths: steadiness, discipline, flexibility, or the ability to stay human when things get hard.",
+      "answer_insights": [
+        { "answer": "Emotional regulation", "insight": "Staying steady may matter before every other skill can function." },
+        { "answer": "Reliability", "insight": "The person who shows up under strain often shapes the whole outcome." },
+        { "answer": "Curiosity", "insight": "Adaptability can outperform brute confidence when conditions change." },
+        { "answer": "Sense of humor", "insight": "Lightness can be a serious form of resilience." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "fa368983-0f9d-4db8-bb06-9212b459d41e",
+    "category": "Travel",
+    "type": "statement",
+    "text": "A trip is more transformative when it confuses you a little.",
+    "brief": {
+      "title": "Useful Disorientation",
+      "plain_english": "This asks whether the best travel stretches you precisely because it doesn't fit your habits right away.",
+      "background": "Some trips restore us. Others rewire us. Being slightly lost, mismatched, or culturally off-balance can shake loose assumptions that comfort never touches.",
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "f72bb9d0-76ab-43cf-a6ad-8dfaaed31116",
+    "category": "Entertainment",
+    "type": "choice",
+    "text": "You're starting something new tonight. What matters most?",
+    "options": [
+      "A world you can disappear into",
+      "Characters you'd follow anywhere",
+      "Ideas that stay with you",
+      "The thing everyone is talking about"
+    ],
+    "brief": {
+      "title": "What Actually Hooks You",
+      "plain_english": "This asks what pulls you into a new story before you know whether it deserves your time.",
+      "background": "We often say we want originality or quality, but attention is usually captured by a more specific magnet: atmosphere, people, ideas, or social gravity.",
+      "answer_insights": [
+        { "answer": "A world you can disappear into", "insight": "Immersion matters more than plot efficiency." },
+        { "answer": "Characters you'd follow anywhere", "insight": "Attachment to people beats attachment to premise." },
+        { "answer": "Ideas that stay with you", "insight": "The best entertainment earns mental afterlife." },
+        { "answer": "The thing everyone is talking about", "insight": "Shared cultural timing can be its own kind of value." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "7aa4bc64-41bf-4fac-8c62-4e50d451ee87",
+    "category": "Food",
+    "type": "ranked",
+    "text": "Rank these by how much they upgrade an ordinary night out:",
+    "options": [
+      "Great bread at the table",
+      "Perfect lighting",
+      "A first sip that sets the mood",
+      "A dessert worth sharing"
+    ],
+    "brief": {
+      "title": "The Hidden MVP of a Night Out",
+      "plain_english": "This asks what most transforms a meal from merely decent into memorable.",
+      "background": "A great night out is rarely about one expensive centerpiece. Tiny sensory details often determine whether the evening feels generic, intimate, celebratory, or unforgettable.",
+      "answer_insights": [
+        { "answer": "Great bread at the table", "insight": "Warm abundance changes the mood before the meal begins." },
+        { "answer": "Perfect lighting", "insight": "Atmosphere can outperform ingredients in memory." },
+        { "answer": "A first sip that sets the mood", "insight": "The opening note often defines the entire evening." },
+        { "answer": "A dessert worth sharing", "insight": "A strong ending can rewrite the story of the night." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "1b81d9c3-2bf9-42f3-83b2-bd0c2af15782",
+    "category": "Health",
+    "type": "statement",
+    "text": "Most people don't need more health information - they need a life that makes healthy choices easier.",
+    "brief": {
+      "title": "Healthy by Design",
+      "plain_english": "This asks whether behavior change is mostly a knowledge problem or mostly a systems problem.",
+      "background": "Many people already know what would help: sleep, movement, better food, less stress. The harder question is whether their environment, schedule, cost of living, and social rhythm make those choices realistic.",
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "8fa07b0b-86f7-4cca-b180-2ea45dff3c2c",
+    "category": "Lifestyle",
+    "type": "choice",
+    "text": "Which small ritual most improves the quality of your week?",
+    "options": [
+      "Ten quiet minutes alone",
+      "Moving your body early",
+      "Making one thing by hand",
+      "Resetting your space before bed"
+    ],
+    "brief": {
+      "title": "Tiny Rituals, Big Difference",
+      "plain_english": "This asks which small repeated act has the biggest effect on your felt quality of life.",
+      "background": "People often overestimate dramatic resets and underestimate rituals. Tiny practices can quietly determine energy, mood, self-trust, and the texture of an entire week.",
+      "answer_insights": [
+        { "answer": "Ten quiet minutes alone", "insight": "Stillness creates room before the world starts making demands." },
+        { "answer": "Moving your body early", "insight": "Momentum in the morning can reshape the whole day." },
+        { "answer": "Making one thing by hand", "insight": "Creation can restore agency in a consumption-heavy life." },
+        { "answer": "Resetting your space before bed", "insight": "Order tonight often becomes calm tomorrow." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "8ca4700b-a78b-4c27-95ac-b29aea64111d",
+    "category": "Spirituality",
+    "type": "ranked",
+    "text": "Rank these by how often they genuinely wake people up:",
+    "options": [
+      "Grief",
+      "Beauty",
+      "Silence",
+      "Responsibility"
+    ],
+    "brief": {
+      "title": "What Wakes a Human Being Up",
+      "plain_english": "This asks which force most often snaps people out of autopilot and into deeper awareness.",
+      "background": "Spiritual change rarely happens through abstract ideas alone. It often arrives through pain, awe, stillness, or being asked to carry something real.",
+      "answer_insights": [
+        { "answer": "Grief", "insight": "Loss can strip away illusion with brutal speed." },
+        { "answer": "Beauty", "insight": "Wonder can re-order attention without force." },
+        { "answer": "Silence", "insight": "What finally becomes audible may be what was always there." },
+        { "answer": "Responsibility", "insight": "Being needed can mature a person faster than being inspired." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "cf21d8a7-bb7a-4d10-bf59-a96c62e94caa",
+    "category": "Consumer",
+    "type": "choice",
+    "text": "If you had to remove one feature from online shopping forever, which would improve life most?",
+    "options": [
+      "One-click checkout",
+      "Personalized recommendations",
+      "Endless review scrolls",
+      "Saved carts that never expire"
+    ],
+    "brief": {
+      "title": "What Makes Buying Hard to Resist",
+      "plain_english": "This asks which common e-commerce feature most intensifies impulse, frictionless desire, or decision fatigue.",
+      "background": "Online shopping isn't just inventory plus payment. It's a behavioral architecture designed to keep wanting frictionless and reflection delayed.",
+      "answer_insights": [
+        { "answer": "One-click checkout", "insight": "The shorter the pause, the weaker reflection becomes." },
+        { "answer": "Personalized recommendations", "insight": "Desire becomes harder to separate from targeting." },
+        { "answer": "Endless review scrolls", "insight": "Decision paralysis can masquerade as informed choice." },
+        { "answer": "Saved carts that never expire", "insight": "Lingering desire keeps asking for a future self to justify it." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "bc9bc3ef-4d0b-405e-8c98-8872249a8047",
+    "category": "Politics",
+    "type": "statement",
+    "text": "A society becomes fragile the moment every disagreement is treated like a moral emergency.",
+    "brief": {
+      "title": "Permanent Emergency Culture",
+      "plain_english": "This asks whether moral intensity eventually weakens a society's ability to think, persuade, and coexist.",
+      "background": "When every conflict gets framed as ultimate, people lose the space to distinguish danger from difference. That can turn politics into a constant state of escalation.",
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  },
+  {
+    "id": "a6f3d21c-8bbd-429a-a0aa-a4ce5c7d8fab",
+    "category": "Technology",
+    "type": "ranked",
+    "text": "Rank these by how likely they are to change human identity first:",
+    "options": [
+      "AI companions",
+      "Wearable neurotech",
+      "Persistent augmented reality",
+      "Synthetic voices that sound exactly like us"
+    ],
+    "brief": {
+      "title": "The First Identity Shift",
+      "plain_english": "This asks which emerging technology is most likely to alter how people experience being a self.",
+      "background": "Not all technological change is economic or practical. Some tools reshape intimacy, memory, perception, and selfhood itself long before institutions catch up.",
+      "answer_insights": [
+        { "answer": "AI companions", "insight": "Relationships may be the fastest route into identity change." },
+        { "answer": "Wearable neurotech", "insight": "The boundary between thought and interface gets thinner." },
+        { "answer": "Persistent augmented reality", "insight": "When perception is layered, reality becomes co-authored." },
+        { "answer": "Synthetic voices that sound exactly like us", "insight": "Identity shifts when presence can be reproduced without the person." }
+      ],
+      "sources": []
+    },
+    "featured": false,
+    "archived": false,
+    "reveal_mode": "instant"
+  }
+]
